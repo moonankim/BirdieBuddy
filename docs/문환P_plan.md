@@ -57,6 +57,7 @@ flowchart LR
 
 ```
 BirdieBuddy/
+├─ docs/                     # architecture.md + 담당자별 plan 파일
 ├─ app/
 │  ├─ (user)/draw/            # 카드 뽑기 연출·결과        — 현호P
 │  ├─ (user)/collection/      # 컬렉션·강화                — 현호P
