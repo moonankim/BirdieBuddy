@@ -49,7 +49,7 @@ flowchart LR
 | DB | Supabase Postgres | 스키마: `supabase/schema.sql` (홍주P B-01) |
 | 실시간 채팅 | Supabase Realtime (`messages` 테이블 구독) | 막히면 3초 폴링으로 대체 |
 | 이미지 | Supabase Storage | 카드 이미지 30장 사전 생성 |
-| AI | LLM API (메시지당 1회 호출) | 필터 + 품질 점수를 JSON 하나로 |
+| AI | Jev + Claude API | 판정과 품질 점수는 Jev 1회, 수정 문장은 Claude 별도 호출 |
 | 배포 | Vercel | 1일차 오전 첫 배포 |
 | 보안 | RLS 끔, API Route에서만 service role 키 사용 | 클라이언트는 Realtime 구독용 anon 키만 |
 
@@ -137,20 +137,26 @@ BirdieBuddy/
 
 우선순위 계산(`ownScore`, `priority`)은 AI가 아닌 공식이므로 홍주P가 `lib/scoring.ts`에 둡니다. AI 모듈은 LLM을 호출하는 함수만 제공합니다.
 
+> 결정된 인터페이스이며 아직 구현 전입니다. 근거는 `docs/superpowers/specs/2026-11-09-birdiebuddy-ai-design.md`, 구현 계획은 `docs/superpowers/plans/2026-11-09-lib-ai-moderation.md`에 있습니다.
+
 ```ts
 // lib/ai/index.ts
 export type Verdict = 'pass' | 'suggest' | 'block';
 
 export async function moderateAndScore(input: {
   body: string;
-  disabledFilters: string[];          // 인플루언서가 끈 선택 필터 (욕설, 비하 등)
+  disabledFilters: string[];          // 인플루언서가 끈 선택 필터, 영문 key (profanity 등). 항상 차단 항목은 무시
 }): Promise<{
   verdict: Verdict;
-  category?: string;                  // 협박, 성희롱, 스팸 등
+  category?: string;                  // 우선순위가 가장 높은 항목의 영문 key (threat 등)
+  flagged: { key: string; label: string; scope: '선택' | '항상 차단'; score: number }[];
   reason?: string;                    // 유저에게 보여줄 짧은 사유
-  rewrite?: string;                   // suggest일 때 수정 제안
+  guide?: string | null;              // 수정 안내 문구 (선택 항목만)
   quality: number;                    // 0~100, 메시지 품질 점수
 }>;
+
+// suggest일 때 화면이 별도로 호출. null이면 안내 문구만 표시
+export async function suggestRewrite(body: string, flagged: string[], disabledFilters: string[]): Promise<string | null>;
 
 export async function clusterQuestion(roomId: string, body: string): Promise<string | null>; // P2, cluster_id
 export async function summarize(messages: { body: string; sender: string }[]): Promise<string>;  // P2
@@ -198,6 +204,7 @@ AI를 실제로 쓰는 기능을 맡습니다: 의사결정 모델(jev)이나 AI
 **주는 것**
 
 - `moderateAndScore` 함수 — 필터 판정 + 품질 점수 (A-02, A-03) → 홍주P
+- `suggestRewrite` 함수 — suggest 판정의 수정 문장 (A-02) → 홍주P
 - `clusterQuestion`, `summarize` 함수 (A-04, A-05) → 홍주P·자성P
 - 카드 이미지 URL 30개 (A-06) → 홍주P 시드
 
@@ -206,19 +213,19 @@ AI를 실제로 쓰는 기능을 맡습니다: 의사결정 모델(jev)이나 AI
 | ID | 티켓 | 티어 | 선행 | 완료 기준 |
 | --- | --- | --- | --- | --- |
 | A-01 | LLM API 키·SDK 셋업, AI 모듈 함수 시그니처 공유 (위 인터페이스) | P0 | - | `lib/ai/index.ts` 스텁 머지, 홍주P가 import 가능 |
-| A-02 | 메시지 안전 필터 — 의사결정 모델(jev) 또는 AI API로 항상 차단·선택 필터 판정, 차단 사유, 수정 제안 | P1 | A-01 | verdict/category/reason/rewrite를 JSON으로 반환, 응답 2초 이내 |
-| A-03 | 메시지 품질 점수 — 구체성·답변 가치·중복 여부를 0~100으로 (A-02와 같은 호출) | P1 | A-02 | quality 필드 반환, 구체적인 질문이 인사말보다 높게 |
+| A-02 | 메시지 안전 필터 — jev로 항상 차단·선택 필터 판정, 저장된 차단 사유·안내. 수정 문장은 Claude로 별도 생성(`suggestRewrite`) | P1 | A-01 | verdict/category/flagged/reason/guide를 반환, 판정 응답 2초 이내. 수정 문장은 suggestRewrite로 분리 |
+| A-03 | 메시지 품질 점수 — 구체성·답변 가치를 0~100으로 (A-02와 같은 jev 호출). 중복은 A-04에서 처리 | P1 | A-02 | quality 필드 반환, 구체적인 질문이 인사말보다 높게 |
 | A-04 | 유사 질문 묶기 `clusterQuestion` — 대표 질문 + 인원수 | P2 | A-02 | "드라이버 비거리" 류 질문 3개가 하나의 cluster로 |
 | A-05 | 대화 요약 `summarize` + POST /api/rooms/:id/summary | P2 | A-01 | 최근 50건을 5줄 이내로 요약 |
 | A-06 | 카드 이미지 30장 생성 (10명 × 일러스트·레트로·홀로그램), Storage 업로드 | P0 | D-02 | URL 30개 목록을 홍주P에 전달. 실존 인물은 동의 전이면 가상 인물·실루엣으로 |
 | A-07 | LLM 실패·지연 시 금칙어 폴백 | P1 | A-02 | API 키를 빼도 필터가 금칙어로 동작 |
-| A-08 | 필터 검증용 테스트 문장 세트 (통과·수정 제안·차단 각 항목별) + 시연 메시지 판정 사전 확인 | P1 | A-02 | 테스트 세트 기대 판정 일치율 확인, 시연용 문장은 전부 기대대로 |
+| A-08 | 필터 검증용 테스트 문장 세트 (통과·수정 제안·차단 각 항목별) + 시연 메시지 판정 사전 확인 | P1 | A-02 | 테스트 세트(`lib/ai/tests/data/moderation-test-set.json`) 기대 판정 일치율 확인, 시연용 문장은 전부 기대대로 |
 
 ### 체크리스트
 
 - [ ] **A-01** LLM API 키·SDK 셋업, AI 모듈 함수 시그니처 공유 (위 인터페이스) (P0)
-- [ ] **A-02** 메시지 안전 필터 — 의사결정 모델(jev) 또는 AI API로 항상 차단·선택 필터 판정, 차단 사유, 수정 제안 (P1)
-- [ ] **A-03** 메시지 품질 점수 — 구체성·답변 가치·중복 여부를 0~100으로 (A-02와 같은 호출) (P1)
+- [ ] **A-02** 메시지 안전 필터 — jev로 항상 차단·선택 필터 판정, 저장된 차단 사유·안내. 수정 문장은 Claude로 별도 생성(`suggestRewrite`) (P1)
+- [ ] **A-03** 메시지 품질 점수 — 구체성·답변 가치를 0~100으로 (A-02와 같은 jev 호출). 중복은 A-04에서 처리 (P1)
 - [ ] **A-04** 유사 질문 묶기 `clusterQuestion` — 대표 질문 + 인원수 (P2)
 - [ ] **A-05** 대화 요약 `summarize` + POST /api/rooms/:id/summary (P2)
 - [ ] **A-06** 카드 이미지 30장 생성 (10명 × 일러스트·레트로·홀로그램), Storage 업로드 (P0)

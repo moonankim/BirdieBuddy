@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>요약 비교 시험</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: light-dark(#f6f6f3, #17181a);
+    --panel: light-dark(#ffffff, #212326);
+    --line: light-dark(#dedfd9, #383b40);
+    --text: light-dark(#1d1e20, #ececea);
+    --muted: light-dark(#6a6d72, #a0a3a8);
+    --block: light-dark(#b3261e, #ff8a80);
+    --accent: light-dark(#17693f, #63d197);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
+  main { max-width: 1120px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  nav.tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--line); }
+  nav.tabs a { padding: 8px 12px; margin-bottom: -1px; color: var(--muted); text-decoration: none; border-bottom: 2px solid transparent; }
+  nav.tabs a:hover { color: var(--text); }
+  nav.tabs a[aria-current] { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  a { color: var(--accent); }
+  .hint { margin: 0 0 20px; color: var(--muted); }
+  form { display: flex; gap: 8px; margin-bottom: 16px; }
+  select { flex: 1; min-width: 0; padding: 12px 14px; font: inherit; color: inherit; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+  button { padding: 0 18px; font: inherit; font-weight: 600; color: var(--bg); background: var(--text); border: 0; border-radius: 8px; cursor: pointer; }
+  .room, .panel { padding: 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+  .room { margin-bottom: 16px; }
+  .room h2 { margin: 0 0 6px; font-size: 15px; }
+  .panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  @media (max-width: 720px) { .panels { grid-template-columns: minmax(0, 1fr); } }
+  .head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .head h2 { margin: 0; font-size: 16px; }
+  .model { color: var(--muted); font-size: 13px; }
+  .ms { margin: 12px 0 8px; font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .ms small { font-size: 15px; font-weight: 500; color: var(--muted); }
+  .muted { color: var(--muted); }
+  .error { color: var(--block); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .label { margin: 14px 0 4px; font-size: 13px; color: var(--muted); }
+  ol, ul { margin: 0; padding-left: 20px; }
+  li { margin-bottom: 8px; }
+  li strong { display: block; }
+  .chat { max-height: 320px; overflow: auto; margin-top: 8px; padding: 0; list-style: none; font-size: 13px; }
+  .chat li { margin: 0; padding: 3px 0; border-bottom: 1px solid var(--line); }
+  details { margin-top: 10px; } summary { cursor: pointer; font-weight: 600; font-size: 13px; }
+  pre { margin: 8px 0 0; padding: 10px; max-height: 320px; overflow: auto; font-size: 12px; line-height: 1.45; background: var(--bg); border-radius: 6px; }
+  h3 { margin: 28px 0 8px; font-size: 15px; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+</style>
+</head>
+<body>
+<main>
+  <nav class="tabs" aria-label="시험 페이지">
+    <a href="/">메시지 필터</a>
+    <a href="/summary" aria-current="page">대화 요약</a>
+    <a href="/grouping">유사 질문 묶기</a>
+  </nav>
+  <h1>대화 요약 비교 시험</h1>
+  <p class="hint">가상 메시지 300개를 두 모델에 동시에 보내고, 끝나는 대로 결과를 보여 줍니다.</p>
+  <form id="form">
+    <select id="room" aria-label="채팅방"></select>
+    <button>요약</button>
+  </form>
+  <section class="room" id="room-info"></section>
+  <div class="panels">
+    <section class="panel" id="haiku"></section>
+    <section class="panel" id="sonnet"></section>
+  </div>
+  <h3>이번 세션 기록</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>채팅방</th><th>Haiku 첫 내용 / 완료</th><th>Haiku 입력/출력 토큰</th><th>Sonnet 첫 내용 / 완료</th><th>Sonnet 입력/출력 토큰</th></tr></thead>
+      <tbody id="log"></tbody>
+    </table>
+  </div>
+</main>
+<script>
+  const MODELS = { haiku: "Claude Haiku 5.5", sonnet: "Claude Sonnet 5.5" };
+  const form = document.querySelector("#form");
+  const select = document.querySelector("#room");
+  const info = document.querySelector("#room-info");
+  const log = document.querySelector("#log");
+  let rooms = [];
+  let latestRun = 0;
+
+  function el(tag, props = {}, ...children) {
+    const node = Object.assign(document.createElement(tag), props);
+    node.append(...children);
+    return node;
+  }
+
+  function panelHead(key, model) {
+    return el("div", { className: "head" },
+      el("h2", { textContent: MODELS[key] }),
+      el("span", { className: "model", textContent: model ?? "" }));
+  }
+
+  function fill(key, ...children) {
+    document.getElementById(key).replaceChildren(...children);
+  }
+
+  function json(title, value, open) {
+    return el("details", { open },
+      el("summary", { textContent: title }),
+      el("pre", { textContent: JSON.stringify(value, null, 2) }));
+  }
+
+  function showRoom(room) {
+    info.replaceChildren(
+      el("h2", { textContent: `${room.influencer} (${room.type}) · 메시지 ${room.messages.length}개` }),
+      el("div", { className: "label", textContent: "데이터를 만들 때 넣어 둔 화제 (요약이 맞는지 볼 기준)" }),
+      el("ul", {}, ...room.topics.map((topic) => el("li", { textContent: topic }))),
+      el("details", {},
+        el("summary", { textContent: "메시지 원문 보기" }),
+        el("ul", { className: "chat" }, ...room.messages.map((m) =>
+          el("li", { textContent: `${m.nickname}: ${m.text}` })))));
+  }
+
+  function renderSummary(s) {
+    return [
+      el("div", { className: "label", textContent: "전체 요약" }),
+      el("div", { textContent: s.overview }),
+      el("div", { className: "label", textContent: "분위기" }),
+      el("div", { textContent: s.mood }),
+      el("div", { className: "label", textContent: "주요 화제" }),
+      el("ol", {}, ...(s.topics ?? []).map((t) => el("li", {},
+        el("strong", { textContent: `${t.title ?? ""}${approx(t.approx_messages, "개")}` }), t.summary ?? ""))),
+      el("div", { className: "label", textContent: "답하면 좋은 질문" }),
+      el("ol", {}, ...(s.questions_to_answer ?? []).map((q) =>
+        el("li", { textContent: `${q.question ?? ""}${approx(q.approx_askers, "명")}` }))),
+    ];
+  }
+
+  function approx(count, unit) {
+    return count === undefined ? "" : ` (약 ${count}${unit})`;
+  }
+
+  function msText(ms) {
+    return ms === undefined ? "-" : `${Math.round(ms).toLocaleString()} ms`;
+  }
+
+  function renderPartial(key, event) {
+    fill(key,
+      panelHead(key),
+      el("p", { className: "muted", textContent: `첫 내용 ${msText(event.firstVisibleMs)} · 작성 중…` }),
+      ...renderSummary(event.partial));
+  }
+
+  function renderResult(key, r) {
+    if (r.error) {
+      fill(key, panelHead(key), el("p", { className: "error", textContent: r.error }));
+      return;
+    }
+    fill(key,
+      panelHead(key, r.model),
+      el("div", { className: "ms" }, Math.round(r.ms).toLocaleString(), el("small", { textContent: " ms 완료" })),
+      el("p", { className: "muted", textContent: `첫 내용 표시 ${msText(r.firstVisibleMs)}` }),
+      ...(r.summary ? renderSummary(r.summary) : [el("p", { className: "muted", textContent: r.note })]),
+      el("p", { className: "muted", textContent: `입력 ${r.usage.input_tokens} 토큰 · 출력 ${r.usage.output_tokens} 토큰` }),
+      json("응답 원본", r.raw, false),
+      json("보낸 요청", r.request, false));
+  }
+
+  async function run(key, roomId, runId, cells) {
+    fill(key, panelHead(key), el("p", { className: "muted", textContent: "처리 중…" }));
+    let result;
+    try {
+      const response = await fetch(`/api/summary/${key}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomId }),
+      });
+      const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+      let buffer = "";
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += value;
+        const lines = buffer.split("\n");
+        buffer = lines.pop();
+        for (const line of lines) {
+          const event = JSON.parse(line);
+          if (event.type !== "partial") result = event;
+          else if (runId === latestRun) renderPartial(key, event);
+        }
+      }
+    } catch {
+      result = { error: "로컬 서버에 연결하지 못했습니다." };
+    }
+    result ??= { error: "응답이 중간에 끊겼습니다." };
+    cells.ms.textContent = result.error ? "오류" : `${msText(result.firstVisibleMs)} / ${msText(result.ms)}`;
+    cells.tokens.textContent = result.error ? "-" : `${result.usage.input_tokens} / ${result.usage.output_tokens}`;
+    if (runId === latestRun) renderResult(key, result);
+  }
+
+  function addLogRow(label) {
+    const cell = () => el("td", { textContent: "…" });
+    const cells = { haiku: { ms: cell(), tokens: cell() }, sonnet: { ms: cell(), tokens: cell() } };
+    log.prepend(el("tr", {},
+      el("td", { textContent: label }),
+      cells.haiku.ms, cells.haiku.tokens, cells.sonnet.ms, cells.sonnet.tokens));
+    return cells;
+  }
+
+  function resetPanels() {
+    for (const key of Object.keys(MODELS)) {
+      fill(key, panelHead(key), el("p", { className: "muted", textContent: "요약 버튼을 누르면 결과가 여기에 표시됩니다." }));
+    }
+  }
+
+  select.addEventListener("change", () => {
+    latestRun++;
+    showRoom(rooms.find((room) => room.id === select.value));
+    resetPanels();
+  });
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const room = rooms.find((candidate) => candidate.id === select.value);
+    if (!room) return;
+    const runId = ++latestRun;
+    const cells = addLogRow(room.influencer);
+    for (const key of Object.keys(MODELS)) run(key, room.id, runId, cells[key]);
+  });
+
+  resetPanels();
+  info.textContent = "채팅방을 불러오는 중…";
+  fetch("/api/rooms")
+    .then((response) => response.json())
+    .then((loaded) => {
+      rooms = loaded;
+      select.append(...rooms.map((room) => el("option", { value: room.id, textContent: `${room.influencer} (${room.type})` })));
+      showRoom(rooms[0]);
+    })
+    .catch(() => {
+      info.replaceChildren(el("p", { className: "error", textContent: "채팅방 데이터를 불러오지 못했습니다." }));
+    });
+</script>
+</body>
+</html>

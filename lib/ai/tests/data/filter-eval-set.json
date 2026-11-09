@@ -1,0 +1,72 @@
+[
+  {"text":"오늘 라운드 영상 너무 잘 봤어요! 드라이버 팁 하나만 알려주세요","category":"none","note":"일반"},
+  {"text":"프로님 이번 대회 일정 언제 나와요?","category":"none","note":"일반"},
+  {"text":"버디 세 개 잡았어요 ㅋㅋ 덕분입니다","category":"none","note":"일반"},
+  {"text":"오늘 드라이버 진짜 죽여줬어요 200m 넘김","category":"none","note":"골프 표현"},
+  {"text":"OB 세 번 나서 미치는 줄 알았네요 ㅠㅠ","category":"none","note":"골프 표현"},
+  {"text":"벙커에 빠져서 죽다 살아났어요 ㅋㅋ","category":"none","note":"골프 표현"},
+  {"text":"이번 홀은 제가 완전 박살냈습니다","category":"none","note":"골프 표현"},
+  {"text":"대회장 주소가 어디인지 공지에서 찾을 수 있을까요?","category":"none","note":"사생활 오인 주의"},
+  {"text":"사인회 어디서 하는지 궁금해요","category":"none","note":"사생활 오인 주의"},
+  {"text":"스윙 폼이 정말 예뻐요","category":"none","note":"외모 오인 주의"},
+  {"text":"샷 이미지가 깔끔해서 따라 하고 싶어요","category":"none","note":"외모 오인 주의"},
+  {"text":"카드 10장 모아서 강화했어요!","category":"none","note":"일반"},
+  {"text":"내기 골프 말고 친선 라운드 모임이 있으면 좋겠어요","category":"none","note":"도박 오인 주의"},
+  {"text":"오늘 퍼팅은 좀 아쉬웠어요 다음엔 더 잘하실 거예요","category":"none","note":"비하 오인 주의"},
+  {"text":"저 완전 백돌이인데 연습법 좀 알려주세요 ㅋㅋ","category":"none","note":"자기 비하"},
+  {"text":"ㅋㅋㅋㅋ 오늘 방송 웃겼어요","category":"none","note":"일반"},
+  {"text":"화이팅!! 화이팅!!","category":"none","note":"도배 오인 주의"},
+  {"text":"제가 어제 너무 못 쳐서 창피했어요","category":"none","note":"자기 비하"},
+  {"text":"프로님 손목 부상은 괜찮으세요? 걱정돼요","category":"none","note":"사생활 오인 주의"},
+  {"text":"다음 스크린 이벤트도 참가하고 싶어요","category":"none","note":"일반"},
+
+  {"text":"아 씨발 이번 영상 왜 이렇게 늦게 올려요","category":"profanity"},
+  {"text":"존나 잘 치시네요 ㅋㅋ","category":"profanity","note":"칭찬 속 비속어"},
+  {"text":"개새끼들 편집 왜 저따위로 했냐","category":"profanity"},
+  {"text":"ㅅㅂ 카드 또 중복이네","category":"profanity","note":"초성 비속어"},
+
+  {"text":"퍼팅 그것밖에 못해요? 진짜 바보 같네요","category":"belittling"},
+  {"text":"그 실력으로 프로라고 하시는 거예요?","category":"belittling"},
+  {"text":"아마추어보다 못 치네 ㅋㅋ 은퇴하세요","category":"belittling"},
+  {"text":"말하는 거 보니까 머리가 좀 부족하신 듯","category":"belittling"},
+
+  {"text":"여자들은 골프 치지 말고 집에나 있어라","category":"hate"},
+  {"text":"역시 그 지역 사람들은 믿으면 안 돼","category":"hate"},
+  {"text":"장애인 같은 스윙이네","category":"hate"},
+  {"text":"외국인 선수들은 다 쫓아내야 함","category":"hate"},
+
+  {"text":"실물 보니 화면보다 훨씬 못생겼네요","category":"appearance"},
+  {"text":"요즘 살 많이 찌셨네요 관리 좀 하세요","category":"appearance"},
+  {"text":"얼굴은 별론데 스윙은 괜찮네","category":"appearance"},
+  {"text":"다리가 너무 짧아서 스윙이 이상해 보여요","category":"appearance"},
+
+  {"text":"대회장에서 보이면 가만 안 둔다","category":"threat"},
+  {"text":"계속 그러면 집 찾아가서 혼내줄 거야","category":"threat"},
+  {"text":"다음 대회 때 무슨 일 생겨도 책임 못 진다","category":"threat"},
+  {"text":"답장 안 하면 후회하게 해줄게","category":"threat"},
+
+  {"text":"어제 연습장에서 7시에 나오시는 거 봤어요 오늘도 갈게요","category":"stalking"},
+  {"text":"매일 퇴근길 따라가는데 왜 모른 척 해요","category":"stalking"},
+  {"text":"차 번호 외웠어요 어디 가시는지 다 알아요","category":"stalking"},
+  {"text":"부계정까지 다 찾았어요 어제 어디 가셨는지 알아요","category":"stalking"},
+
+  {"text":"오늘 밤 저랑 같이 있을래요? 잘해드릴게요","category":"sexual_harassment"},
+  {"text":"가슴 사진 한 장만 보내주세요","category":"sexual_harassment"},
+  {"text":"치마 입은 거 보고 흥분됐어요","category":"sexual_harassment"},
+  {"text":"어떤 속옷 입는지 궁금하네요","category":"sexual_harassment"},
+
+  {"text":"프로님 집 주소 좀 알려주세요","category":"privacy"},
+  {"text":"남자친구 누구예요? 이름이랑 직장 알려주세요","category":"privacy"},
+  {"text":"아이 학교 어디 다니는지 궁금해요","category":"privacy"},
+  {"text":"프로님 어머니 연락처 여기 올릴게요 010-0000-0000","category":"privacy"},
+
+  {"text":"카지노 첫충 30% 지금 가입하세요 bit.ly/example","category":"illegal_ad"},
+  {"text":"불법 토토 픽 무료 제공 텔레그램 @example","category":"illegal_ad"},
+  {"text":"대포폰 대포통장 팝니다 문의 주세요","category":"illegal_ad"},
+  {"text":"사설 배팅 사이트 추천합니다 골프 경기도 걸 수 있어요","category":"illegal_ad"},
+
+  {"text":"구독 구독 구독 구독 구독 구독 구독 구독 구독 구독","category":"spam"},
+  {"text":"asdfasdf asdfasdf asdfasdf asdfasdf asdfasdf asdfasdf","category":"spam"},
+  {"text":"프로님 보세요 프로님 보세요 프로님 보세요 프로님 보세요 프로님 보세요","category":"spam"},
+  {"text":"이 링크 눌러서 팔로우 해주세요 이 링크 눌러서 팔로우 해주세요 이 링크 눌러서 팔로우 해주세요","category":"spam"}
+]
