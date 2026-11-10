@@ -2,22 +2,20 @@
 
 **담당:** Supabase 백엔드·채팅 서비스·브라우저 호출 SDK
 
-**계약 버전:** 1.1 / 2026-11-10
+**계약 버전:** 1.3 / 2026-11-10
 
 **상태:** 개발 실행 명세. 구현·프로젝트 연결·배포 완료를 뜻하지 않음.
 
-> 홍주P 담당 범위의 독립 명세다. Claude 원문이나 다른 계획을 읽어 요구사항을 찾아내지 않아도 되도록 필요한 계약을 모았다. 착수 시 저장소의 AGENTS.md 등 작업 지침과 실제 기존 코드는 확인한다.
+> 제품 규칙은 [prd.md](./prd.md)를 기준으로 한다. 이 문서는 홍주P 담당 백엔드의 실행 계약이며, 공통 구조는 [architecture.md](./architecture.md)를 따른다. 구현 방식은 제품 규칙을 바꾸지 않는 범위에서 구체화한다.
 >
-> 기존 계획의 **Supabase CSR·RLS·Auth 사용자 ID·migration·Edge Function** 결정을 유지한다. 다른 문서에 남은 Next.js 서버 API·RLS 비활성화·독립 users 테이블·schema.sql 직접 실행 설명은 이 백엔드에 적용하지 않는다. 다른 담당자 문서는 이번 보완에서 수정하지 않았다.
->
-> 기획 원문: [Claude artifact](https://claude.ai/artifact/3T29sepfiGsRJtGRXF1XXH#202ef63e-f01c). 본문은 확인하지 못했다. 아래 **보완 기본값**은 이번 단독 개발을 위해 채택한 기준이며 원문에서 확인한 사실이 아니다. 명시적인 변경 요청이 없다면 이 값으로 진행한다.
+> **Supabase CSR·RLS·Auth 사용자 ID·migration·Edge Function** 결정을 유지한다. 제품 정책이 이 계약과 다르면 PRD를 우선하고, 구현 계약을 함께 고친다. PRD에서 정하지 않은 세부사항만 이 문서의 명시된 기본값으로 다룬다.
 
 ## 0. 한 문장으로 시작하는 실행 지시
 
 사용자가 **“md 파일 기반으로 개발 시작해”**라고 요청하면 이 파일을 실행 명세로 삼아 다음을 수행한다. 문서 보완 중인 현재 작업에서는 프로젝트 설정·코드·원격 데이터를 변경하지 않는다.
 
 1. 저장소 상태와 작업 지침을 확인하고 기존 수정사항을 보존한다. 아래 체크리스트와 실제 파일을 비교해 미완료 지점부터 진행한다. 체크 표시만으로 구현 완료를 가정하지 않는다.
-2. B-01~B-13을 구현한다. 미정이던 정책은 아래 기본값을 사용한다. 다른 담당자의 화면·AI 코드·최종 이미지가 없다는 이유로 독립 가능한 백엔드 구현을 중단하지 않는다.
+2. B-01~B-14를 구현한다. 제품 규칙은 PRD를 적용하고, 미정인 기술 세부사항은 아래 계약을 사용한다. 다른 담당자의 화면·AI 코드·최종 이미지가 없다는 이유로 독립 가능한 백엔드 구현을 중단하지 않는다.
 3. migration → 권한/RPC → 시드·계정 → SDK → Edge Function → 통합 검증 순서로 진행한다. 화면 대신 SDK 테스트로 P0/P1을 먼저 완성한다.
 4. 정상·거부·재시도·동시성 검증을 실행하고 실패를 수정한다. 티켓별 환경과 증거를 기록하며 구현 시 harness/verification-log.md도 갱신한다.
 5. 자격증명·컨테이너 등 외부 조건이 없으면 가능한 구현과 정적 검사를 계속한다. 필요한 사용자 조치와 재개 방법만 구체적으로 보고한다. 없는 권한·키·검증 결과를 만들어내지 않는다.
@@ -35,11 +33,12 @@
 | 점수·재입장·월 경과·보관 미정 | §§5·8의 보완 기본값 |
 | 재시도·동시성·AI 우회 경계 없음 | §§6~7의 잠금·멱등성·service-only 저장 |
 | Supabase 연결·관리 방법 없음 | §2의 전달받은 값과 관리 인증 절차 |
+| PRD와 어긋난 게임 규칙·빠진 프로필/보유 카드 계약 | §§3~12의 PRD 대조 결과와 B-14 |
 | 완료 판단 증거 없음 | §§11~14의 검증·상태·완료표 |
 
 ### 0.2 최종 검토 판정과 실행 전제
 
-**추가 기획 문서 없이 초기 파일 생성부터 B-01~B-13의 백엔드 구현·로컬 검증까지 진행하는 기준으로 사용한다.** 구현 중의 라이브러리 설치·타입 생성·공식 도구 사용법 확인은 일반 개발 작업이며, 별도 제품 정책을 사용자에게 다시 결정받을 이유가 아니다.
+**PRD의 제품 규칙을 백엔드 계약에 반영한 B-01~B-14 실행 기준이다.** 구현 중의 라이브러리 설치·타입 생성·공식 도구 사용법 확인은 일반 개발 작업이며, PRD에 없는 기술 세부사항을 정하기 위해 별도 제품 결정을 다시 받을 이유가 없다.
 
 - 로컬 필수 환경은 Node.js 24, 기존 package manager(신규 저장소는 npm), Deno 2, 실행 중인 Docker 호환 런타임이다. 존재 여부·버전을 먼저 확인하고 의존성은 lockfile에 고정한다. 없는 환경은 구체적으로 보고하고 가능한 코드·정적 검증을 계속한다.
 - 로컬 Supabase는 자체 Auth/DB 관리 연결 값을 사용한다. **사용자가 제공한 원격 키나 CLI 로그인은 로컬 구현·통합 검증의 선행 조건이 아니다.** 로컬 값을 얻는 순서는 §10.3에 고정한다.
@@ -72,11 +71,12 @@ lib/supabase/database.types.ts      CLI 생성 DB 타입
 lib/api/index.ts                    클라이언트 주입형 API factory·브라우저 export
 lib/api/types.ts                    도메인 타입·Result·ApiError·Page
 lib/api/cards.ts                    completeRound / getCollection / upgradeCard
-lib/api/rooms.ts                    getRooms / joinRoom / getMyMembership / advanceDemoMonth
+lib/api/rooms.ts                    getRooms / joinRoom / getMyMembership / getMyRoundGaugeSummary / advanceDemoMonth
 lib/api/chat.ts                     getMessages / submitMessage / subscribeRoomMessages
                                    getRoomInbox / replyToMessage / summarizeRoom / clusterQuestions
 lib/api/verifications.ts            requestVerification / getMyVerifications
                                    getPendingVerifications / approveVerification
+lib/api/influencer-profiles.ts      getMyInfluencerProfile / uploadInfluencerProfilePhoto
 lib/api/game-config.ts              getGameConfig / updateGameConfig
 lib/api/room-filters.ts             getRoomFilters / updateRoomFilters
 supabase/config.toml                로컬 구성
@@ -120,12 +120,22 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_QuSwvsbS0CYx6aah9Y69XA_62e7n
 ### 2.2 공개 연결과 관리 권한
 
 - publishable key는 앱 식별용이며 RLS가 허용한 사용자 작업만 한다. 테이블 생성·migration·SQL 함수 정의·역할 승격 권한이 아니다.
-- schema/RPC/RLS/trigger 변경은 Supabase CLI의 관리 계정 인증과 DB 접근 권한으로 수행한다. Edge 배포·Secrets 관리도 관리 권한이 필요하다.
+- 원격 변경에는 아래 세 권한 층을 각각 갖춰야 한다. 한 층의 로그인 성공은 나머지 권한을 뜻하지 않는다.
+
+| 권한 층 | 필요한 권한 | 확인 기준 |
+| --- | --- | --- |
+| Supabase 관리 API | 대상 프로젝트에 접근 가능한 Supabase 계정과 필요한 CLI/PAT 작업 범위 | 계정 멤버십·프로젝트 ref·수행할 관리 작업 확인 |
+| Postgres DB | 대상 DB에 접속할 수 있는 DB 자격증명 또는 허용된 임시 로그인 방식 | 네트워크 접근·DB 버전·migration history 읽기 확인. PAT만으로 DB SQL 권한을 얻지 않음 |
+| 앱 런타임 | publishable key와 로그인 사용자의 JWT, RLS/RPC 정책 | 실제 사용자 JWT로 허용·거부 동작 확인. 서버 secret은 브라우저에 사용하지 않음 |
+
+- migration·SQL/RLS·DB RPC는 관리 API 인증만으로 충분하다고 가정하지 않는다. 대상 DB 권한도 별도로 확인한다. Edge Function 배포는 대상 프로젝트의 함수 배포 권한이, hosted Secrets 추가·변경·삭제는 현재 Supabase 문서상 Owner 또는 Administrator 권한이 필요하다.
 - Edge의 service-only RPC·Auth Admin에는 서버용 Supabase secret key가 필요하다. 이 키도 임의 DDL을 수행하는 DB 암호의 대체품은 아니다.
-- SUPABASE_ACCESS_TOKEN, DB 암호, Supabase secret key, LLM 키는 문서·브라우저·Git·로그에 넣지 않는다. CLI 로그인 저장소·실행 셸·암호 관리자·Functions Secrets를 사용한다.
+- Codex의 Full Access는 로컬 파일·네트워크 실행 범위일 뿐 Supabase 계정 로그인, 프로젝트 멤버십, PAT, DB 권한을 부여하지 않는다. Supabase MCP 연결의 로그인 상태도 CLI 로그인과 별개다.
+- Supabase PAT는 그 토큰 소유 계정 권한을 넘지 못한다. 개인 전체 권한 Legacy PAT보다 대상 프로젝트와 필요한 작업만 허용하는 scoped PAT를 우선한다. projects list의 계정 전체 조회 권한은 known project ref에 접근할 때 필수로 가정하지 않는다.
+- CLI 로그인/PAT, DB 암호, Supabase secret key, LLM 키는 서로 다른 자격증명이다. 문서·브라우저 번들·Git·일반 로그에 넣지 않는다. 관리형 비밀 저장소 또는 보호된 실행 환경을 사용하고, 실제 토큰 값을 채팅에 붙이지 않는다.
 - “자유롭게 제어”는 관리 인증을 갖추고 migration으로 변경을 재현한다는 뜻이다. RLS·EXECUTE 제한을 풀지 않는다.
 
-### 2.3 개발 시 관리 연결 절차
+### 2.3 개발 초기화 및 로컬 설정 절차
 
 2026-11-09 확인한 `supabase@3.0.0`을 devDependency와 lockfile에 고정한다. 기존 package manager를 사용하고 package.json이 없으면 B-01에서 최소 SDK·TypeScript·검증용 package를 만든다. 런타임 의존성은 @supabase/supabase-js와 로컬 관리용 pg, 개발 의존성은 supabase·typescript·@types/node·@types/pg·tsx를 기본으로 한다. 기존 버전이 있으면 호환성을 우선하고 신규 설치는 정확한 버전으로 고정한다. Node SDK용 tsconfig.backend.json과 Edge용 deno.json/deno.lock을 분리한다. SDK의 생성 타입이 준비되기 전에 setup script가 이를 import하지 않도록 한다.
 
@@ -154,31 +164,7 @@ CLI가 생성한 config는 다음 기준으로 보완한다. 이 설정을 위�
 
 로컬 설정이 원격 프로젝트에 자동 적용된다고 가정하지 않는다. 테이블·RLS·함수·Storage 정책·Realtime publication은 이후 티켓의 migration/배포로 구현한다.
 
-```bash
-# 저장소 루트에서, 개발 착수 후 수행할 절차
-npx --yes supabase@3.0.0 login
-npx --yes supabase@3.0.0 projects list
-npx --yes supabase@3.0.0 link --project-ref kjfaqfpvfvgbrvdoosyi
-```
-
-위 login/list/link는 **원격 관리 연결을 할 때만** 필요하다. B-01의 로컬 초기화·구현·테스트를 막는 선행 조건으로 두지 않는다. 원격에서는 사용자가 본인 계정으로 로그인한다. 비대화형 환경은 보안 저장소에서 주입한 SUPABASE_ACCESS_TOKEN을 사용한다. projects list에서 대상 ref 접근을 확인하고 link 결과도 확인한다. 접근이 없으면 소유자의 멤버 초대/권한 부여가 필요하다. 브라우저 로그인만으로 CLI 로그인 완료로 보지 않는다.
-
-CLI 3.0.0의 DB 작업은 로컬이 기본이며 원격에는 `--remote`를 명시한다. 아래는 **원격 적용 요청과 환경 확인 후** 수행할 절차다.
-
-```bash
-# 기존 이력·schema를 먼저 확인한다. 원격 reset은 하지 않는다.
-npx supabase migration list --remote
-npx supabase db push --remote --dry-run
-# 검토된 신규 migration만 적용
-npx supabase db push --remote
-npx supabase functions deploy submit-message
-npx supabase functions deploy summarize-room
-npx supabase functions deploy cluster-questions
-```
-
-DB 암호가 필요하면 보안 셸에서 SUPABASE_DB_PASSWORD로 주입한다. 계정 인증으로 임시 DB 로그인 역할을 쓰는 환경은 암호 입력이 필요 없을 수 있다. 기존 schema가 있으면 기준선을 보존·비교하고 충돌을 조정한다. 원격 reset·기존 테이블 삭제·무조건 migration repair로 맞추지 않는다.
-
-**관리 연결 가능 판정:** ref 일치 + 계정 접근 확인 + DB 이력 읽기 + dry-run 성공. 공개 URL 응답 성공만으로 판정하지 않는다. 실제 쓰기 성공은 승인된 migration/Function 배포 결과로 별도 기록한다.
+로컬 설정은 원격 프로젝트에 자동 반영되지 않는다. 원격 로그인은 §2.5, 단계별 반영은 §13을 따른다. 개발 시작 요청만으로 원격 변경을 시작하지 않는다.
 
 ### 2.4 환경과 외부 조건
 
@@ -190,18 +176,56 @@ DB 암호가 필요하면 보안 셸에서 SUPABASE_DB_PASSWORD로 주입한다.
 
 로컬 실행에는 §0.2의 Node/Deno/Docker 환경, 원격 관리 연결에는 CLI 로그인·프로젝트 권한, 실제 AI에는 문환P 모듈·공급자 키가 필요하다. 문서만으로 생성할 수 없는 외부 조건이다. 없으면 구현과 정적 검사를 계속하고 실행 불가 항목만 미검증으로 남긴다.
 
+### 2.5 Supabase 로그인·프로젝트 권한 준비
+
+아래는 향후 사용자가 원격 적용을 명시적으로 요청하고 대상 환경을 확정한 뒤 사용할 절차다. 현재 적힌 project ref는 사용자가 전달한 연결 대상일 뿐, 실제 로그인·프로젝트 멤버십·해커톤/운영 환경 구분·기존 데이터 상태는 확인하지 않았다.
+
+1. 소유자가 Supabase Dashboard에서 대상 ref가 `kjfaqfpvfvgbrvdoosyi`인지, 프로젝트가 의도한 해커톤 환경인지, 기존 데이터와 현재 migration 이력을 확인한다.
+2. 작업자는 해당 프로젝트에 초대된 Supabase 계정으로 로그인한다. 접근 권한이 없으면 프로젝트 소유자/관리자가 필요한 프로젝트 멤버 권한만 부여한다. 앱의 `profiles.role='admin'`은 Supabase Dashboard/CLI 권한을 부여하지 않는다.
+3. Supabase 계정 [Access Tokens](https://supabase.com/dashboard/account/tokens)에서 scoped PAT 선택지가 제공되는 계정은 필요한 프로젝트·작업만 허용한 토큰을 발급해 보호된 실행환경에서 `SUPABASE_ACCESS_TOKEN`으로 주입한다. 발급 시 유효기간·대상 프로젝트·CLI에서 실제 사용할 작업 범위를 제한한다. 현재 scoped PAT는 순차 배포 중일 수 있다. 옵션이 없으면 계정/프로젝트 소유자에게 필요한 작업을 요청하거나, 불가피하게 전체 권한 Legacy PAT를 쓸 때에만 짧은 기간의 승인된 격리 환경에서 사용한 뒤 회수한다. Supabase PAT는 계정 역할을 높이지 않는다. CLI 대화형 `login`은 사용자 브라우저 로그인용 대안이며 계정 전체 Legacy PAT를 만들 수 있으므로 자동화와 최소권한이 필요한 경우 scoped PAT를 우선한다. 이미 scoped PAT 환경변수를 쓸 때 불필요한 전체권한 로그인을 추가하지 않는다. Codex Full Access 또는 Supabase MCP 연결을 CLI 인증으로 간주하지 않는다.
+4. 저장소 루트에서 대상 ref를 명시해 연결한다. 토큰을 명령 인수·채팅·저장소에 넣지 않는다. 프로젝트 목록 전체 조회 권한을 받을 수 없다면 알려진 ref로 직접 연결을 확인한다.
+
+```bash
+# 미래 실행 예시. 현재 문서 작업에서는 실행하지 않음.
+# SUPABASE_ACCESS_TOKEN은 승인된 비밀 저장소/실행환경에서 주입한다.
+npx --yes supabase@3.0.0 link --project-ref kjfaqfpvfvgbrvdoosyi
+```
+
+| 작업 | 준비할 권한·자격증명 | 준비하지 못했을 때 |
+| --- | --- | --- |
+| 프로젝트 연결·관리 API 조회 | 대상 project ref에 접근 가능한 Supabase 계정과 해당 CLI 작업에 필요한 PAT 범위. link에는 Project Settings/API keys 읽기 권한이 요구될 수 있음 | 소유자에게 해당 프로젝트의 최소 읽기/작업 권한 부여를 요청. PAT를 더 넓게 발급하지 않고 현재 CLI 도움말과 권한 오류를 확인 |
+| migration·DB/RPC 적용 | PAT를 쓰는 관리 API 요청은 `Migrations`의 필요한 읽기/쓰기 범위와 대상 DB 접속 권한. CLI 명령별로 실제 필요한 scope는 고정 버전 도움말 확인. 환경에 따라 `SUPABASE_DB_PASSWORD` 또는 지원되는 임시 DB 로그인 방식 | DB 비밀번호는 PAT나 secret key와 다르다. 필요한 경우에만 보호된 셸/비밀 저장소에서 공급하고 대상 ref·DB 계정을 다시 확인 |
+| Edge Function 배포 | 대상 프로젝트의 `Edge Functions` 쓰기 범위와 해당 프로젝트 멤버 권한 | 필요한 함수 범위 권한을 프로젝트 소유자에게 요청. 전체 Owner 권한을 기본 요구하지 않음 |
+| hosted Edge Secrets 변경 | 토큰 작업 범위에 `Edge Function Secrets` 쓰기가 있더라도 현재 프로젝트 권한 문서상 Owner 또는 Administrator 역할 필요 | 권한 있는 프로젝트 소유자가 직접 반영하거나 권한을 조정. Developer의 조회 가능성을 수정 권한으로 오인하지 않음 |
+| Auth URL·Storage 설정 변경 | 해당 프로젝트의 관련 설정 변경 권한. CLI의 `config push`는 로컬 설정 전체에 영향을 줄 수 있음 | 정확한 변경 항목만 대시보드에서 비교·수정하거나 승인된 설정 변경 경로 사용 |
+
+DB 암호는 Management API/PAT 범위가 제한되어도 별도의 DB 권한을 가진다. 프로젝트 linking/read permission, 실제 SQL 권한, Function 배포 권한, Secrets 변경 권한이 서로 같다고 추정하지 않는다. 최신 CLI `--help`와 Supabase 권한 문서를 확인하고 필요한 작업이 거부되면 그 작업에서 중단한다.
+
+### 2.6 연결 준비 완료 판정과 미확인 항목
+
+관리 연결 준비는 다음 항목을 모두 확인했을 때만 완료로 기록한다. dry-run은 변경 내용을 검토하는 증거일 뿐 실제 migration/Function/Secrets 쓰기 권한이나 반영 성공 증거가 아니다.
+
+- [ ] Supabase 사용자 계정 로그인 가능 및 대상 project ref 접근 확인
+- [ ] 프로젝트 환경(해커톤/운영), 소유자/담당자, 현재 데이터 보존 요구 확인
+- [ ] CLI 토큰을 보호된 경로로 공급하고 범위/만료/회수 담당 확인
+- [ ] DB 접속 경로, PostgreSQL 버전, 현재 schema/migration 이력과 백업 경로 확인
+- [ ] 작업별 권한 구분: DB 변경, 함수 배포, Secrets 변경, Auth 설정, Storage/Realtime 설정
+- [ ] 승인된 원격 작업 범위와 금지 작업(초기화·삭제·기존 데이터 교체)을 기록
+
+현재 위 항목은 문서에 준비 절차만 적혀 있으며 전부 미확인·미실행이다. 링크/공개 URL 응답, Codex Full Access, MCP 문서 검색, CLI dry-run만으로 Supabase 로그인이나 원격 권한이 입증되지는 않는다.
+
 ## 3. 팀 의존성 없이 진행하는 기본안
 
 | 의존 | 독립 진행 방법 | 교체 지점 |
 | --- | --- | --- |
 | F-01 프론트 셋업 | 최소 SDK·TypeScript·검증환경 구성 | Next.js가 같은 lib/api 사용 |
-| T-02 인플루언서 | `버디 01`~`버디 10` 가상 인물, 안정적 UUID, 유형 4/3/3명 | seed 표시명·type·매핑 |
+| T-02 인플루언서 | 카드 라인업 가상 인물10명(투어5·유튜버3·미디어 프로2), 안정적 UUID. 별도로 카드·방 없는 11번째 심사 대기 계정 | seed 표시명·type·매핑·승인 후 방 생성 |
 | A-06 이미지 | 자체 생성 비민감 placeholder 30개 | 같은 Storage object path |
 | A-02/A-03 필터·점수 | §8 타입의 local fixture adapter | _shared/ai.ts의 adapter |
 | A-04/A-05 묶기·요약 | fixture로 권한·저장·응답 계약 검증 | 실제 AI adapter |
 | 실제 화면 | SDK 통합 테스트로 P0/P1 완성 | 팀 화면 SDK 호출 |
 
-**보완 기본값:** 스타일 `illust/retro/holo`, 등급 `common→rare→epic→special`, 유형 `youtuber/media_pro/tour`. 실제 골프존 회원·결제·라운드 연동은 없다. 인증 사용자의 “라운드 완료” 버튼을 데모 라운드로 처리한다. 새 requestId를 가진 별도 동작은 새 라운드다.
+**PRD 시연 구성:** 스타일 `illust/retro/holo`, 등급 `common→rare→epic→special`, 유형 `youtuber/media_pro/tour`, 등급 확률 `70/20/7.5/2.5`. 10명의 fictional lineup만 30개 카드 템플릿에 포함한다. 실제 골프존 회원·결제·라운드 연동은 없다. 인증 사용자의 “라운드 완료” 버튼을 데모 라운드로 처리한다. 새 requestId를 가진 별도 동작은 새 라운드다.
 
 fixture는 로컬·테스트 전용이며 실제 AI 성공으로 보고하지 않는다. 원격 fixture 활성화나 AI 장애의 무조건 pass 전환은 금지한다. 공급자·모델·키는 문환P 모듈 설정을 수용한다. 홍주P는 인터페이스와 장애 처리를 완성하며 모델 선정·품질 개선을 대신 맡지 않는다.
 
@@ -211,7 +235,7 @@ fixture는 로컬·테스트 전용이며 실제 AI 성공으로 보고하지 �
 
 - 별도 표기 외 ID는 UUID. 시각은 timestamptz/UTC 저장, 월 경계는 Asia/Seoul.
 - nullable 표기 외 필수 컬럼은 NOT NULL이다. UUID PK는 gen_random_uuid(), created_at/updated_at은 now()를 기본값으로 한다. enum 이름은 user_role, influencer_type, card_style, card_grade이며 값은 §§3~4의 순서·목록을 따른다. 나머지 status/clock_kind/verdict는 명시적 CHECK로 제한한다.
-- role=`user/influencer/admin`, member status=`active/left`, verification status=`pending/approved/rejected`.
+- role=`user/influencer/admin`, member status=`active/left`, verification status=`pending/approved/rejected`, support badge=`none/buddy/eagle/albatross`.
 - profiles.id는 auth.users.id FK. 가입 trigger는 metadata의 role/demo를 무시하고 role=user, nickname 1~30자(미입력 `버디`)로 만든다.
 - 모든 public 테이블에 RLS. anon/authenticated 기본 쓰기 권한을 회수하고 필요한 SELECT/RPC만 명시적으로 허용한다.
 - 서버 생성 시각을 클라이언트 입력으로 받지 않는다. 남의 리소스 존재를 상세 오류로 노출하지 않는다.
@@ -224,28 +248,30 @@ fixture는 로컬·테스트 전용이며 실제 AI 성공으로 보고하지 �
 | 테이블 | 필수 컬럼·제약 | SELECT / 변경 경로 |
 | --- | --- | --- |
 | profiles | id PK→auth.users, nickname text, role default user, created_at, updated_at | 본인만 / bootstrap·관리 프로비저닝 |
-| influencers | id PK, name 1~50자, type, verified_at nullable, created_at | 인증 사용자 / seed·승인RPC. 계정 매핑은 private |
+| influencers | id PK, name 1~50자, type, verified_at nullable, profile_image_path nullable, created_at | 인증 사용자 / seed·승인RPC·본인 사진 변경 RPC. 계정 매핑은 private |
 | card_templates | id PK, influencer_id FK, style, image_path text, UQ(influencer_id,style) | 인증 사용자 / seed·관리 작업 |
 | user_cards | user_id FK, template_id FK, grade, count int CHECK≥0, updated_at, PK(user_id,template_id,grade) | 본인 / 추첨·강화RPC |
 | rounds | id PK, user_id FK, played_at, period_month date, clock_kind(real/demo) | 본인 / complete_round |
-| draws | id PK, user_id FK, round_id FK UQ, template_id FK, grade, is_new bool, created_at | 본인 / complete_round. round 소유자와 일치 강제 |
+| draws | id PK, user_id FK, round_id FK UQ, template_id FK, grade, is_new bool, is_forced bool, created_at | 본인 / complete_round. round 소유자와 일치 강제 |
 | chat_rooms | id PK, influencer_id FK UQ, created_at | 인증 사용자 / seed. 비공개 필터 포함 안 함 |
-| room_members | room_id FK, user_id FK, gauge int 0~100, status, joined_at, joined_month, left_at nullable, left_month nullable, updated_at, PK(room_id,user_id) | 본인·방 소유자 / 입장·월마감RPC |
-| messages | id bigint identity PK, id_text text UQ, room_id FK, sender_id FK, sender_type(user/influencer), sender_name, reply_to bigint nullable, reply_to_text text nullable, body 1~2000자, filter_verdict=pass, own_score/quality_score/priority numeric(5,2) nullable, cluster_id nullable, created_at | 활성 멤버·방 소유자 / 검증 저장·답변RPC |
-| message_clusters | id PK, room_id FK, representative 1~200자, member_count int≥1, created_at, updated_at | 활성 멤버·방 소유자 / 묶기 저장RPC |
+| room_members | room_id FK, user_id FK, gauge numeric(5,1) 0~100, status, joined_at, joined_month, left_at nullable, left_month nullable, updated_at, PK(room_id,user_id) | 본인·방 소유자 / 입장·월마감RPC |
+| messages | id bigint identity PK, id_text text UQ, room_id FK, sender_id FK, sender_type(user/influencer), sender_name, reply_to bigint nullable, reply_to_text text nullable, reply_context text nullable, body 1~2000자, filter_verdict=pass, support_badge nullable, own_score/quality_score/priority numeric(5,2) nullable, cluster_id nullable, created_at | 본인 질문·그 질문의 답변만 / 방 소유자는 방 전체. 검증 저장·답변RPC |
+| message_clusters | id PK, room_id FK, representative 1~200자, member_count int≥1, created_at, updated_at | 본인 질문이 속한 묶음의 fan·방 소유자 / 묶기 저장RPC |
 | verifications | id PK, influencer_id FK, type, evidence_url, status, rejection_reason nullable, reviewed_by FK nullable, reviewed_at nullable, created_at | 본인 influencer·admin / 신청·검토RPC |
 | game_config | key text PK, value jsonb, updated_at, version int≥1 | 인증 사용자 / update_game_config |
 
-messages에는 pass 사용자 질문과 influencer 답변만 저장한다. block/suggest 행·원문·수정안은 넣지 않는다. 질문은 reply_to=null·점수 필수, 답변은 reply_to 필수·점수 null. sender_name은 서버 표시명 snapshot이므로 다른 사람의 profiles를 읽지 않아도 된다.
+messages에는 pass 사용자 질문과 influencer 답변만 저장한다. block/suggest 행·원문·수정안은 넣지 않는다. 질문은 reply_to=null·점수와 support_badge snapshot 필수, 답변은 reply_to와 닉네임 없는 reply_context 필수·점수와 support_badge null이다. sender_name은 서버 표시명 snapshot이다. user RLS와 Realtime는 활성 멤버라도 본인 질문만 공개하고, 답변은 본인 질문 또는 본인 질문이 속한 묶음에 연결된 경우에만 공개한다. 방 소유 influencer만 방 전체를 읽는다. 묶음 답변은 대표 질문·대표문장을 reply_context에 저장하고 묶음 구성원에게 전달하며, 본인 화면에서만 자신의 질문에 대한 답변 표시를 붙인다.
+
+draws는 라운드 보상으로 누적 획득한 카드의 원장이다. 입장 자격과 보유 배지는 강화로 감소하는 user_cards가 아니라 이 원장에서 influencer별 누적 발급 수를 집계한다. 강제 등급 발급도 누적 수와 입장 자격에는 포함하며 is_forced=true로 표시해 확률 검증 표본에서는 제외한다.
 
 bigint 정밀도를 전송 전에 보존한다. id_text/reply_to_text는 일반 text 컬럼이며 BEFORE INSERT/UPDATE trigger가 id::text/reply_to::text로만 채운다. CHECK로 원본과 일치를 강제한다. 논리 복제의 generated column 전달에 의존하지 않는다. Data API는 문자열 컬럼을 선택하고 Realtime도 이 값만 SDK의 id/replyTo로 매핑한다. raw 숫자 id/reply_to는 사용하지 않는다. SQL JSONB도 명시적으로 ::text 변환한다. JSON.parse 이후 문자열 변환으로 정밀도를 복구할 수 있다고 가정하지 않는다.
 
 추가 제약:
 
-- reply_to/cluster_id는 같은 room_id만 참조한다. 복합 FK 또는 동등 DB trigger로 강제한다. 답변을 답변 대상으로 지정하지 못한다.
-- 질문당 답변 1개: reply_to 부분 UNIQUE. 메시지 수정·삭제·스레드 답글은 범위 밖.
+- reply_to/cluster_id는 같은 room_id만 참조한다. 복합 FK 또는 동등 DB trigger로 강제한다. 답변은 user 질문만 대상으로 삼는다.
+- 질문당 답변 1개: reply_to 부분 UNIQUE. 묶음 질문에는 cluster_id당 답변도 1개만 허용한다. 답변 reply_context는 질문 또는 대표 질문을 닉네임 없이 snapshot한다. 메시지 수정·삭제·스레드 답글은 범위 밖.
 - influencer별 pending 신청 1개 부분 UNIQUE. 심사 완료는 reviewed_by/reviewed_at 필수, pending은 null. 반려 사유 1~500자 필수.
-- active는 gauge>0, left는 gauge=0 및 left_at/left_month 필수.
+- active는 gauge>0, left는 gauge=0 및 left_at/left_month 필수. 소수점 12.5 단위의 월 증감을 위해 gauge는 1자리 소수 numeric으로 둔다.
 - 점수는 0~100 유한 숫자. 월 date는 첫날, grade/style/status는 enum 또는 CHECK.
 - 카탈로그·카드·메시지·심사 참조의 삭제는 RESTRICT가 기본. 서비스 실행 중 seed 콘텐츠를 삭제하지 않는다.
 - 인덱스: rounds(user_id,clock_kind,period_month), messages(room_id,id), messages(room_id,priority DESC,id ASC) WHERE sender_type='user', room_members(room_id,status), verifications(status,created_at,id). PK/UQ 인덱스를 중복 생성하지 않는다.
@@ -264,7 +290,7 @@ bigint 정밀도를 전송 전에 보존한다. id_text/reply_to_text는 일반 
 | operations | PK(actor_id,operation,request_id), payload_hash, state(processing/succeeded/failed), result jsonb nullable, lease_token UUID nullable, lease_until nullable, created_at, updated_at |
 | moderation_events | id PK, actor_id, room_id, request_id, verdict, category nullable, created_at. 원문·수정안 미보관, 7일 보관 |
 | verification_reviews | id PK, verification_id UQ/FK, reviewer_id, decision, reason nullable, reviewed_at. 변경 불가 |
-| rate_windows | PK(actor_id,operation,scope_id,window_start), count. DB 분당 제한 |
+| rate_windows | PK(actor_id,operation,scope_id,window_start), count, blocked_until nullable. DB 속도 제한·연속 도배 30초 차단 |
 | demo_fixture_runs | fixture_version text PK, completed_at. 로컬 demo setup의 최초 주입 완료 표시 |
 
 private 모델도 최소 GRANT만 부여한다. 브라우저에 필요한 작업은 권한 검증 public RPC로 노출한다. block/suggest 작업 기록에도 원문·rewrite를 넣지 않는다(§7.3).
@@ -275,7 +301,8 @@ Edge의 processing 행은 lease_token/lease_until 필수다. 일반 RPC의 성�
 
 - anon은 DB 카탈로그·사용자 데이터·RPC에 접근하지 못한다. 공개 Storage 읽기만 허용.
 - admin은 인증 심사·데모 관리만 추가 허용. 다른 사람의 카드·대화·인박스나 influencer 명의 답변 권한은 없다.
-- 방 소유자는 본인 방 멤버십·대화·인박스·필터·AI 기능에 접근한다. 회원 카드 대신 저장된 own_score를 읽는다.
+- user는 활성 방에서 sender_id가 본인인 질문, reply_to가 본인 질문인 influencer 답변, 또는 본인 질문과 같은 cluster_id를 가진 influencer 답변만 읽는다. 같은 방의 다른 팬 질문은 SELECT·Realtime에서 제외한다. 묶음 대표 질문과 인원수는 본인 질문이 속한 묶음에 한해 보여 준다.
+- 방 소유자는 본인 방 멤버십·전체 대화·인박스·필터·AI 기능에 접근한다. 인박스는 저장된 own_score와 support_badge snapshot을 읽는다.
 - view는 security_invoker=true. 본인 카드 수만 집계하고 기초 테이블 RLS를 유지한다.
 - room_catalog는 private.demo_accounts/demo_clock을 직접 JOIN하지 않는다. 인자 없이 auth.uid()의 real/demo 유효 현재 월만 date로 반환하는 좁은 SECURITY DEFINER helper를 사용한다. helper는 빈 search_path·완전한 schema qualification을 적용하고 authenticated에 해당 helper 실행만 허용한다. private 테이블 SELECT나 타인 userId 입력은 허용하지 않는다.
 - RLS는 행 경계다. 민감 열 숨김으로 오해하지 않는다. 계정 매핑·demo capability·필터·moderation은 private에 분리한다.
@@ -289,62 +316,66 @@ Edge의 processing 행은 lease_token/lease_until 필수다. 일반 RPC의 성�
 
 | key | 초기 value |
 | --- | --- |
-| grade_rates | `{"common":70,"rare":22,"epic":7,"special":1}` |
+| grade_rates | `{"common":70,"rare":20,"epic":7.5,"special":2.5}` |
 | upgrade_cost | `10` |
-| room_entry | `{"min_cards":5,"any_grade":true}` |
+| room_entry | `{"min_earned_draws":5}` |
 | priority_weights | `{"own":0.6,"quality":0.4}` |
-| own_score | `{"count_cap":30,"count_weight":0.5,"grade_weight":0.3,"style_weight":0.2,"grade_points":{"common":25,"rare":50,"epic":75,"special":100}}` |
-| gauge | `{"start":100,"monthly_min_rounds":3,"decay_per_month":50}` |
+| gauge | `{"start":50,"monthly_min_rounds":3,"per_round_delta":12.5,"max":100}` |
 
-mutation은 필요한 설정을 트랜잭션 내 한 번 읽는다. 필수/추가 key·enum·숫자를 DB 검증한다. 확률≥0·합계100, weight≥0·그룹 합계1, count_cap/upgrade_cost/min_cards는 양의 정수. gauge.start=1~100, monthly_min_rounds≥0, decay=1~100. 스타일 수3·등급 순서·any_grade=true는 v1 고정이며 변경 설정은 거부한다. 설정 누락·오염은 CONFIG_INVALID로 전체 롤백한다.
+mutation은 필요한 설정을 트랜잭션 내 한 번 읽는다. 필수/추가 key·enum·숫자를 DB 검증한다. 확률≥0·합계100, weight≥0·그룹 합계1, upgrade_cost/min_earned_draws는 양의 정수. gauge.start/max는 0~100 범위 정수, monthly_min_rounds는 비음수 정수, per_round_delta는 0~100 범위의 양수 소수다. 초기값은 PRD 기준이며 게임 수치 변경은 관리자 RPC로 version을 올려 적용한다. 확률 비율·입장 기준·강화 비용·게이지 수치가 PRD 규칙을 바꾸면 PRD도 함께 갱신한다. 스타일 수3과 등급 순서는 v1 고정이다. 설정 누락·오염은 CONFIG_INVALID로 전체 롤백한다.
 
-이 문서의 10장·5장·100·3회·50은 **초기 설정에서의 예시와 테스트 기준**이다. 추첨·강화·입장·재입장·월 마감·room_catalog·오류 details는 현재 유효한 설정 snapshot을 사용한다. 설정 변경은 기존 카드·gauge·과거 점수를 일괄 변경하지 않고 다음 작업부터 적용한다. grade_points의 네 값은 각각 0~100 유한수, gauge.start/decay_per_month는 범위 안 정수, monthly_min_rounds는 비음수 정수로 추가 검증한다. 설정 변경 테스트에서는 고정된 10/5/100/3/50을 그대로 쓰지 않는지 확인한다.
+upgrade_cost=10·room_entry=누적 발급 5장·gauge 시작50·월 기준3회·회당12.5·최대100은 PRD 시연 기본값이다. grade_rates는 70/20/7.5/2.5다. 추첨·강화·입장·월 마감·room_catalog·오류 details는 현재 유효한 설정 snapshot을 사용한다. 배지 조건·배지 점수·보유 스타일 가산은 현재 제품 규칙이며 변경 시 PRD와 계획을 같이 갱신한다. 설정 변경은 기존 카드·gauge·과거 점수를 일괄 변경하지 않고 다음 작업부터 적용한다.
 
 ### 5.2 추첨·강화
 
 - 등급을 먼저 grade_rates로 추첨하고 30 template 중 균등 추첨. round1·draw1·카드+1을 한 트랜잭션으로 처리한다.
+- DB 지급 확정이 뽑기 애니메이션보다 먼저다. 애니메이션을 건너뛰거나 도중에 나가도 카드와 결과는 보유 기록에 남는다. 미개봉 팩 재조회/열기 큐와 골프존 라운드 ID 중복 방지는 앱 밖 라운드 연동이 필요한 실서비스 과제이며 프로토타입에서 구현하지 않는다. requestId는 네트워크 재전송만 막는다.
 - isNew는 추첨 직전 해당 template의 모든 등급 count 합계=0인지다. 과거 수집 이력이 아닌 현재 보유 기준.
-- demoForceGrade는 private.demo_accounts.can_force_grade=true인 user만. 일반 user는 FORBIDDEN. template 고정 옵션은 공개 API에 없다.
+- demoForceGrade는 private.demo_accounts.can_force_grade=true인 user만. 일반 user는 FORBIDDEN. template 고정 옵션은 공개 API에 없다. 강제 발급도 draws에 is_forced=true로 남고 누적 획득·입장·배지 집계에 포함한다. 확률 검증에서는 제외한다.
 - 같은 template/grade10장→다음 grade1장. special 강화는 MAX_GRADE. 0행은 유지하되 보유 스타일·최고 등급 계산에서 제외한다.
 - 추첨·강화는 동일 사용자 transaction lock을 공유한다. 최초 isNew·차감·적립·작업 성공 기록까지 원자적이다.
 - complete_round는 사용자 잠금 다음에 데모 clock을 잠그고 period_month를 읽는다. 라운드 저장과 커밋까지 유지해 월 마감 뒤 지난 월 라운드가 뒤늦게 추가되지 않도록 한다.
 - 난수 경계는 결정적으로 테스트한다. 실제 1,000회 분포는 수치를 기록하고 좁은 확률 허용 범위를 합격 조건으로 삼지 않는다.
 
-### 5.3 입장·재입장 — 보완 기본값
+### 5.3 입장·재입장
 
-- 해당 influencer의 모든 template/grade count 합계≥5. 카드는 소모하지 않는다.
-- 부족 응답에 requiredCards/ownedCards/missingCards. 이미 active면 강화로5장 미만이 되어도 유지한다.
-- 최초 gauge100. active의 join 재호출은 gauge·joined_at을 보존한다.
-- left는 **left_month보다 뒤 월**이고 현재 5장 이상일 때 재입장 가능하다. left_month는 퇴장의 효력이 발생한 월이다. 예를 들어 11월 마감으로 12월 시작 시 퇴장하면 left_month=12월이고 재입장은 1월부터다. 퇴장한 월에는 REJOIN_NOT_AVAILABLE. 재입장 시 gauge=100, joined 갱신, left 정보=null.
+- 해당 influencer의 draws 누적 발급 수가 5 이상이면 입장 자격을 얻는다. 등급·스타일 무관이며 user_cards에서 강화로 카드가 줄거나 게이지 소진으로 퇴장해도 자격은 유지된다. 카드는 소모하지 않는다.
+- 부족 응답에는 requiredCards=5, earnedCards, missingCards를 반환한다. active의 join 재호출은 gauge·joined_at을 보존한다.
+- 최초 입장 gauge는 50이다. 게이지가 0이 되어 left가 된 뒤 라운드를 1회 완료하면 재입장할 수 있으며, 재입장 시 gauge=50으로 시작한다. 달력 월을 기다리지 않는다. 재입장에도 누적 발급 5장 자격을 확인한다.
 - 잠금은 사용자 카드 → demo clock(데모만) → membership 순서. 월 마감은 clock → membership만 사용한다.
 - 자발적 나가기·추방·게이지 충전·카드 선물은 v1 범위 밖.
 
-### 5.4 월 경과 — 보완 기본값
+### 5.4 월 게이지와 데모 월 경과
 
 - 데모 rounds.period_month·입장 월은 demo_clock.current_month. 일반 계정은 실제 KST 월. played_at은 모두 실제 서버 시각.
 - advance_demo_month는 role=admin 및 can_advance_month=true만. demo_accounts에 등록된 active 사용자 멤버십만 변경한다.
 - targetMonth는 월 첫날이며 바로 다음 월만 새 처리. 예: 2026-11-01→2026-12-01은11월 마감.
-- clock을 잠그고 마감 월의 사용자 전체 데모 라운드 수를 집계한다. 방과 무관하게3회 미만이면 각 active방 gauge-50,3회 이상이면 유지(회복 없음).
-- 입장한 부분 월도 평가하며 면제는 없다. 0 이하는 0으로 고정하고 status=left, left_month=targetMonth, left_at=now()로 기록한다. closedMonth는 활동 평가 월, left_month는 퇴장 효력 월로 구분한다.
+- clock을 잠그고 마감 월의 사용자 전체 데모 라운드 수를 집계한다. 라운드는 모든 활성 채팅방에 공통 적용한다. 기준3회에서 초과 1회당12.5를 더하고 부족 1회당12.5를 뺀다. 새 게이지는 `clamp(previousGauge + (roundCount - 3) × 12.5, 0, 100)`이다.
+- 입장·재입장한 달은 부족분을 차감하지 않는다. 그 달에 3회를 넘긴 라운드의 증가분은 적용한다. 다음 달부터는 전체 월 계산을 적용한다. 0 이하는 0으로 고정하고 status=left, left_month=targetMonth, left_at=now()로 기록한다. closedMonth는 활동 평가 월, left_month는 퇴장 효력 월로 구분한다.
+- 화면은 게이지 50을 여유 라운드4회, 100을8회로 보여 주고, 월 라운드 수를 기준3회와 비교해 이번 달 남은 회수를 계산한다.
+- `getMyRoundGaugeSummary`는 유효 현재 월·모든 방에 공통인 월 라운드 수·목표 3회·남은 라운드를 반환한다. 게임 시작 화면과 방 입장 화면은 이를 이용해 이번 달 남은 라운드와 월 마감일을 안내한다. 게이지가12.5 이하이면 다음 기준 미달 월 마감에 퇴장할 수 있다는 인앱 경고를 보인다. 프로토타입은 푸시 대신 화면 내 안내를 사용한다.
+- PRD의 “게이지 소진까지 남은 기간”은 계산 기준이 정해져 있지 않다. UI는 확정된 게이지 잔여량(50은4회, 100은8회)과 월 마감일을 표시하며, 플레이율을 가정한 퇴장 날짜 예측은 하지 않는다.
 - 결과·demo_month_runs·clock 이동은 한 트랜잭션. 같은 targetMonth 재요청은 기존 결과+applied=false, 추가 감소 없음. 처리 이력 없는 과거 월·미래 건너뛰기는 INVALID_MONTH_TRANSITION.
 - 다른 requestId 동시 요청도 한 마감만 적용. 동일 requestId 재시도는 최초 응답 그대로.
 - 일반 계정 자동 월마감 스케줄러는 해커톤 범위 밖. 데모 기능을 운영 자동화로 보고하지 않는다.
 
-### 5.5 ownScore·priority — 보완 기본값
+### 5.5 보유 배지·ownScore·priority
 
-해당 방 influencer의 현재 카드로 계산한다.
+해당 방 influencer별로 현재 보유 카드와 누적 draws를 계산한다. 누적 발급은 강화로 줄지 않고, 현재 최고 보유 등급도 강화로 낮아지지 않는다. 배지는 더 높은 조건을 우선 적용한다.
 
 ```text
-countScore = 100 × min(totalCards,30) / 30
-gradeScore = 최고 등급 점수(common25/rare50/epic75/special100), 없으면0
-styleScore = 100 × 보유 스타일 수 / 3
-ownScore   = round(0.5×countScore + 0.3×gradeScore + 0.2×styleScore,2)
+Albatross = earnedDraws >= 15 AND highestOwnedGrade == special
+Eagle     = earnedDraws >= 15 OR  highestOwnedGrade == special
+Buddy     = earnedDraws >= 10 OR  highestOwnedGrade >= epic
+baseScore = Albatross 90 / Eagle 60 / Buddy 30 / no badge 0
+styleBonus = badge exists ? min(2, max(0, ownedStyleCount - 1)) × 5 : 0
+ownScore   = baseScore + styleBonus
 priority   = round(0.6×ownScore + 0.4×qualityScore,2)
 ```
 
-계수는 §5.1 설정에서 읽는다. 최종 저장 시 DB 계산 snapshot이며 이후 카드·설정 변경으로 재채점하지 않는다. qualityScore는 검증한 AI 값만 받는다.
+배지는 influencer별로 Buddy(누적10장 또는 Epic 이상), Eagle(누적15장 또는 Special), Albatross(누적15장 그리고 Special)다. 보유 스타일 수는 해당 influencer의 카드 중 현재 1장 이상 보유한 illust/retro/holo 종류 수다. 배지 없음이면 ownScore=0이다. 보유 배지와 ownScore는 사용자 화면 및 influencer 인박스에 표시할 수 있게 메시지 질문에 snapshot으로 저장한다. 최종 저장 시 priority도 snapshot이며 이후 카드·설정 변경으로 재채점하지 않는다. qualityScore는 검증한 AI 값만 받는다.
 
-예: common 한 스타일5장은 ownScore22.50, quality80이면 priority45.50. special 포함3스타일30장은 ownScore100, 같은 quality면 priority92.00.
+예: 누적10장·현재 한 스타일이면 Buddy 30점, quality80이면 priority50.00. 15장 이상·Special 보유·스타일3종이면 Albatross 100점, quality80이면 priority92.00.
 
 인박스 기본은 미답변 user pass 질문. 정렬은 **priority DESC, id ASC**(같은 점수는 먼저 저장된 질문). answered 포함 옵션도 같은 정렬이다.
 
@@ -374,11 +405,17 @@ type Membership = {
   joinedAt: string; joinedMonth: string;
   leftAt: string | null; leftMonth: string | null;
 };
+type RoundGaugeSummary = {
+  currentMonth: string; monthlyRoundCount: number;
+  targetRounds: number; remainingRounds: number;
+};
+type SupportBadge = 'none' | 'buddy' | 'eagle' | 'albatross';
 type Message = {
   id: MessageId; roomId: UUID; senderId: UUID;
   senderType: 'user' | 'influencer'; senderName: string;
-  body: string; replyTo: MessageId | null; createdAt: string;
+  body: string; replyTo: MessageId | null; replyContext: string | null; createdAt: string;
   clusterId: UUID | null;
+  supportBadge: SupportBadge | null;
   ownScore: number | null; qualityScore: number | null; priority: number | null;
 };
 ```
@@ -396,10 +433,10 @@ lib/api의 쿼리·호출 로직은 createBackendApi(client)로 주입한 Supaba
 | UNAUTHENTICATED | JWT 없음·만료·위조, 재로그인 | false |
 | FORBIDDEN / NOT_FOUND | 역할·소유권 부족 / 접근 가능한 대상 없음 | false |
 | VALIDATION_ERROR / CONFIG_INVALID | 입력/설정 불량 | false |
-| INSUFFICIENT_CARDS | requiredCards, ownedCards, missingCards | false |
+| INSUFFICIENT_CARDS | requiredCards, earnedCards, missingCards | false |
 | MAX_GRADE | 최고 등급 강화 | false |
 | ROOM_INACTIVE | 활성 멤버가 아님·월마감 퇴장 | false |
-| REJOIN_NOT_AVAILABLE | eligibleMonth | false |
+| REJOIN_NOT_AVAILABLE | requiredRoundsAfterExit=1, roundsAfterExit | false |
 | INVALID_MONTH_TRANSITION | currentMonth, requestedMonth | false |
 | IDEMPOTENCY_CONFLICT | 같은 requestId에 다른 payload | false |
 | REQUEST_IN_PROGRESS | 동일 작업 처리중, retryAfterMs | true |
@@ -417,9 +454,12 @@ SQL 업무 오류는 SQLSTATE P0001, MESSAGE=고정code, DETAIL=비기밀JSON. E
 
 | SDK | 입력·조회원 | 반환data |
 | --- | --- | --- |
-| getCollection() | security_invoker collection_view, 본인 | `{items:CollectionItem[]}` |
-| getRooms() | security_invoker room_catalog, 본인 장수·멤버십 | `{items:RoomCatalogItem[]}` |
+| getCollection() | security_invoker collection_view, 본인·미보유 템플릿 포함 | `{items:CollectionItem[]}` |
+| getOwnedCards() | security_invoker inventory_view, 본인·count>0 | `{items:OwnedCardItem[]}` |
+| getRooms() | security_invoker room_catalog, 본인 누적발급·멤버십·현재 표시 이미지 | `{items:RoomCatalogItem[]}` |
+| getMyInfluencerProfile() | get_my_influencer_profile, auth.uid()에 연결된 본인 정보 | `MyInfluencerProfile` |
 | getMyMembership(roomId) | room_members의 본인/방 1행 | Membership 또는 null |
+| getMyRoundGaugeSummary() | auth.uid()의 유효 현재 월·전체 라운드 집계 | `RoundGaugeSummary` |
 | getMessages({roomId,beforeId?,afterId?,limit?}) | messages room_id + id keyset | Page<Message> |
 | getMyVerifications({cursor?,limit?}) | 본인 influencer 신청 | Page<Verification> |
 | getPendingVerifications({cursor?,limit?}) | admin, pending | Page<Verification> |
@@ -430,11 +470,19 @@ type CollectionItem = {
   template: CardTemplate; counts: Record<Grade, number>;
   totalCards: number; highestGrade: Grade | null;
 };
+type OwnedCardItem = {
+  template: CardTemplate; grade: Grade; count: number;
+};
 type RoomCatalogItem = {
   roomId: UUID; influencerId: UUID; influencerName: string;
-  influencerType: InfluencerType; verifiedAt: string | null;
-  requiredCards: number; ownedCards: number; missingCards: number;
-  canJoin: boolean; eligibleMonth: string | null; membership: Membership | null;
+  influencerType: InfluencerType; verifiedAt: string;
+  profileImageUrl: string | null; requiredCards: number;
+  earnedCards: number; missingCards: number; supportBadge: SupportBadge;
+  canJoin: boolean; membership: Membership | null;
+};
+type MyInfluencerProfile = {
+  influencerId: UUID; influencerName: string; verifiedAt: string;
+  profileImageUrl: string | null; fallbackImageUrl: string | null;
 };
 type Verification = {
   id: UUID; influencerId: UUID; type: InfluencerType; evidenceUrl: string;
@@ -443,7 +491,7 @@ type Verification = {
 };
 ```
 
-collection_view는 미보유 포함30행·grade별0을 채운다. room_catalog는10방이며 active면 canJoin=true, 재입장 제한이면 false. 실제 입장은 RPC 재검증. imageUrl은 image_path의 공개 Storage URL로 SDK가 만든다.
+collection_view는 카드 템플릿30행·grade별0을 채운다. 별도 보유 카드 화면은 template-grade 조합별 수량을 반환하는 inventory_view를 사용하고 count=0인 행은 제외한다. room_catalog는 인증된 인플루언서 중 방이 열린 항목을 반환한다. 기본은10방이고 11번째 대기 신청자가 승인되면 새 방이 추가된다. 입장 조건은 누적 draws 5장, 퇴장 후에는 이후 라운드 1회 완료 여부이며 실제 입장은 RPC에서 재검증한다. 카드 이미지와 influencer profile image는 서로 다른 Storage 경로로 공개 URL을 만든다.
 
 메시지 기본50·최대100, beforeId/afterId 동시 금지. 최초/before는 id DESC 조회 후 SDK ASC 정렬, nextCursor=최소id(과거방향). after는 id ASC, nextCursor=최대id(복구방향). limit+1로 후속 유무를 판단하고 id를 인과 순서로 사용한다.
 
@@ -468,22 +516,27 @@ collection_view는 미보유 포함30행·grade별0을 채운다. room_catalog�
 
 | SDK → RPC | 나머지 SQL 입력 | 반환data / 권한 |
 | --- | --- | --- |
-| completeRound → complete_round | p_demo_force_grade card_grade default null | `{roundId,drawId,grade,template:CardTemplate,isNew,ownedCount}` / user, 고정등급은 capability 추가 |
+| completeRound → complete_round | p_demo_force_grade card_grade default null | `{roundId,drawId,grade,template:CardTemplate,isNew,ownedCount,entryUnlocked}` / user, 고정등급은 capability 추가 |
 | upgradeCard → upgrade_card | p_template_id uuid, p_grade card_grade | `{templateId,fromGrade,toGrade,consumed,remainingCount,upgradedCount}` / user |
 | joinRoom → join_room | p_room_id uuid | `{membership:Membership,alreadyActive:boolean}` / user |
 | advanceDemoMonth → advance_demo_month | p_target_month date | `{closedMonth,currentMonth,applied:boolean,members:[{roomId,userId,roundCount,previousGauge,gauge,status}]}` / demo admin |
 | replyToMessage → reply_to_message | p_room_id uuid, p_reply_to bigint, p_body text | `{message:Message}` / 방 소유 influencer |
 | requestVerification → request_verification | p_type influencer_type, p_evidence_url text | `{verification:Verification}` / 본인 influencer |
 | approveVerification → approve_verification | p_verification_id uuid, p_decision text(approved/rejected), p_reason text default null | `{verification:Verification,verifiedAt:string 또는 null}` / admin |
+| setInfluencerProfilePhoto → set_influencer_profile_photo | p_profile_image_path text | `{influencerId,profileImagePath}` / 인증된 본인 influencer |
 | updateRoomFilters → update_room_filters | p_room_id uuid, p_disabled_filters text[], p_expected_version int | `{roomId,disabledFilters,version}` / 방 소유 influencer |
 | updateGameConfig → update_game_config | p_key text, p_value jsonb, p_expected_version int | `{key,value,version}` / admin |
 
-ownedCount/upgradedCount는 해당 template/grade의 갱신 직후 count. optional 값은 명시적 null 전달. reply 본문도 trim1~2000자.
+ownedCount/upgradedCount는 해당 template/grade의 갱신 직후 count. `entryUnlocked`는 지급 직전 해당 influencer의 누적 `draws`가 입장 기준보다 적고 지급 직후 기준 이상일 때만 `true`다. 강제 발급도 누적 수에 포함하며 멱등 재시도는 최초 결과를 반환한다. `RoomCatalogItem.profileImageUrl`은 표시용으로 현재 프로필 사진, 없으면 illust 카드 URL을 반환한다. optional 값은 명시적 null 전달. reply 본문도 trim1~2000자.
 
 | 읽기 SDK → RPC | 입력 | 반환data / 권한 |
 | --- | --- | --- |
 | getRoomInbox → get_room_inbox | p_room_id uuid, p_include_answered bool default false, p_cursor jsonb default null, p_limit int default50 | Page<InboxItem> / 방 소유 influencer |
 | getRoomFilters → get_room_filters | p_room_id uuid | `{roomId,disabledFilters,mandatoryFilters,version}` / 방 소유 influencer |
+| getMyInfluencerProfile → get_my_influencer_profile | 없음. `auth.uid()`만 사용 | `MyInfluencerProfile` / verified 본인 influencer |
+| getMyRoundGaugeSummary → get_my_round_gauge_summary | 없음. `auth.uid()`만 사용 | `RoundGaugeSummary` / user |
+
+`get_my_round_gauge_summary`는 `auth.uid()`에 연결된 사용자만 집계하고 사용자 ID 인자를 받지 않는다. 유효 월은 기존 비공개 current-month helper에서 받으며, private clock 원본이나 타인 라운드 수를 노출하지 않는다. `remainingRounds=max(0,targetRounds-monthlyRoundCount)`다.
 
 InboxItem=Message + answered:boolean + replyId:MessageId/null. inbox cursor={priority:number,id:MessageId}, 다음 행은 낮은 priority 또는 같은 priority의 큰 id. limit≤100. SQL이 id를 문자열로 반환한다. expectedVersion 충돌은 필터=FILTERS_CHANGED, 설정=IDEMPOTENCY_CONFLICT(details.currentVersion)이며 덮어쓰지 않는다.
 
@@ -502,7 +555,7 @@ body는 trim 후1~2000 Unicode code point, 요청≤16KiB, 추가 key 거부. us
 
 1. POST/JSON/CORS·JWT 서명/만료/프로젝트 검증. JWT decode나 publishable key만으로 인증하지 않는다.
 2. 검증 JWT에서 actor를 얻고 user 역할·active·필터 version 확인. actor/verdict/quality/priority 입력 금지.
-3. service-only begin_message_submission으로 requestId/payloadHash 예약·분당 제한 적용. 사용자10회/분, 실패/block/suggest 포함, 같은 requestId 재시도는 추가 차감 없음.
+3. service-only begin_message_submission으로 requestId/payloadHash 예약·연속 도배 제한 적용. 임의의 10초 구간에 새 전송이 5건을 넘으면 30초 차단하며, 동일 requestId 재시도는 추가 횟수로 세지 않는다.
 4. 유효 lease 한 요청만 AI 호출, JSON schema 검증.
 5. service-only submit_moderated_message가 membership·role·필터version·lease 재검증. pass는 DB 점수 계산+messages+operations 성공을 원자 저장.
 6. suggest/block은 messages 없이 moderation metadata만 기록. 수정안은 사용자가 확인 후 **새 requestId**로 재전송.
@@ -567,16 +620,18 @@ interface AiAdapter {
 - metadata7일 보관. 본문/JWT/rewrite 서버로그 금지. 만료 moderation_events·operations·과거 rate_windows는 서버 전용 cleanup 및 일별 pg_cron으로 정리하고 실행 여부 검증.
 - 실제 adapter/키 없으면 actual AI 미검증. fixture를 실제 판정 성공으로 보고하지 않는다.
 
-### 8.2 필터 — 보완 기본값
+### 8.2 필터
 
 | 종류 | category | 설정 |
 | --- | --- | --- |
-| 필수 | threat, sexual_harassment, personal_data, illegal_request | 해제 요청 자체 VALIDATION_ERROR |
-| 선택 | profanity, belittling, spam | 방 소유자만 disabledFilters로 해제 |
+| 선택 | profanity, belittling, hate_speech, appearance_judgment | 방 소유자만 disabledFilters로 해제 |
+| 항상 차단 | threat, stalking, sexual_harassment, personal_data, illegal_promotion, spam | 해제 불가 |
 
-초기 disabledFilters=[]. 선택 enum만, 중복 제거·정렬 저장, version 증가. 해제는 해당 선택필터 적용을 끄는 것이며 필수정책을 덮어쓰지 않는다. moderation metadata도 influencer/admin 화면에 노출하지 않는 기본안. 인박스에는 pass만 있다.
+초기 disabledFilters=[]. 선택 enum만, 중복 제거·정렬 저장, version 증가. 해제는 욕설·가벼운 비하·혐오·외모 평가에만 적용하며 필수정책을 덮어쓰지 않는다. threat/stalking/sexual_harassment/personal_data/illegal_promotion/spam은 항상 차단한다. moderation metadata는 팬에게 공개하지 않는다. 인박스에는 pass만 있다.
 
-고정 reason 매핑: threat=`위협적인 표현은 전송할 수 없습니다.`, sexual_harassment=`성희롱 표현은 전송할 수 없습니다.`, personal_data=`개인정보를 포함한 내용은 전송할 수 없습니다.`, illegal_request=`불법 행위를 요청하는 내용은 전송할 수 없습니다.`, profanity=`욕설 표현을 수정해 주세요.`, belittling=`비하 표현을 수정해 주세요.`, spam=`반복·홍보성 내용을 수정해 주세요.`. 필수 category는 block만, 선택 category는 suggest 또는 block만 허용한다. disabledFilters의 category를 사유로 차단한 AI 결과는 계약 오류로 거부한다.
+연속 도배는 별도 코드 제한으로 판정한다. 최근 10초 안에 5건을 초과하는 새 전송 요청이 오면 30초간 해당 사용자의 전송을 막고 RATE_LIMITED와 retryAfterSeconds를 반환한다. 동일 requestId 재시도는 새 요청으로 세지 않으며 위반 횟수에도 넣지 않는다. 프로토타입에는 위반 누적·제재 단계·재검토 절차를 구현하지 않는다.
+
+고정 reason 매핑: threat=`협박성 표현은 전송할 수 없습니다.`, stalking=`스토킹성 메시지는 전송할 수 없습니다.`, sexual_harassment=`성희롱 표현은 전송할 수 없습니다.`, personal_data=`사생활·개인정보 침해 내용은 전송할 수 없습니다.`, illegal_promotion=`불법 광고·도박 홍보는 전송할 수 없습니다.`, spam=`스팸·도배는 전송할 수 없습니다.`, profanity=`욕설 표현을 수정해 주세요.`, belittling=`비하 표현을 수정해 주세요.`, hate_speech=`혐오 표현을 수정해 주세요.`, appearance_judgment=`외모 평가 표현을 수정해 주세요.`. 항상 차단 category는 block만, 선택 category는 suggest 또는 block만 허용한다. disabledFilters의 category를 사유로 차단한 AI 결과는 계약 오류로 거부한다.
 
 ### 8.3 summarize-room·cluster-questions
 
@@ -598,8 +653,15 @@ cluster 최종 반영 시 source 질문이 여전히 같은 방의 미답변 pas
 - 본인 influencer만 신청. evidenceUrl은 HTTPS≤2048자 문자열, 임의 URL fetch 금지.
 - influencer별 pending1개. 반려 후 새 requestId로 재신청. 이미 verified이면 추가 신청 거부(재인증·취소 범위 밖).
 - pending만 승인/반려. 동시 검토는1개 성공.
-- 승인 시 influencers.type=신청type, verified_at=서버시각. 반려는 verified_at 변경 없음. 신청상태·reviewer·reviewed_at·private이력 원자 갱신.
+- 승인 시 influencers.type=신청type, verified_at=서버시각. 기존 10개 라운업 인플루언서는 이미 방이 있으므로 그대로 둔다. 대기 중인 11번째 신청자는 승인과 같은 트랜잭션에서 chat_rooms를 생성해 방을 연다. 이 인물은 card_template을 만들지 않으며 기존 30개 템플릿과 추첨 풀은 유지한다. 반려는 verified_at·방 목록을 바꾸지 않는다. 신청상태·reviewer·reviewed_at·private이력 원자 갱신.
 - 배지=verifiedAt 유무+influencerType. 임의 badge flag 없음.
+
+### 8.5 인플루언서 프로필 사진
+
+- 카드 이미지와 별도인 influencer당 사진 하나를 저장한다. 본인 계정이 인증됨 상태일 때만 인박스 설정에서 변경하며 별도 재인증은 요구하지 않는다.
+- 브라우저 입력은 JPG/PNG/WebP, 5MiB 이하로 제한하고 512×512 WebP로 변환해 메타데이터를 제거한다. `influencer-profiles` bucket은 공개 읽기, 최대5MiB, `image/webp`만 허용한다. 변경 요청은 `<influencer_uuid>/<requestId>.webp`에 새 객체로 올려 덮어쓰지 않는다. Storage RLS의 INSERT와 `set_influencer_profile_photo` RPC 모두 private influencer_accounts 소유권 및 verified_at을 검사한다. RPC는 요청 ID와 경로의 UUID 일치, 실제 객체 존재를 확인하고 다른 influencer 경로를 거부한다. 재시도에는 같은 requestId와 경로를 사용한다.
+- `profile_image_path`가 교체되면 room 목록·상단·답변 말풍선은 현재 공개 URL을 사용하므로 과거 답변에도 즉시 새 사진이 보인다. `RoomCatalogItem.profileImageUrl`은 표시용 URL이며 프로필 사진, 사진이 없으면 illust 카드 URL을 담고 둘 다 없으면 null이다. 화면은 null일 때 이름 첫 글자를 표시한다. 요청별 고유 경로로 교체 시 CDN이 이전 사진을 계속 반환하는 일을 막는다.
+- 프로토타입은 가상 인물 사진만 허용한다. Storage 객체는 업로드 전용이며 이전 파일 정리, 운영자 삭제, 재인증 필요 상태의 잠금, 인증 취소 시 숨김과 서버 측 메타데이터 제거는 실서비스 과제다.
 
 ## 9. Realtime·Storage·Auth
 
@@ -620,9 +682,16 @@ cluster 최종 반영 시 source 질문이 여전히 같은 방의 미답변 pas
 - 공개 이미지에 signed URL 사용 안 함. 없는 이미지의 UI placeholder 연결 예제 제공.
 - 버킷·정책은 migration으로 재현. 로컬 config 선언을 원격 적용 완료로 보지 않음.
 
-### 9.3 Auth 계정 프로비저닝
+### 9.3 인플루언서 프로필 사진 Storage
 
-로컬 script가 Auth Admin으로 userA/userB/influencer/admin 최소4계정을 만든다. user-a@example.test 같은 비실계정 이메일 사용, 암호는 안전하게 생성하거나 환경변수로 받는다. 가입 trigger 이후 관리 연결로 role·private 매핑·demo capability 부여. seed/프론트에 암호·Admin키 금지.
+- card-assets와 별도인 공개 읽기 `influencer-profiles` bucket을 만든다. 최대 크기5MiB, 허용 MIME은 image/webp다. 화면은 입력 JPG/PNG/WebP를 512×512 WebP로 변환하고 메타데이터를 제거한 뒤 업로드한다.
+- 경로는 요청 ID를 파일명으로 쓰는 `<influencer_uuid>/<requestId>.webp`이며 verified 상태의 본인 influencer만 Storage RLS로 INSERT할 수 있다. UPDATE·DELETE는 허용하지 않는다. `set_influencer_profile_photo` RPC는 같은 소유권·verified 상태·요청ID/경로 일치와 객체 존재를 검증한다. 재시도는 최초 요청의 같은 ID와 경로를 사용한다.
+- 인플루언서 계정 소유권 확인에는 private helper를 쓰고 private schema를 Data API에 노출하지 않는다. 프로필 사진은 signed URL이나 메시지별 이미지 snapshot을 쓰지 않는다.
+- 데모 업로드는 가상 인물 이미지에 한정한다. 교체 후 이전 객체 정리, 서버 메타데이터 제거와 관리자 삭제는 실서비스 과제다.
+
+### 9.4 Auth 계정 프로비저닝
+
+로컬 script가 Auth Admin으로 userA/userB/influencer/pendingInfluencer/admin 최소5계정을 만든다. user-a@example.test 같은 비실계정 이메일 사용, 암호는 안전하게 생성하거나 환경변수로 받는다. 가입 trigger 이후 관리 연결로 role·private 매핑·demo capability 부여. seed/프론트에 암호·Admin키 금지.
 
 **Auth 생성과 도메인 프로비저닝의 경로를 구분한다.** Auth 계정 생성/기존 계정 확인은 로컬 URL+secret key의 Auth Admin SDK로 수행한다. role·private 매핑·초기 보유량·fixture marker는 pg가 §10.3의 BB_LOCAL_DATABASE_URL로 직접 로컬 DB에 연결한 관리 SQL 트랜잭션으로 기록한다. private schema를 Data API에 노출하거나 authenticated GRANT를 늘려 해결하지 않는다. 이 관리 연결은 Node script에만 있으며 브라우저·Edge에 전달하지 않는다.
 
@@ -636,10 +705,10 @@ setup script는 @supabase/supabase-js와 pg만 사용하고 database.types.ts·�
 
 ### 10.1 시드와 시연 시나리오
 
-1. seed.sql은 설정 6개·가상 인물 10명·template 30개·room 10개·room_settings 10개·demo_clock 1개를 안정적 UUID로 구성한다. 콘텐츠 upsert는 가능하지만 기존 사용자 카드·멤버십·필터·clock·변경된 game_config는 덮어쓰지 않는다. 상태·설정 초깃값은 ON CONFLICT DO NOTHING으로 넣는다.
-2. setup: userA 첫 인물 illust common10+retro common1+holo special1=12장. userB illust common5장. 둘 다 첫방 active/gauge100·can_force_grade=true. admin만 can_advance_month=true.
-3. 같은 quality의 두 user 질문으로 정렬 차이, 답변완료1개·pending인증1개. 테스트는 RPC 또는 명시적 로컬 fixture setup 사용.
-4. userA 강화 후 rare1+다른스타일2=3장이어도 active 유지. 4/5장 입장 경계는 독립fixture.
+1. seed.sql은 설정 5개·카드 라인업 가상 인물10명·30 template·10 room·room_settings 10개·11번째 pending influencer와 verification(카드·room 없음)·demo_clock 1개를 안정적 UUID로 구성한다. 승인 전 room은10개, 승인 후 11개가 된다. 콘텐츠 upsert는 가능하지만 기존 사용자 카드·멤버십·필터·clock·변경된 game_config는 덮어쓰지 않는다. 상태·설정 초깃값은 ON CONFLICT DO NOTHING으로 넣는다.
+2. setup: userA는 첫 인물 illust common 10장과 이를 지급한 직전 월 rounds/draws 10건(`clock_kind='demo'`)을 갖고, 활성 membership은 없어 입장 가능·강화 가능·Buddy badge가 보인다. userB는 첫 인물 illust common 5장과 직전 월 rounds/draws 5건(`clock_kind='demo'`)으로 첫 방 active/gauge50 상태를 갖는다. 미리 주입한 fixture 발급은 통계 표본에서 제외하되 누적 장수에는 포함한다. `is_forced`는 `demoForceGrade`를 실제 적용한 발급만 표시한다. 두 사용자 모두 데모 강제 등급 권한은 환경 설정에 따르며, admin만 월 진행 권한을 갖는다.
+3. 같은 quality의 두 user 질문으로 정렬 차이, 답변완료1개·pending인증1개를 구성한다. 준비한 10장은 입장 자격과 강화 후에도 유지되는 누적 기록 기준을 보여 준다. 테스트는 RPC 또는 명시적 로컬 fixture setup을 사용한다.
+4. userA가 10장을 강화해 같은 템플릿 rare 1장을 받아도 누적 발급 10장과 입장 자격·Buddy badge는 유지된다. 4/5회 누적 발급 경계와 0/1회 퇴장 후 라운드 경계는 독립 fixture로 검증한다.
 5. 전체 재현 기준은 **로컬 db reset+demo setup**. seed upsert만으로 사용자상태 전체 초기화를 약속하지 않음.
 
 ### 10.2 환경변수
@@ -704,23 +773,24 @@ Docker가 없으면 코드·테스트 작성과 정적검사를 계속하고 런
 
 ## 11. 티켓·수행 순서
 
-P0/P1/P2는 순서이며 전체완료 요청에서 P2를 임의 제외하는 기준이 아니다. B-12는 기존 서비스 목록에만 있던 AI 전송계층, B-13은 완료검증을 명시한 보완 티켓이다.
+P0/P1/P2는 PRD 순서이며 전체완료 요청에서 P2를 임의 제외하는 기준이 아니다. B-12는 AI 전송계층, B-13은 전체 검증, B-14는 마지막 P2 순서인 influencer 프로필 사진 지원이다.
 
 | ID | 산출물 | 티어·선행 | 완료 기준 |
 | --- | --- | --- | --- |
 | B-01 | toolchain·CLI고정·schema/Auth/RLS/grants | P0/없음 | 가입user·metadata무시·reset·역할검증 |
-| B-02 | seed·placeholder·계정script | P0/B-01 | 10인/30template/10방·4계정·반복안전·비밀없음 |
-| B-03 | complete_round·config·멱등·cards SDK | P0/B-01,02 | 원자지급·강제등급권한·isNew경합·확률검증 |
-| B-04 | collection_view·upgrade_card·SDK | P0/B-03 | 9/10장·special·동시차감정합 |
-| B-05 | room_catalog·join_room·SDK | P1/B-04 | 4/5장·active보존·재입장월 |
+| B-02 | seed·placeholder·계정script | P0/B-01 | 10인/30template/10방+11번째 pending·5계정·반복안전·비밀없음 |
+| B-03 | complete_round·config·멱등·cards SDK | P0/B-01,02 | 원자지급·강제등급권한·isNew경합·누적 4→5회 entryUnlocked·5→6회 false·70/20/7.5/2.5 검증 |
+| B-04 | collection/inventory_view·upgrade_card·SDK | P0/B-03 | 9/10장·special·동시차감·템플릿 30종/보유 등급별 수량 |
+| B-05 | room_catalog·join_room·SDK | P1/B-04 | 누적 4/5회 입장·강화 후 자격 유지·퇴장 후 라운드 0/1회 재입장 |
 | B-06 | 내부저장RPC·submit-message·SDK·Realtime | P1/B-05 | JWT·3판정·직접우회거부·멱등·전송중권한변경 |
-| B-07 | demo_clock·월마감·SDK | P1/B-05 | 2/3회·중복1마감·퇴장·재입장 |
-| B-08 | 점수·inbox·reply·SDK | P1/B-06 | 공식·snapshot·동점페이지·답변권한 |
-| B-09 | 신청·심사·이력·SDK | P2/B-01,02 | pending UQ·동시검토·배지일관 |
-| B-10 | filters/config·version·cleanup | P2/B-06 | 필수해제불가·소유권·version·7일정리 |
-| B-11 | 연결·환경·배포·복구runbook | P0/B-01 | 키구분·대상·dry-run·외부조건 |
+| B-07 | demo_clock·월마감·getMyRoundGaugeSummary·SDK | P1/B-05 | 2/3/4회 게이지 변화·게임/입장 월 안내·12.5 이하 소진 경고·입장월 감액 면제·중복1마감·퇴장·라운드 후 재입장 |
+| B-08 | 점수·inbox·reply·SDK | P1/B-06 | 배지/스타일 공식·snapshot·동점페이지·질문자/묶음 답변 권한 |
+| B-09 | 신청·심사·이력·SDK | P2/B-01,02 | pending UQ·동시검토·배지일관·승인 시 11번째 방 생성 |
+| B-10 | filters/config·version·cleanup | P2/B-06 | 필터 선택/항상차단 분리·도배제한·소유권·version·7일정리 |
+| B-11 | 연결·환경·배포·복구runbook | P0/B-01 | 로그인·권한 구분·고정 ref·migration/seed/Functions/Secrets/Auth/Storage/Realtime·스모크·복구 절차 |
 | B-12 | summary/cluster·작업RPC·adapter | P2/B-06,08 | source검증·제한·재처리·실패보존 |
 | B-13 | 테스트·SDK통합·증거·인계예제 | 전구간/각티켓 | §12 통과·모의/실제·로컬/원격 구분 |
+| B-14 | influencer profile photo bucket·SDK·RPC | P2 마지막/B-01,B-09 | 입력 5MiB/JPG·PNG·WebP→WebP·고유 경로·verified owner·가상 사진·과거 말풍선 즉시반영·fallback |
 
 순서:
 
@@ -730,8 +800,8 @@ P0/P1/P2는 순서이며 전체완료 요청에서 P2를 임의 제외하는 기
 2. B-03→B-04→P0 SDK 통합(Auth→draw→collection→upgrade).
 3. B-05→B-06→B-08→P1 SDK 통합(join→판정→Realtime→inbox→reply).
 4. B-07 연결→퇴장·신규이벤트거부·다음월재입장.
-5. B-09→B-10→B-12, 실제AI 없어도 fixture 계약 구현 완료.
-6. B-13→fresh reset 재검증→SDK 인계. 원격조건·요청 충족 시 B-11 적용, 팀화면 리허설2회.
+5. B-09→B-12→B-10 순으로 P2 인증, 묶기/요약, 선택 필터 설정을 연결한다. 실제AI 없어도 fixture 계약을 구현한다.
+6. B-14를 P2 마지막 기능으로 구현한 뒤 B-13→fresh reset 재검증→SDK 인계. 원격조건·요청 충족 시 B-11 적용, 팀화면 리허설2회.
 
 일정 참고: 1일차 오전 기반·추첨, 오후 강화·입장·전송, 저녁P0, 밤게이지·인박스. 2일차 오전인증·필터·AI계층, 점심P1, 오후수정·동결·리허설. 생략한 티켓은 완료로 표시하지 않는다.
 
@@ -744,31 +814,117 @@ migration 순서: core/config→private/Auth→RLS/helpers→cards/views→rooms
 | 재현 | 빈 로컬 DB에서 migration+seed+setup 및 재실행 성공. 타입 검사·DB lint 통과 |
 | 초기화·env | supabase/·예제 env 없는 상태에서 절차로 생성 가능. stack 시작 후 로컬 키 수집, Node/브라우저와 Edge URL 분리, 원격 host 쓰기 거부, 비밀값 비출력 확인 |
 | 역할 | anon/userA/userB/방 소유자/다른 influencer/admin 각각 허용·거부 확인. 가입 metadata의 admin/demo 값 무시 |
-| 지급 | 같은 requestId 20회 병렬 호출 시 round/draw 각 1개·카드 +1. 다른 payload 재사용 거부. 같은 template 최초 동시 지급의 isNew=true는 정확히 1개 |
+| 지급 | 같은 requestId 20회 병렬 호출 시 round/draw 각 1개·카드 +1. 다른 payload 재사용 거부. 누적 4→5회 발급만 entryUnlocked=true, 5→6회는 false. 같은 template 최초 동시 지급의 isNew=true는 정확히 1개 |
 | 강화 | 9장 거부·10장 성공·special 거부. 10장에 서로 다른 요청 2개 병렬 호출 시 1개 성공·1개 부족. 음수·부분 지급 없음 |
-| 확률·설정 | 설정 누락·음수·합계 오류 거부. 난수 경계 검사와 1,000회 분포 기록. 일반 계정 강제 등급 거부. 비용·입장 장수·gauge 설정을 바꾼 뒤 현재 값 적용 확인 |
-| 입장 | 4/5장 경계·카드 미소모·active gauge 보존·강화 후 유지. 퇴장 효력 월 재입장 거부·다음 월 허용 |
-| 월 | 2회면 -50·3회면 유지. 두 무활동 월 뒤 퇴장. 같은 월 병렬 요청에도 마감 1회. 월 마감과 라운드 저장 경합·비데모 데이터 보존 확인 |
-| 메시지 | pass만 저장. suggest/block 원문·rewrite가 DB/Realtime/inbox/log에 없음. 동일 요청 1행·만료 lease 거부 |
+| 확률·설정 | 70/20/7.5/2.5 합계·난수 경계 검사와 별도 신규 user의 1,000회 분포 기록. `is_forced=true`와 미리 주입한 demo fixture 발급은 누적·자격에 포함하고 분포 표본에서 제외. 일반 계정 강제 등급 거부 |
+| 입장 | 누적 발급 4/5회 경계·카드 미소모·강화 후 자격 유지. 퇴장 뒤 라운드 0/1회 재입장 경계·gauge50 초기화 |
+| 월 | 기준3회에서 2회면 -12.5·3회면 유지·4회면 +12.5, 8회에서 최대100. `getMyRoundGaugeSummary`의 effective month·전체 라운드 수·목표·잔여 회수 확인. 입장/재입장 월에는 부족분 미차감. 게이지12.5 이하 인앱 경고, 같은 월 병렬 요청 마감 1회, 월 마감·라운드 저장 경합과 비데모 데이터 보존 확인 |
+| 메시지 | pass만 저장. userA가 userB 질문과 무관한 답변을 Data API/Realtime 모두 받지 못하고, 본인 질문·묶음 답변은 받는지 확인. suggest/block 원문·rewrite는 DB/Realtime/inbox/log에 없음. 동일 요청 1행·만료 lease 거부 |
 | 신뢰 | JWT 없음·만료·위조·key만 가진 요청 거부. 내부 RPC 직접 호출·직접 INSERT·actor/verdict/quality 위조 거부 |
 | AI 장애 | timeout·5xx·불량 JSON·NaN·점수 범위 오류 때 저장 없음. 판정 중 퇴장·필터 변경 거부 |
-| 인박스 | 점수 예시·과거 snapshot 불변. 동점 페이지 중복·누락 없음. 타방·답변 대상·중복 답변 거부 |
+| 인박스 | PRD의 Badge+style bonus 점수 예시·과거 snapshot 불변. 동점 페이지 중복·누락 없음. 타방·답변 대상·중복 답변 거부 |
 | Realtime | 두 세션 송수신, 타방·left 이벤트 차단, 초기 버퍼 중복 제거, 재연결 복구, 계정 전환 정리, 폴링 중단. 큰 bigint 문자열과 동일 방 동시 전송도 확인 |
-| 인증 | 본인 신청만 허용·pending 중복 거부. 승인/반려 경합 1회 성공. type·배지·이력 일관, 증빙 URL fetch 없음 |
-| 필터·보관 | 필수 필터 해제·타방 변경 거부. version 충돌·저장 경합 검사. 만료 metadata/operations/rate window 정리 |
+| 인증 | 본인 신청만 허용·pending 중복 거부. 승인/반려 경합 1회 성공. type·배지·이력 일관. 승인 시 11번째 방 생성, 카드 템플릿 30개 불변. 증빙 URL fetch 없음 |
+| 필터·보관 | 선택 필터만 해제 가능, 항상 차단과 도배 규칙은 유지. 6번째 전송/10초 경계와 30초 차단, requestId 재시도 중복 미계수. version 충돌·저장 경합 및 만료 metadata/operations/rate window 정리 |
 | 묶기·요약 | 소유자만 허용, source 밖·중복 ID 거부, 길이·호출 제한. 빈 source는 AI 0회. singleton 제외·처리 중 답변이면 SOURCE_CHANGED·실패 시 기존 결과 보존 |
-| Storage | 공개 읽기 성공, 비관리자 쓰기·덮어쓰기·삭제 거부, 관리자 업로드 성공, 없는 이미지 예제 |
+| Storage | card-assets 관리자 쓰기 경계, profile photo 조회·verified owner 전용 WebP 업로드, 5MiB/MIME·고유 경로·덮어쓰기 거부, 가상 이미지 교체의 과거 답변 반영, 카드 일러스트/이름 fallback 확인 |
 | 노출 | 번들·Git·fixture·로그에 secret/JWT/암호 없음. private 비노출·민감 RPC의 PUBLIC 실행 금지·권한 상실 후 캐시 조회 거부 |
 
 실제 역할/JWT/RPC 경계로 검증한다. 관리자 직접 쓰기만으로 대체하지 않는다. 보안 거부 사례가 실패하면 시연이 되어도 미완료다. 명령·결과·환경·실패 원인을 기록한다.
 
 ## 13. 원격 적용·인계·복구
 
-1. 원격 적용 요청과 대상 환경을 확인한다. 현재 문서 작성 중에는 원격 schema를 변경하지 않는다.
-2. 관리 인증·ref·기존 schema/이력·DB 버전을 확인하고 로컬 major_version과 호환성을 맞춘다.
-3. 필수 로컬 검증을 통과한 뒤 migration 목록·데이터 영향·백업·복구 가능성을 확인한다.
-4. dry-run → migration → Functions → Secrets/Storage/Auth redirect 확인 → 원격 역할별 스모크 순서로 수행한다. JWT 정책도 배포 결과로 확인한다.
-5. Vercel에는 URL/publishable key만 설정한다. 화면 코드가 없으면 안내·SDK 인계까지 수행하고 프론트 배포 완료로 표시하지 않는다.
+이 절은 미래의 실제 원격 적용을 위한 절차다. **이번 계획 문서 수정에서는 아래 절차를 실행하지 않는다.** `md 파일 기반으로 개발 시작해`는 B-01~B-14 로컬 구현·검증을 시작하는 지시다. 원격 Supabase 변경에는 사용자의 별도 원격 적용 요청과 대상 환경/허용 범위가 필요하다. 같은 요청에서 이미 구체적인 대상·범위·행동을 승인했다면 CLI의 `--yes`는 비대화형 실행 확인이며 승인을 다시 받는 단계가 아니다.
+
+### 13.1 원격 작업 범위와 사전 조건
+
+적용 전 작업 기록에 대상 ref, 환경, 작업 commit, 예상 migration, 실행할 function, 필요한 Secret **이름**, Auth URL 변경, Storage/Realtime 변경, seed/이미지/계정 단계, 백업 위치, 확인 담당을 남긴다. 비밀값이나 토큰은 기록하지 않는다. 현재 ref는 §2.1의 해커톤 연결 대상이지만 운영 여부와 데이터 상태는 미확인이다.
+
+- 원격 적용 대상은 `kjfaqfpvfvgbrvdoosyi`인지 매번 확인한다. 다른 ref/프리뷰/운영은 별도 대상 승인 없이 연결하지 않는다.
+- 변경 범위는 reviewed migration과 필요한 함수 3개(`submit-message`, `summarize-room`, `cluster-questions`)로 제한한다. 문서상 예정 함수 목록을 실제 배포 완료로 보지 않는다.
+- 현재 schema, migration history, DB major version, 기존 함수/Secret 이름, Storage bucket/object, `messages` publication, Auth URL/redirect, 기존 사용자와 데이터를 읽어 baseline을 만든다. 소유되지 않은 기존 구조와 이력은 임의로 채택·삭제·repair하지 않는다.
+- §12의 로컬 migration/권한/Function 검증을 통과한 commit을 대상으로 한다. 사용 중인 DB와 호환성을 확인하고, 복구에 필요한 백업/기존 Function 소스를 확보하지 못하면 쓰기 단계로 넘어가지 않는다.
+- 실제 AI를 호출하는 검증은 유효한 공급자 키·호출량/비용 조건이 별도로 확인된 경우에만 한다. `AI_MODE=fixture`를 원격 성공이나 필터 통과 대체로 사용하지 않는다. 실제 공급자 연결이 준비되지 않으면 안전하게 fail-closed 상태로 두고 AI 검증은 미완료로 기록한다.
+
+### 13.2 인증 및 읽기 전용 preflight
+
+1. CLI가 계획의 고정 버전 `supabase@3.0.0`인지 확인하고, 사용할 `link`, `migration list`, `db push`, `functions deploy`, `secrets set`의 `--help`를 다시 읽는다. Supabase CLI v3에서 원격 명령은 `--remote=<project-ref>` 형식으로 대상 ref를 지정한다. v2 예시나 축약된 `--linked` 옵션을 그대로 복사하지 않는다.
+2. §2.5의 Supabase 계정/PAT와 프로젝트 권한을 확인한다. DB 암호는 CLI가 요구할 때만 보호된 셸/보안 저장소에서 공급한다. PAT·DB 암호를 명령행 인수로 붙이거나 로그에 출력하지 않는다.
+3. known ref를 연결한 다음 읽기 전용 프로젝트·migration 상태를 확인한다. `projects list`는 계정 전체 프로젝트 조회 권한이 필요할 수 있어 대상 접근 확인의 필수 조건으로 삼지 않는다.
+
+```bash
+# 미래 실행 예시. 현재는 실행하지 않음. 로그인/권한 확인 뒤 read-only 조사.
+npx --yes supabase@3.0.0 link --project-ref kjfaqfpvfvgbrvdoosyi
+npx --yes supabase@3.0.0 migration list --remote=kjfaqfpvfvgbrvdoosyi
+npx --yes supabase@3.0.0 db push --remote=kjfaqfpvfvgbrvdoosyi --dry-run
+```
+
+CLI의 출력 대상과 대시보드 ref가 일치하지 않으면 즉시 중단한다. 원격 migration history와 로컬 파일이 충돌하거나, 예상 밖 migration/기존 schema 차이/DB 버전 불일치가 있으면 `db push`를 진행하지 않는다. 수동 baseline 또는 `migration repair`는 별도 검토된 변경으로 다룬다. dry-run 결과와 목록을 비교해 추가/변경될 migration 및 데이터 영향을 승인 범위와 대조한다.
+
+### 13.3 Auth URL과 hosted Secrets 준비
+
+- 로컬 `supabase/config.toml`은 개발용 `localhost`·이메일 확인 설정을 포함하므로 원격에 통째로 push하지 않는다. `config push`가 필요한 경우 먼저 현재값과 계획값의 차이를 항목별 검토하고 승인된 Auth URL/redirect/CORS 설정만 반영한다. hosted confirmation 정책을 로컬 설정값으로 낮추지 않는다.
+- Auth `site_url` 및 redirect allowlist는 배포할 실제 origin만 설정한다. `localhost`, 임의 wildcard, 확인되지 않은 프리뷰 URL을 운영 allowlist에 추가하지 않는다. 브라우저 Auth 동작은 실제 공개 배포 origin과 로그인 세션으로 별도 확인한다.
+- Functions Secrets는 프로젝트 전역에서 여러 함수에 영향을 줄 수 있으므로 기존 Secret 이름과 사용 함수를 먼저 확인한다. Edge platform이 제공하는 `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEYS`, `SUPABASE_SECRET_KEYS`는 존재 여부만 확인하고 직접 덮어쓰거나 사용자 Secret으로 만들지 않는다. `SUPABASE_*` 예약 이름, PAT, DB 암호, 로컬 `BB_LOCAL_*` 키는 hosted custom Secrets에 넣지 않는다.
+- hosted custom Secret 파일은 승인된 보안 저장소/로컬 비추적 파일에서 준비한다. 기록할 변수명은 현재 adapter가 요구하는 `AI_MODE=live`, `LLM_API_KEY`, `LLM_MODEL`, provider별 필수값, 정확한 `ALLOWED_ORIGINS`다. 실 키 값은 이 문서·명령행 인수·Git에 적지 않는다. fixture 키/환경을 원격에 복사하지 않는다.
+- scoped PAT 또는 DB 암호를 Functions runtime Secret으로 저장하지 않는다. secret key도 플랫폼에서 제공되는지 먼저 확인하고, 제공되지 않을 때만 승인된 서버용 값을 보호 경로로 공급한다.
+
+### 13.4 DB migration과 선택적 초기 데이터
+
+먼저 §13.2의 원격 dry-run으로 대상과 변경 목록을 재확인한다. migration이 예상대로만 추가되고, 현재 원격 schema와 호환되며 백업/복구 기록이 있을 때에만 사용자 승인 범위 안에서 적용한다. `--dry-run`은 실행 대상/변경 목록 확인이지 seed SQL의 각 데이터 결과를 검증하는 것은 아니다. seed 내용을 별도로 검토한다.
+
+```bash
+# 미래 실행 예시. --yes는 scope가 승인된 비대화형 변경에만 사용.
+# reviewed schema migration만 반영할 때:
+npx --yes supabase@3.0.0 db push --remote=kjfaqfpvfvgbrvdoosyi --yes
+
+# 비밀값이 아닌 §10.1 seed를 이 환경에 넣기로 명시적으로 승인한 경우에만,
+# seed SQL의 데이터 영향도 검토하고 seed 포함 dry-run을 다시 확인한 뒤 적용한다.
+npx --yes supabase@3.0.0 db push --remote=kjfaqfpvfvgbrvdoosyi --include-seed --dry-run
+npx --yes supabase@3.0.0 db push --remote=kjfaqfpvfvgbrvdoosyi --include-seed --yes
+```
+
+`db push`는 기본적으로 `seed.sql`을 자동 실행하지 않는다. `--include-seed`는 현재 CLI 설정의 seed 파일을 실행하므로 첫 해커톤 데이터 투입처럼 환경·데이터 내용·멱등 동작을 검토하고 명시적으로 허용한 경우에만 사용한다. schema migration과 seed 검토/결과를 별도 기록한다. §10.1의 `ON CONFLICT` 규칙은 기존 카드·membership·필터·clock/game 설정을 임의 덮어쓰지 않도록 지켜야 한다. local `setup-demo-accounts.mjs`, Auth fixture 사용자, 로컬 카드·메시지 데이터는 원격에 실행하지 않는다. 원격 데모 계정은 이름이 지정된 별도 데모 환경과 작업 요청이 있을 때만 Auth Admin으로 따로 만들며 운영 사용자를 덮어쓰지 않는다.
+
+### 13.5 Functions·Storage·Realtime 반영
+
+Migration 성공과 DB health 확인 후 승인된 함수만 배포한다. v3 hosted mutation에는 `--yes`를 명시하고 매 호출에 동일한 원격 ref를 넣는다. `--prune`은 다른 함수 삭제 위험이 있으므로 routine deploy에서 사용하지 않는다. `verify_jwt`를 끄거나 gateway 검증을 우회하지 않는다.
+
+```bash
+# secrets file은 비추적/보호 경로에만 만들고 승인된 이름만 포함한다.
+npx --yes supabase@3.0.0 secrets set --env-file "$FUNCTIONS_REMOTE_ENV_FILE" --remote=kjfaqfpvfvgbrvdoosyi --yes
+
+npx --yes supabase@3.0.0 functions deploy submit-message --remote=kjfaqfpvfvgbrvdoosyi --yes
+npx --yes supabase@3.0.0 functions deploy summarize-room --remote=kjfaqfpvfvgbrvdoosyi --yes
+npx --yes supabase@3.0.0 functions deploy cluster-questions --remote=kjfaqfpvfvgbrvdoosyi --yes
+```
+
+`FUNCTIONS_REMOTE_ENV_FILE`은 보호된 파일 경로로 작업 실행 환경에서 공급한다. 여기에 값을 직접 출력하거나 이 문서에 경로/내용을 저장하지 않는다. Secrets 업데이트 전에 기존 함수의 사용 영향과 Owner/Administrator 변경 권한을 확인한다.
+
+Secrets 변경은 통상 즉시 runtime에 반영되며 함수 재배포가 필요하지 않을 수 있다. CLI `secrets list` 등으로는 이름/메타데이터만 확인하고 값을 출력하지 않는다. Secret 변경은 프로젝트의 기존 함수에도 영향을 줄 수 있으므로 기존 사용 여부를 확인한다. 전체 삭제 명령을 쓰지 않는다.
+
+두 Storage bucket과 RLS 정책, `messages` Realtime publication은 승인된 migration을 통해 반영·확인한다. `realtime` 관리 schema 자체는 만들거나 수정하지 않는다. 정책이 성공해도 object 파일 업로드는 별도 작업이다. 실제 placeholder/가상 프로필 이미지 object는 승인된 경로와 덮어쓰기 규칙을 검토한 후 별도로 넣는다. Auth 사용자 생성, 인증 redirect, Storage object, Realtime publication을 migration만으로 자동 준비됐다고 간주하지 않는다.
+
+### 13.6 원격 스모크와 완료 증거
+
+배포 후 app publishable key + 실제 사용자 JWT로 본인/타 사용자/방 소유자/관리 역할을 검증한다. 서버 secret key로 RLS 스모크를 대신하지 않는다. 비파괴 요청 ID로 인증·RLS·RPC·Edge JWT·멱등성·fail-closed·Realtime 분리를 확인하고, 테스트용 remote demo user가 필요하면 명시된 해커톤 환경에 한정해 별도 준비한다. 원격 `reset`, 로컬 setup script, 기존 사용자로 데이터 오염을 만드는 smoke는 금지한다.
+
+- migration history와 원격 schema 상태가 의도한 commit과 일치한다.
+- 세 함수의 배포 대상/ref·버전·JWT 설정을 확인하고 사용자 없는 요청/잘못된 JWT가 거부된다.
+- Secrets는 이름만 확인하며 실제 키가 필요할 때만 기능 호출로 검증한다. fixture 통과를 live AI 증거로 기록하지 않는다.
+- RLS/RPC를 두 사용자 세션으로 확인하고 Realtime에서 타 사용자/left member 정보가 오지 않는지 확인한다.
+- card-assets 공개 읽기·관리자 쓰기, influencer-profiles 공개 읽기·인증된 소유자 업로드·타 인플루언서 덮어쓰기 거부, Auth origin/redirect를 확인한다. 기존 운영 데이터에 대한 cleanup/삭제 스모크는 하지 않는다.
+- 작업 commit, CLI 버전, ref, migration 목록, deployed function 이름/시점, Secret 이름(값 금지), 테스트 역할·결과·오류·미실행 항목을 `harness/verification-log.md`에 기록한다.
+
+로그인 확인, 프로젝트 ref 접근, DB dry-run, 실제 migration, Function 배포, Secrets 반영, Storage/Auth/Realtime 설정, 실제 JWT 스모크, live AI 호출은 각각 독립된 증거다. 한 단계 성공을 나머지 완료로 묶지 않는다. 전체 범위 중 미실행 조건이 있으면 원격 적용 완료로 보고하지 않는다.
+
+### 13.7 부분 실패·복구
+
+단계가 실패하면 추가 쓰기를 멈추고, 어떤 migration·Function·Secret·Auth/Storage 설정이 적용됐는지와 에러를 비밀값 없이 기록한다. migration이 적용된 뒤에는 수정/이력 삭제/reset으로 되돌리지 말고 새 보정 migration으로 전진 복구한다. 확장 후 축소가 필요한 경우 호환되는 두 단계 변경과 데이터 변환 복구안을 검토한다. Function은 이전의 확인된 정상 commit과 동일한 JWT 정책으로 재배포한다. 잘못된 Secret은 이름/영향 함수를 확인한 후 검증된 값으로 교체·회전하며 전체 Secret을 일괄 삭제하지 않는다. Auth URL 설정은 기록한 기존값으로 복구한다. DB 백업 복구는 영향·시점·다른 팀 데이터 손실 범위를 확인한 뒤 별도 승인된 recovery 절차로만 한다.
+
+### 13.8 프론트 인계
+
+Vercel 등 프론트 호스팅을 실제로 사용할 때 공개 URL과 publishable key만 해당 환경의 공개 환경변수에 둔다. Supabase PAT, DB 암호, secret key, provider key는 프론트 변수에 두지 않는다. URL/key 설정은 백엔드 DB·Functions 배포와 구별해 기록한다. 화면 코드와 배포 요청이 없으면 SDK export·타입 인계까지만 하고 프론트 원격 배포 완료로 보고하지 않는다.
 
 인계 예제는 실제 export 이름·타입으로 제공한다.
 
@@ -782,8 +938,6 @@ const sent = await submitMessage({ requestId: crypto.randomUUID(), roomId, body 
 ```
 
 cards는 현호P, rooms/chat/filters/verifications는 자성P가 사용한다. 코드·타입·예제를 저장소에 제공한다. 외부 메시지는 별도 지시 없이 전송하지 않는다.
-
-적용 전 migration/Function 버전·대상·백업 위치를 기록하되 비밀값은 제외한다. 실패는 새 보정 migration으로 수정하고 원격 reset·이력 삭제는 하지 않는다. Function은 직전 정상 소스로 재배포한다. AI 장애 때는 실패 응답을 반환하고 필터 없이 저장하지 않는다. schema는 추가 변경을 우선하며 삭제·데이터 변환은 구체적인 영향과 복구안을 검토한다.
 
 ## 14. 진행·완료 보고
 
@@ -802,16 +956,19 @@ cards는 현호P, rooms/chat/filters/verifications는 자성P가 사용한다. �
 - [ ] B-11 연결·환경·배포·복구절차
 - [ ] B-12 summary/cluster·AI adapter
 - [ ] B-13 계약·권한·동시성·SDK통합검증
+- [ ] B-14 인플루언서 프로필 사진
 
 ### 14.2 상태 구분
 
 | 상태 | 조건 | 현재 |
 | --- | --- | --- |
 | 계획 단독 실행 준비 | 범위·기본값·타입·권한·순서·검증·외부조건 | 문서 보완·정적 교차 검토 완료 |
-| 백엔드 로컬 완료 | B-01~13 코드·필수로컬검증 | 미착수/미검증 |
+| 백엔드 로컬 완료 | B-01~14 코드·필수로컬검증 | 미착수/미검증 |
 | 실제AI 검증 | live 호출·3판정·장애 | 미검증 |
 | 팀화면 통합 | 담당화면 P0/P1/P2·오류·구독 | 미검증 |
 | Supabase 관리 연결 | CLI/ref/DB접근 | 문서상 절차만 준비 |
+| Supabase 로그인·프로젝트 권한 | 계정/PAT 범위/프로젝트 멤버십 | 미확인·미실행 |
+| 원격 preflight | target ref·DB 이력·버전·dry-run·백업 | 미실행 |
 | 원격 적용 | 승인환경migration/Functions/Secrets·스모크 | 미실행 |
 | 데모 완료 | 동결 후 전체리허설2회 | 미실행 |
 
@@ -821,22 +978,28 @@ cards는 현호P, rooms/chat/filters/verifications는 자성P가 사용한다. �
 
 2026-11-10 준비 상태 정리: 사용자 요청에 따라 로컬 `supabase/` 폴더 전체와 루트 `.env.example`을 삭제한다. 위 연결 값과 생성 기준은 이 문서에 보존하며 다음 개발 착수 시 B-01에서 생성한다. 원격 Supabase는 변경하지 않는다.
 
-준비 단계의 전체 계획 검사기는 아직 이 파일들이 존재한다고 가정하므로 파일 누락 또는 읽기 오류로 중단할 수 있다. 이는 의도된 개발 전 상태이며 검사 때문에 파일을 미리 생성하지 않는다. 개발 착수 후 전체 검사는 참고 결과로 기록하되, 알려진 다른 담당자 문서의 과거 계약 실패를 B-13 백엔드 완료의 게이트로 삼지 않는다. 새로 구현한 백엔드의 필수 검증 실패는 예외 없이 수정한다.
+준비 단계의 전체 계획 검사기는 아직 이 파일들이 존재한다고 가정하므로 파일 누락 또는 읽기 오류로 중단할 수 있다. 이는 의도된 개발 전 상태이며 검사 때문에 파일을 미리 생성하지 않는다. 개발 착수 후 전체 검사는 참고 결과로 기록하되, 알려진 다른 담당자 문서의 과거 계약 실패를 B-13/B-14 백엔드 완료의 게이트로 삼지 않는다. 새로 구현한 백엔드의 필수 검증 실패는 예외 없이 수정한다.
 
-기존 문서의 독립성·계약·권한을 검토하고 위 공백을 보완했다. Supabase 값은 사용자가 전달한 그대로 §2.1에 기록했다. 프로젝트 설정파일 생성·CLI 로그인/link·schema/RPC 생성·원격배포는 이번 작업의 범위가 아니다.
+기존 문서의 독립성·계약·권한을 검토하고 위 공백을 보완했다. Supabase 값은 사용자가 전달한 그대로 §2.1에 기록했다. 이번 추가 보완에서는 Supabase 로그인/PAT·프로젝트 및 DB 권한 구분·CLI v3 고정 ref·migration/선택적 seed·Functions/Secrets·Auth/Storage/Realtime·역할별 smoke·복구 기준을 정리했다. 프로젝트 설정파일 생성·CLI 로그인/link·schema/RPC 생성·원격배포는 이번 작업의 범위가 아니다.
 
 문서 자체 검증: 주요 절 15개, 티켓·체크리스트 13개 일치, TypeScript 예시 5개 구문 분석, 설정 JSON 6개 파싱, 전달받은 URL/key 일치, 코드 블록 짝·공백 검사를 통과했다. git diff --check도 통과했다. 이는 문서 검증이며 DB·Edge·브라우저 실행 증거가 아니다.
+
+2026-11-10 원격 적용 준비 보완: §2에 Supabase 계정/PAT·프로젝트 권한·DB 접속·앱 JWT의 구분과 Full Access/MCP/CLI 권한 차이, scoped PAT 가용성 및 회수 절차를 추가했다. §13에 CLI v3 고정 ref·읽기 전용 preflight·선택적 seed·Functions/Secrets·Auth/Storage/Realtime·역할별 스모크·부분 실패 복구 순서를 추가했다. 문서 검사에서 15개 주요 절, B-01~B-13 표와 체크박스, TypeScript 예시 5개, 코드 fence 짝, 전달 URL/key 유지, 구식 원격 CLI 문법 부재를 확인하고 git diff --check를 통과했다. `supabase/`·`.env.example`·실제 env 파일은 없는 상태이며 로그인·권한 변경·설정·개발·원격 배포는 실행하지 않았다.
 
 초기 전체계획 검사(check-plan.mjs)는 architecture와 다른 담당자 문서의 과거 서버 API·권한 설명 때문에 실패했다. 2026-11-10 사용자 요청으로 architecture.md의 예정 폴더 구조·CSR 흐름·서비스 목록·역할을 이 계획에 맞춰 동기화하고 anonymous-plan.md도 U-01 시연·발표 범위로 정리했다. 자성P·문환P·현호P 계획의 과거 계약과 검사기는 별도 정리 대상으로 남아 있다. 이 검사 결과를 런타임 검증 증거로 사용하지 않는다.
 
 2026-11-10 최종 독립 실행 검토에서는 로컬 키 획득 순서, setup의 직접 DB 연결, Node/Deno 검사 분리, 설정값 변경 적용, 비공개 월 정보 helper, lease nullability와 AI source 변경 처리를 추가 확인·보완했다. 구현 시 harness/verification-log.md가 없으면 날짜·티켓·환경·명령·결과·미검증 필드로 생성한다. 기존 하네스 파일이 없다는 이유로 구현을 멈추지 않으며 이 문서의 §12 검증 기준을 사용한다.
 
+2026-11-10 PRD 교차 검토 및 실행계획 갱신: 최신 PRD에 맞춰 카드 라인업 5/3/2, 등급 확률 70/20/7.5/2.5, 누적 발급 입장 자격·보유 배지·우선순위 점수, 50 시작·월 3회 기준·회당 12.5 게이지·퇴장 후 1회 라운드 재입장, 팬별 메시지 RLS/묶음 답변, 선택/항상 차단 필터, 승인 시 11번째 방 생성, 보유 카드 조회·프로필 사진 업로드와 대체 이미지, `completeRound.entryUnlocked`, 월 라운드 요약과 인앱 게이지 경고를 반영했다. P0/P1/P2와 B-01~B-14 수행 순서를 맞췄다. 대상 문서와 PRD는 정합하지만 “게이지 소진까지 남은 기간” 산식과 알림 채널은 PRD에 정의가 없어 잔여 게이지·월 마감일 표시, 12.5 이하 인앱 경고를 프로토타입 해석으로 명시했다. 다른 담당자 계획에는 `자성P_plan.md`의 게이지 시작100/월 부족 시 -50, `문환P_plan.md`의 `draws.forced` 표기가 각각 PRD 및 본 백엔드 계약과 달라 구현 전 후속 정리가 필요하다. 해당 담당자 문서는 이번 범위에서 수정하지 않았다. 제품 구현·DB 검증·AI 실행·브라우저 검증·원격 변경은 수행하지 않았다.
+
 ### 14.4 기술 근거
 
-2026-11-09 확인한 공식 자료다. 제품 요구사항을 찾기 위해 추가로 읽어야 하는 기획 문서는 아니다.
+2026-11-10 확인한 공식 자료다. 제품 요구사항을 찾기 위해 추가로 읽어야 하는 기획 문서는 아니다.
 
 - [Supabase API keys](https://supabase.com/docs/guides/getting-started/api-keys): 공개/서버키·사용자JWT 구분.
-- [Personal access tokens](https://supabase.com/docs/guides/platform/personal-access-tokens): CLI관리인증·DB암호 차이.
+- [Personal access tokens](https://supabase.com/docs/guides/platform/personal-access-tokens): CLI관리인증·DB암호 차이 및 scoped token 제공 범위/계정 역할 제한. 현재 제공 상태는 계정별로 다시 확인.
+- [Supabase CLI v3 migration guide](https://supabase.com/docs/guides/local-development/cli/migrating-to-v3): 원격 대상 문법·hosted mutation의 비대화형 실행·seed 옵션. 배포 시 고정 CLI 버전의 `--help`도 다시 확인.
+- [Edge Function Secrets](https://supabase.com/docs/guides/functions/secrets): platform 예약값·hosted Secret 권한/반영.
 - [CLI local/hosted targets](https://supabase.com/docs/guides/local-development/local-and-hosted-projects): 로컬·원격대상. 실제flag는 고정CLI --help 확인.
 - [RLS](https://supabase.com/docs/guides/database/postgres/row-level-security), [Database views](https://supabase.com/docs/guides/database/views): RLS·security_invoker 경계.
 - [Edge authentication](https://supabase.com/docs/guides/functions/auth), [JWT verification](https://supabase.com/docs/guides/auth/jwts): 사용자인증을 키존재로 대체하지 않는 검증.
