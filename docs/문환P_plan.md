@@ -2,11 +2,11 @@
 
 **역할:** AI 활용 — 의사결정 모델(jev)·AI API로 메시지 필터링 등, 카드 확률 계산과 발급
 
-**최종 갱신:** 2026-11-10 (`main` 4e04410의 Supabase Edge 구조 기준, `prd.md`의 채팅 규칙 확정분 반영)
+**최종 갱신:** 2026-11-10 (`main` 551c9dd, `홍주P_plan.md` 계약 1.5 기준. AI 계약과 티켓 완료 기준 확정분 반영)
 
 **공통 기준:** 제품 규칙은 [prd.md](./prd.md), 구조는 [architecture.md](./architecture.md), 백엔드 계약은 [홍주P_plan.md](./홍주P_plan.md), 용어는 [GLOSSARY.md](../GLOSSARY.md)를 따른다.
 
-> **우선순위:** 제품 규칙이 어긋나면 `prd.md`를 우선한다. AI 인터페이스와 발급 함수 계약은 이 문서의 3절을 우선한다. `docs/superpowers/`의 AI 설계 문서와 구현 계획은 이전 구조 기준이므로, 이 문서와 어긋나면 이 문서를 따른다.
+> **우선순위:** 제품 규칙이 어긋나면 `prd.md`를 우선한다. `AiAdapter` 타입 정의는 `홍주P_plan.md` §8.1을 기준으로 하고, 판정·재검사·폴백·시한 같은 동작 규칙과 발급 함수 계약은 이 문서의 3절을 기준으로 한다. `docs/superpowers/`의 AI 설계 문서와 구현 계획은 이전 구조 기준이므로, 이 문서와 어긋나면 이 문서를 따른다.
 
 ## 1. 동료와 동료 에이전트 전달 사항
 
@@ -16,18 +16,18 @@
 
 **AI 계약 (`홍주P_plan.md` §8)**
 
+계약 1.5에 반영된 요청은 지우고, 아직 반영되지 않은 건만 남겼다.
+
 | 위치 | 현재 | 변경 요청 |
 | --- | --- | --- |
-| §8.1 `suggest` | `rewrite` 1~2000자 필수 | `rewrite: null` 허용. 값이 있으면 1~2000자. 재검사 실패 시 수정 문장 없이 안내만 표시 |
-| §8.1 `moderateAndScore` 응답 | 필드 없음 | `passesAllFilters`(boolean) 추가. `disabledFilters`를 적용하지 않아도 통과하는지를 뜻하고, 폴백 판정에서도 같은 방식으로 계산한다. 답변에 원래 질문을 인용할지 정하는 데 쓴다 |
-| §8.1 `suggest` 응답 | 필드 없음 | `rewriteQuality`(숫자 또는 `null`) 추가. 수정 문장의 품질 점수이며 `rewrite`가 `null`이면 `null`이다. 수정 문장을 그대로 보낼 때 이 값으로 저장한다 |
-| §8.1·§6.2 장애 | timeout·5xx·JSON 오류는 `FILTER_UNAVAILABLE` | Jev 장애와 AI 키 누락은 adapter가 금칙어 폴백으로 판정해 돌려준다. 금칙어에 없으면 `pass`가 되며, 이는 `prd.md`와 AI 설계에서 받아들인 의도된 동작이다. `FILTER_UNAVAILABLE`은 adapter 예외, 응답 형식 불량, Edge 전체 시한 초과에만 쓴다 |
-| §8.1 시한 | LLM timeout 8초 | Jev와 수정 문장의 시한은 adapter가 관리한다. Edge의 `signal`은 전체 처리 목표 12초에만 건다 |
-| §10.2 환경변수 | `AI_MODE`, `LLM_API_KEY`, `LLM_MODEL`, live 누락 검증 | `ANTHROPIC_API_KEY`, `TYPESAFE_API_KEY`로 교체. live에서 AI 키 누락을 오류로 막지 않는다 |
-| §8.3 `member_count` | 참조 수 | 질문한 고유 발신자 수. 같은 사람의 질문 2건은 1명이다 |
-| §8.2 필수 항목 | threat, sexual_harassment, personal_data, illegal_request | threat, stalking, sexual_harassment, privacy, hate, illegal_ad, spam |
-| §8.2 선택 항목 | profanity, belittling, spam | profanity, belittling, appearance |
-| §8.2 고정 안내문 | 7개 | 아래 2절의 10개 문구로 교체 |
+| §8.1 `moderateAndScore` 입력 | `body`, `disabledFilters`, `signal` | 선택 필드 `senderType?: 'user' \| 'influencer'` 추가. 없으면 `user`로 처리한다. 답변·전체 메시지·인사말 경로만 `influencer`를 넘기며, adapter가 Jev 문맥을 발신자에 맞게 고른다 |
+| §8.1·§8.2 폴백의 `passesAllFilters` | 10개 필터 통과 여부 | 금칙어 폴백은 전 항목 검사가 아니므로 항상 `false`다. 타입은 그대로이고 §12 시험에 추가한다 |
+| §7.3·§8.1 폴백 판정 | 통과하지 못하면 차단 | 선택 항목에 걸리면 `suggest`와 `rewrite: null`, 항상 차단 항목에 걸리면 `block`이다. 저장하지 않는 것은 같다 |
+| §4.2·§4.4 `message_clusters` SELECT | 본인 질문이 속한 묶음의 팬과 방 소유자 | 방 소유자만. 팬 화면은 답변의 `reply_context`와 `messages.cluster_id`만 쓰면 된다 |
+| §6.3·§7.1 "오늘 N건" | 없음 | 아래 제품 규칙의 집계 RPC·SDK 추가 (P1, F-08) |
+| §11 migration 순서 | `issue_card` 위치 없음 | cards/views의 `complete_round` 앞에 `issue_card` migration을 명시한다 |
+| §8.3 묶기·요약 시한 | 없음 (§8.1의 12초만 있음) | 묶기·요약의 `signal`은 20초 초과, lease 30초 미만으로 건다. adapter 시한은 20초이고 재시도는 없다 |
+| §7.3·§8.1·§12 폴백 위반 미집계 | 시험 항목 | 응답에 폴백 표시가 없고 프로토타입에 위반 집계도 없으므로 실서비스 과제로 옮긴다 |
 
 **제품 규칙 (`prd.md` 우선)**
 
@@ -41,15 +41,15 @@
 - **묶음 답변:** 답변 1회로 묶음의 질문 전체를 답변 처리한다. 답변 행에 `cluster_id`를 남기면 팬 화면이 자기 질문의 `cluster_id`와 비교해 내 질문에 대한 답변임을 표시할 수 있다.
 - **보유 점수:** 배지 없음 0, 버디 30, 이글 60, 알바트로스 90에 보유 스타일이 1종 늘 때마다 +5(최대 +10)다. 묶음 순서는 묶음 안 최고 우선순위 점수로 정하고 인원수 가점은 없다.
 - **보유 배지:** 인박스와 본인 메시지 응답에 배지 단계 필드를 추가한다. 다른 팬에게는 노출하지 않는다.
-- **"오늘 N건 걸러냈어요":** 방 소유자가 자기 방의 차단 건수만 조회할 수 있는 집계를 추가한다. 원문과 category별 내역은 노출하지 않는다.
+- **"오늘 N건 걸러냈어요":** 방 소유자가 자기 방의 `moderation_events` 중 `verdict='block'` 건수를 실제 KST 오늘 기준으로 조회하는 집계를 추가한다(P1). `suggest`는 세지 않고, 폴백 차단은 구분할 수 없어 함께 센다. 원문과 category별 내역은 노출하지 않는다.
 - **인증:** 인플루언서 10명은 유형 5/3/2(투어 선수, 유튜버, 미디어 프로)의 인증됨으로 시드하고, 카드와 방이 없는 11번째 신청자를 심사 대기로 둔다. 승인하면 채팅방을 연다.
-- **데모 시드:** 데모 유저에게 한 인플루언서의 같은 카드 일반 10장과 지난달 이전의 라운드·발급 기록 10건을 넣는다. 모든 데모 유저의 카드에는 draws 기록을 함께 넣고, 미입장 상태로 시작해 입장을 시연한다.
+- **데모 시드:** userA에게 한 인플루언서의 같은 카드 일반 10장과 지난달 이전의 라운드·발급 기록 10건을 넣고, 미입장 상태로 시작해 입장을 시연한다. 통합 시험용 userB는 같은 인물의 카드 5장과 기록 5건으로 입장 상태에서 시작한다(`홍주P_plan.md` §10.1). 모든 데모 유저의 카드에는 draws 기록을 함께 넣는다.
 - **`demoForceGrade`:** `private` 설정 행과 기존 `can_force_grade` 계정 권한을 `complete_round`가 둘 다 검사한다. Postgres RPC는 배포 환경변수를 직접 읽지 못하므로 설정 행으로 켜고 끈다. 기본값과 행 없음은 모두 꺼짐이고, 켜기는 시연 배포의 관리 SQL로만 한다(시드로 켜지 않음). 꺼져 있을 때 강제 등급 요청은 `FORBIDDEN`이고, 강제 등급이 없는 정상 라운드에는 영향이 없다. B-03 시험에 "설정 꺼짐 + `can_force_grade=true` → `FORBIDDEN`, draw 없음"을 추가한다.
 - **카드 이미지:** A-06이 현호P로 옮겨졌다. 현호P에게 인플루언서 UUID를 제공하고, 인물·스타일·WebP 파일 URL 30행 목록을 받는 즉시 내려받아(임시 URL일 수 있음) `card-assets`의 `<influencer_uuid>/<style>.webp`에 올린 뒤 `image_path`를 저장한다. URL은 전달 수단이며 DB에 넣지 않는다.
 - **차단 원문:** 시연 범위에서는 현재 계획대로 `messages`에 pass만 저장하고 차단 원문을 저장하지 않는다. 제재와 재검토의 원문 보관은 실서비스 범위다.
 - **전체 메시지 (P2):** 방 소유자가 답변 대상 없이 보내는 메시지 종류를 추가한다. 보낸 시점에 입장 중인 팬에게 보이며 위 열람 범위를 그대로 따른다. 팬의 메시지는 전체 메시지에 연결하지 않는다.
 - **인사말 (P2):** 인플루언서마다 문구 1개를 둔다(200자 이내, 빈 값으로 저장하면 기본 문구). 팬이 처음 입장할 때 그 시점의 문구를 그 팬에게만 보이는 인플루언서 메시지로 남기고, 재입장 때는 만들지 않는다. 문구를 바꿔도 이미 남긴 인사말은 바뀌지 않는다. 시드 10명과 승인된 신청자에게 `prd.md` 4절의 기본 문구를 넣고, 본인 문구를 바꾸는 RPC·SDK를 제공한다.
-- **인플루언서 메시지 삭제 (P2):** 방 소유자가 본인의 답변과 전체 메시지를 지울 수 있다. 행은 지우지 않고 삭제 표시를 남기며, 삭제된 메시지의 본문은 내려 주지 않는다. 답변을 지우면 그 질문(묶음에 대한 답변이면 묶음 전체)을 미답변으로 되돌린다. 인사말과 팬 메시지는 대상이 아니다. Realtime은 INSERT만 전달하므로 삭제는 방을 다시 열 때 반영된다.
+- **인플루언서 메시지 삭제 (P2):** 방 소유자가 본인의 답변과 전체 메시지를 지울 수 있다. 행은 지우지 않고 삭제 표시를 남기며, 삭제된 메시지의 본문은 내려 주지 않는다. 답변을 지우면 그 질문(묶음에 대한 답변이면 묶음 전체)을 미답변으로 되돌린다. 인사말과 팬 메시지는 대상이 아니다. 삭제는 Realtime UPDATE로 전달하고 재연결 때 변경 cursor로 복구한다(`홍주P_plan.md` §9.1).
 - **인박스 정렬과 숨김:** 우선순위 점수가 같으면 최신순이다. 퇴장 중인 팬의 미답변 질문은 인박스에서 빼고, 재입장하면 저장된 점수 그대로 다시 넣는다. 묶음의 `member_count`에서도 퇴장 중인 팬을 뺀다. 묶기 입력은 미답변 질문만이고, 답변한 묶음에는 새 질문을 넣지 않는다.
 - **수정 제안 그대로 전송:** `suggest` 응답에 제안 확인값을 함께 내려 주고, `submitMessage`가 본문과 함께 그 값을 받으면 본문이 제안 문장과 같고 발급 후 10분 이내이며 처음 쓰는 경우에만 필터 판정 없이 `pass`로 저장한다. 품질 점수는 `rewriteQuality`, `passesAllFilters`는 참이다. 인증, 입장 상태, 도배 제한은 그대로 검사한다. 조건에 맞지 않으면 오류로 막지 않고 일반 판정으로 처리한다. 화면이 보낸 "제안 문장이다"라는 주장을 그대로 믿지 않도록 서버가 발급한 값으로 확인하되, 방법은 홍주P가 정한다. 제안 문장은 저장하지 않는다.
 - **방 목록:** 카드 템플릿이 없는 방을 구분할 수 있는 값을 준다. 11번째 신청자의 방에 "카드 준비 중"을 표시하는 데 쓴다.
@@ -107,7 +107,7 @@
 
 ### 현호P
 
-> **현호P와 현호P 에이전트 확인용:** 화면 디자인과 UI 구성은 현호P가 맡는다. 화면 작업 전에 이 절과 `prd.md` 3절을 확인한다. `현호P_plan.md`가 아직 갱신되지 않아 어긋나는 곳은 아래 "기존 계획과 달라진 점"을 따른다.
+> **현호P와 현호P 에이전트 확인용:** 화면 디자인과 UI 구성은 현호P가 맡는다. 화면 작업 전에 이 절과 `prd.md` 3절을 확인한다.
 
 **화면 디자인·UI 구성**
 
@@ -116,7 +116,7 @@
 | 뽑기 연출·결과 | `app/(user)/draw/` | P0 (특수 연출·건너뛰기 P1) | 현호P | 카드팩 개봉, 등급 → 유형 → 이름·이미지 단계 공개, 신규·중복 표시, 입장 가능 안내 | `completeRound` |
 | 컬렉션 | `app/(user)/collection/` | P0 | 현호P | 카드 템플릿 30종, 없는 카드 실루엣, 등급별 장수, 강화 가능 표시 | `getCollection` |
 | 강화 화면·연출 | `app/(user)/collection/upgrade/` | 화면·기본 연출 P0, 등급별 연출·건너뛰기 P1 | 현호P | 소모 10장, 받을 다음 등급 카드, 강화 후 남는 장수, 확정 안내, 합쳐지는 연출, 결과 화면 | `getCollection`, `upgradeCard` |
-| 보유 카드·카드 상세 | `app/(user)/collection/owned/` | P1 | 현호P | 1장 이상인 카드 목록, 인물·유형·등급 필터, 등급순·장수순 정렬, 카드 상세, 인증 배지, 강화 이동 | `getCollection` |
+| 보유 카드·카드 상세 | `app/(user)/owned-cards/` | P1 | 현호P | 1장 이상인 카드 목록, 인물·유형·등급 필터, 등급순·장수순 정렬, 카드 상세, 인증 배지, 강화 이동 | `getOwnedCards` |
 | 프로필 사진 변경 | 인박스 설정 | P2 마지막 | 시안 현호P, 구현 자성P | 현재 사진, 파일 선택, 미리보기, 업로드 중, 오류, 권한 없음 안내 | 홍주P가 추가할 프로필 사진 SDK |
 | 프로필 사진 표시 | 채팅방 목록·상단·인플루언서 말풍선 | P2 마지막 | 시안 현호P, 구현 자성P | 원형 사진, 사진이 없을 때의 대체 표시(일러스트 카드 이미지, 이름 첫 글자) | 홍주P가 추가할 SDK 응답 필드 |
 | 보유 배지·인증 배지 | `components/card/`, D-09 산출물 | 보유 배지 P1, 인증 배지 P2 | 시안 현호P | 버디·이글·알바트로스 3종, 유튜버·미디어 프로·투어 선수 3종 | - |
@@ -136,13 +136,13 @@
 - **D-02:** 스타일 가이드를 문환P에게 전달할 필요가 없다.
 - **D-08:** 컬렉션 안의 동작이 아니라 위 표의 별도 강화 화면으로 만든다. 등급별 연출과 건너뛰기는 D-05와 함께 P1로 한다.
 - **신규 작업:** 보유 카드·카드 상세(P1), 보유 배지 3종, 프로필 사진 시안. 티켓 번호는 현호P가 정한다. 시연의 프로필 사진 업로드 샘플은 A-06의 가상 인물 이미지를 쓴다.
-- **API 표기:** `POST /api/rounds/complete` 등은 이전 구조다. `completeRound`, `getCollection`, `upgradeCard` SDK를 쓰며, 위 화면에 필요한 계약 변경은 `entryUnlocked` 추가와 프로필 사진 SDK뿐이다.
+- **API 표기:** `POST /api/rounds/complete` 등은 이전 구조다. `completeRound`, `getCollection`, `getOwnedCards`, `upgradeCard` SDK를 쓰며, 위 화면에 필요한 계약은 `홍주P_plan.md` §§6~7에 반영돼 있다.
 
 ## 2. 문환P 담당 범위
 
-메시지 안전 필터, 품질 점수, 수정 문장, 유사 질문 묶기, 대화 요약의 LLM 로직과 프롬프트, 금칙어 폴백을 맡는다. 인증, 입출력 검증, 호출 제한, 멱등성, 저장, 실패 응답은 홍주P가 맡는다. 우선순위 점수는 DB에서 계산하며 AI 모듈의 범위가 아니다. 카드 발급에서는 확률 계산과 지급 함수 `private.issue_card`를 맡는다.
+메시지 안전 필터(팬 메시지와 인플루언서의 답변·전체 메시지·인사말), 품질 점수, 수정 문장, 유사 질문 묶기, 대화 요약의 LLM 로직과 프롬프트, 금칙어 폴백을 맡는다. 인증, 입출력 검증, 호출 제한, 멱등성, 저장, 실패 응답은 홍주P가 맡는다. 우선순위 점수는 DB에서 계산하며 AI 모듈의 범위가 아니다. 카드 발급에서는 확률 계산과 지급 함수 `private.issue_card`를 맡는다.
 
-**작업 경로:** `supabase/migrations/`의 `issue_card` migration과 그 시험, `supabase/functions/_shared/ai.ts`의 `AiAdapter` 구현과 프롬프트, 필터 테스트 세트. Deno에서 동작해야 하며, 외부 SDK의 Deno 동작은 A-01에서 확인한다. `lib/ai/index.ts` 스텁은 이전 구조의 산출물이고, `lib/ai/tests/`는 회귀 시험용으로 유지한다.
+**작업 경로:** `supabase/migrations/`의 `issue_card` migration과 그 시험, `supabase/functions/_shared/ai.ts`의 `AiAdapter` 구현과 프롬프트, 필터 테스트 세트. Deno에서 동작해야 하며, 외부 SDK의 Deno 동작은 A-01에서 확인한다. `lib/ai/index.ts` 스텁은 이전 구조의 산출물이다. `lib/ai/tests/`의 시험 데이터는 유지하고, 실제 adapter를 돌리는 Deno 회귀 스크립트를 A-08에서 여기에 추가한다. `lib/ai/tests/server.ts`는 adapter와 별개 구현인 모델 비교 도구다.
 
 **환경변수:** `ANTHROPIC_API_KEY`, `TYPESAFE_API_KEY`를 Edge Function Secrets로 설정한다. 클라이언트에 두지 않는다.
 
@@ -153,7 +153,7 @@
 **주는 것**
 
 - `private.issue_card` (A-09) → 홍주P B-03
-- `AiAdapter.moderateAndScore` (A-02, A-03, A-07) → 홍주P B-06
+- `AiAdapter.moderateAndScore` (A-02, A-03, A-07) → 홍주P B-06, B-08, B-15, B-16
 - `AiAdapter.clusterQuestions`, `AiAdapter.summarize` (A-04, A-05) → 홍주P B-12
 - 항목별 고정 안내문 → 홍주P
 
@@ -170,6 +170,8 @@
 | illegal_ad | 항상 차단 | 불법 광고나 도박 홍보 내용은 전송할 수 없어요. |
 | spam | 항상 차단 | 같은 내용의 반복이나 무의미한 글은 전송할 수 없어요. |
 
+이 표가 고정 안내문의 유일한 기준이다. `lib/ai/tests/data/filter-templates.json`은 이 표에 맞춘다. 사람 검수는 문환P가 A-08에서 한다.
+
 ## 3. AI 인터페이스와 발급 함수
 
 ### AI 인터페이스
@@ -185,12 +187,13 @@ type FilterCategory =
 interface AiAdapter {
   moderateAndScore(input: {
     body: string;
-    disabledFilters: FilterCategory[];
+    disabledFilters: string[];  // FilterCategory 값만 온다
+    senderType?: 'user' | 'influencer'; // 없으면 user
     signal: AbortSignal;
   }): Promise<{
     verdict: Verdict;
-    category: FilterCategory | null;
-    reason: null;              // 최종 안내문은 category별 고정 문구로 홍주P가 만든다
+    category: string | null;   // FilterCategory 값만 돌려준다
+    reason: string | null;     // adapter는 항상 null. 최종 안내문은 category별 고정 문구로 홍주P가 만든다
     rewrite: string | null;
     quality: number;           // 0~100
     passesAllFilters: boolean; // disabledFilters를 적용하지 않아도 pass인지
@@ -207,15 +210,20 @@ interface AiAdapter {
 }
 ```
 
-- **판정:** 차단 여부는 모델이 아니라 코드 규칙이 정한다. 항상 차단 항목이 하나라도 있으면 `block`, 선택 항목만 있으면 `suggest`, 없으면 `pass`다.
+- **모델:** 판정·재검사·품질 점수는 Jev, 수정 문장·묶기·요약은 Claude Haiku 5.5다. Claude 호출은 모두 사고 단계를 끈다.
+- **판정:** Jev 항목별 확률이 기준값 0.5 이상이면 위반으로 본다. 차단 여부는 모델이 아니라 코드 규칙이 정한다. 항상 차단 항목이 하나라도 있으면 `block`, 선택 항목만 있으면 `suggest`, 없으면 `pass`다.
+- **`quality`:** Jev의 품질 질문 응답(0~4)에 25를 곱해 0~100으로 맞춘다.
+- **`senderType`:** 값에 따라 Jev 문맥만 바뀌고 코드 규칙은 같다. 답변·전체 메시지·인사말은 홍주P가 선택 항목을 모두 `disabledFilters`로 넘겨 필수 7개만 검사한다.
 - **`category`:** 항상 차단 항목을 우선하고, 그 안에서 확률이 높은 항목을 고른다. `pass`면 `null`이다.
 - **`disabledFilters`:** 선택 항목만 무시한다. 항상 차단 항목은 목록에 있어도 무시하지 않는다.
 - **`rewrite`:** `suggest`일 때만 값이 있을 수 있으며 1~2000자다. 다음 경우에는 `null`이고 판정은 `suggest`로 유지한다: 재검사에서 위반이 나오거나 재검사 호출이 실패할 때, 생성에 실패하거나 시한을 넘길 때, 2000자를 넘을 때, 폴백 판정일 때. 재검사에는 `disabledFilters`를 적용하지 않는다. 수정 문장은 그대로 보내면 다시 검사하지 않고 전송되고 다른 팬에게 인용될 수 있으므로, 전 항목을 통과한 것만 돌려준다.
 - **`rewriteQuality`:** 재검사 호출에서 받은 수정 문장의 품질 점수다. 추가 호출은 없다. `rewrite`가 `null`이면 `null`이다.
-- **`passesAllFilters`:** 같은 판정 호출의 항목별 결과에서 `disabledFilters`를 적용하지 않고 계산하므로 추가 호출이 없다. `suggest`와 `block`이면 `false`다. `pass`인데 꺼 둔 선택 항목에 걸린 메시지도 `false`다.
-- **시한:** `moderateAndScore`는 수정 문장과 재검사를 포함해 8초 안에 끝낸다. Jev 시한은 첫 연결 지연을 측정해 A-01에서 정한다(기본 4초). 재시도는 하지 않는다.
-- **`signal`:** Edge가 전체 시한으로 건다. 판정 전에 취소되면 폴백 판정을 돌려주고, 판정 후에 취소되면 `suggest`와 `rewrite: null`을 돌려준다.
-- **장애:** Jev가 실패하거나 시한을 넘기거나 키가 없으면 adapter 안에서 금칙어 폴백으로 판정을 돌려준다. 폴백에도 같은 코드 규칙과 `disabledFilters`를 적용하고 `quality`는 50이다. `passesAllFilters`는 금칙어 기준으로 같은 방식으로 계산하고 `rewriteQuality`는 `null`이다. 폴백 여부는 응답에 표시하지 않는다.
+- **`passesAllFilters`:** 같은 판정 호출의 항목별 결과에서 `disabledFilters`를 적용하지 않고 계산하므로 추가 호출이 없다. `suggest`와 `block`이면 `false`다. `pass`인데 꺼 둔 선택 항목에 걸린 메시지도 `false`다. 폴백 판정이면 항상 `false`다.
+- **시한:** `moderateAndScore` 전체에 8초 마감 하나를 둔다. 각 호출은 자기 상한과 남은 시간 중 짧은 쪽을 쓴다. 상한은 Jev 판정 4초(A-01 측정으로 확정), 재검사 1.5초, 수정 문장은 재검사 몫 1.5초를 뺀 남은 시간이다. 재시도는 하지 않는다.
+- **`signal`:** Edge가 전체 시한으로 건다. 판정 전에 취소되면 폴백 판정을 돌려주고, 수정 문장 생성이나 재검사 중에 취소되면 `suggest`와 `rewrite: null`을 돌려준다.
+- **장애:** Jev가 실패하거나 시한을 넘기거나 키가 없거나, Jev 응답 형식이 불량하면(10개 항목이 모두 0~1 유한수이고 품질이 0~4 유한수가 아니면) adapter 안에서 금칙어 폴백으로 판정을 돌려준다. adapter 최종 반환값의 불량은 폴백이 아니라 홍주P의 `FILTER_UNAVAILABLE`이다. 폴백에도 같은 코드 규칙과 `disabledFilters`를 적용하므로 선택 항목에 걸리면 `suggest`(`rewrite: null`), 항상 차단 항목에 걸리면 `block`이다. `quality`는 50, `rewriteQuality`는 `null`이다. 폴백 여부는 응답에 표시하지 않고, adapter가 서버 로그에 `ai_fallback`과 사유 코드(`no_key`, 시한 초과와 취소는 `timeout`, 5xx와 형식 불량은 `provider_error`)만 남긴다. 위반 집계에서 폴백을 빼기 위한 내부 필드는 실서비스 과제다.
+- **금칙어:** `supabase/functions/_shared/`의 코드 상수로 두고 `profanity`, `threat`, `sexual_harassment`, `hate`, `illegal_ad`만 다룬다. 공백·특수문자를 지운 뒤 부분 일치로 검사하며, 위협 표현은 단어가 아니라 구문(예: `죽여버`)으로 등록한다. 문맥이 필요한 항목은 장애 중 잡지 못하며 `prd.md`가 받아들인 한계다.
+- **`clusterQuestions`·`summarize`:** 일반 응답(비스트리밍)으로 사고 단계를 끄고 호출하며, 인플루언서가 실행할 때만 동작한다. 각각 20초 시한이고 재시도와 폴백은 없다. 실패하면 예외를 던지고 홍주P가 `FILTER_UNAVAILABLE`로 돌려준다. 요약이 2,000자를 넘으면 마지막 문장 경계에서 자르고, 경계가 없으면 2,000자에서 자른다. 묶기 재검사는 Jev 동시 5개로 제한한다.
 - **입력 처리:** 유저 메시지는 검사나 요약의 대상일 뿐이며, 메시지 안의 지시를 따르지 않게 한다. 메시지 본문, 수정 문장, 키를 로그에 남기지 않는다.
 
 ### 카드 발급 함수
@@ -235,23 +243,23 @@ private.issue_card(
 - **호출 조건:** `complete_round`가 같은 트랜잭션 안에서 사용자 잠금과 강제 등급 권한 검사를 마친 뒤에만 호출한다. 이 함수는 잠금, 멱등, 권한을 처리하지 않는다. 임의의 `p_user_id`를 받으므로 `SECURITY INVOKER`로 만들고 `search_path=''`를 적용하며, `REVOKE ALL ... FROM PUBLIC, anon, authenticated`로 실행 권한을 회수한다.
 - **추첨:** `grade_rates`로 등급을 뽑고 발급 대상 카드 템플릿 중 하나를 균등하게 뽑는다. 선택 로직은 난수를 인자로 받는 함수로 분리해 경계값을 결정적으로 시험하고, 실제 난수는 스키마까지 적은 `extensions.gen_random_bytes`로 만든다(설치 스키마는 B-01에서 확인).
 - **강제 발급:** `p_force_grade`가 있으면 그 등급으로 발급하고 `draws.forced`를 `true`로 저장한다. 템플릿은 강제하지 않는다.
-- **`isNew`:** 추첨 후 지급 직전에 해당 템플릿의 전체 등급 수량 합계가 0이면 `true`다.
+- **`isNew`:** 추첨 후 지급 직전에 해당 템플릿의 전체 등급 수량 합계가 0이면 `true`다. 같은 값을 `draws.is_new`에 저장한다.
 - **`ownedCount`:** `홍주P_plan.md` §7.1의 기존 의미를 따른다.
-- **`entryUnlocked`:** 해당 인플루언서의 `draws` 건수로 `발급 전 < min_cards AND 발급 후 >= min_cards`이면 `true`다. 강제 발급도 포함한다. `min_cards`를 나중에 바꿔도 소급 안내는 없고 이 식만 따른다.
+- **`entryUnlocked`:** 해당 인플루언서의 `draws` 건수로 `발급 전 < min_earned_draws AND 발급 후 >= min_earned_draws`이면 `true`다(`game_config`의 `room_entry.min_earned_draws`). 강제 발급도 포함한다. 이 값을 나중에 바꿔도 소급 안내는 없고 이 식만 따른다.
 - **실패:** 설정 오염은 `CONFIG_INVALID` 예외로 전체를 롤백한다.
 
 ## 4. 문환P 티켓
 
 | ID | 티켓 | 티어 | 선행 | 완료 기준 |
 | --- | --- | --- | --- | --- |
-| A-01 | Jev·Claude 호출의 Deno 동작 확인, `AiAdapter` 구현 골격 제공 | P0 | - | `deno check` 통과, 홍주P의 fixture adapter와 교체 가능 |
-| A-02 | 메시지 안전 필터 — jev로 10개 항목 판정, 코드 규칙으로 처리 결정. `suggest`일 때 Claude로 수정 문장 생성과 재검사 | P1 | A-01 | verdict·category·rewrite·`passesAllFilters`·`rewriteQuality` 반환. 수정 문장 재검사는 전 항목 기준(`disabledFilters` 미적용). `suggest`를 제외한 판정 응답 2초 이내, `suggest`도 제한 시간 안에 응답 |
-| A-03 | 메시지 품질 점수 — 구체성·답변 가치를 0~100으로 (A-02와 같은 jev 호출). 중복은 A-04에서 처리 | P1 | A-02 | quality 필드 반환, 구체적인 질문이 인사말보다 높게 |
-| A-04 | 유사 질문 묶기 `clusterQuestions` — 방 전체 일괄 처리 | P2 | A-02 | 2건 이상인 묶음만 반환, 대표 질문 200자 이내, 없는 ID·중복 ID 제외. 대표 질문은 다른 팬에게 공개되므로 개인 식별 내용을 빼고 전 항목(`disabledFilters` 미적용) 필터로 재검사하며, 위반이거나 재검사가 실패한 묶음은 반환에서 제외 |
-| A-05 | 대화 요약 `summarize` | P2 | A-01 | 최대 100건·20,000자 입력을 2,000자 이내 문자열로 요약 |
-| A-07 | LLM 실패·지연 시 금칙어 폴백 (adapter 내부) | P1 | A-02 | API 키를 빼도 필터가 금칙어로 동작하고 예외를 던지지 않음 |
-| A-08 | 필터 검증용 테스트 문장 세트 + 시연 메시지 판정 사전 확인 + 고정 안내문 사람 검수 | P1 | A-02 | 테스트 세트(`lib/ai/tests/data/moderation-test-set.json`) 기대 판정 일치율 확인, 시연용 문장은 전부 기대대로, 안내문 10개 확정. 선택 필터를 끈 상태에서 `pass`가 되는 욕설 문장의 `passesAllFilters`가 `false`인지 확인 |
-| A-09 | 카드 확률 계산과 발급 `private.issue_card` | P0 | B-01 (전에는 로컬 테이블로 진행) | 등급·템플릿 선택 경계값 시험 통과, 1,000회 분포 기록, 강제 발급 시 `forced` 저장, 누적 4→5장 `entryUnlocked` true·5→6장 false, `min_cards` 변경 시 경계 이동, `user_cards`만 있고 `draws`가 없으면 누적 0, 설정 누락·음수·합계 오류는 `CONFIG_INVALID`이고 소수 확률은 허용, 저장 실패 시 `draws`·`user_cards` 변경 없음, `has_function_privilege`로 `anon`·`authenticated`의 EXECUTE가 false임을 확인 |
+| A-01 | Jev·Claude 호출의 Deno 동작 확인, `AiAdapter` 구현 골격 제공 | P0 | - | `deno check` 통과, 홍주P의 fixture adapter와 교체 가능. Deno에서 Jev·Claude 실호출 각 1회 성공, Jev 첫 호출 지연 5회 측정 후 시한 확정 |
+| A-02 | 메시지 안전 필터 — jev로 10개 항목 판정, 코드 규칙으로 처리 결정. `suggest`일 때 Claude로 수정 문장 생성과 재검사. 인플루언서 메시지는 `senderType`으로 판정 | P1 | A-01 | verdict·category·rewrite·`passesAllFilters`·`rewriteQuality` 반환. 수정 문장 재검사는 전 항목 기준(`disabledFilters` 미적용). 첫 호출을 제외하고 `suggest`를 제외한 판정 응답 2초 이내, `suggest`도 8초 안에 응답 |
+| A-03 | 메시지 품질 점수 — 구체성·답변 가치를 0~100으로 (A-02와 같은 jev 호출). 중복은 A-04에서 처리 | P1 | A-02 | quality 필드 반환. 시험 세트의 `specific` 문장 평균이 `greeting`보다 높고, `specific` 전 문장이 `greeting` 평균보다 높음 |
+| A-04 | 유사 질문 묶기 `clusterQuestions` — 방 전체 일괄 처리 | P2 | A-02 | 2건 이상인 묶음만 반환, 대표 질문 200자 이내, 없는 ID·중복 ID 제외. 대표 질문은 다른 팬에게 공개되므로 개인 식별 내용을 빼고 전 항목(`disabledFilters` 미적용) 필터로 재검사하며, 재검사에서 위반이 나온 묶음만 반환에서 제외. 재검사 호출 실패나 시한 초과가 하나라도 있으면 `[]`가 아니라 예외. 20초 시한 |
+| A-05 | 대화 요약 `summarize` | P2 | A-01 | 최대 100건·20,000자 입력을 20초 안에 2,000자 이내 문자열로 요약하고, 넘으면 문장 경계에서 자름. 100건 소요 시간과 사고 단계를 끈 효과 측정. 실패 시 예외 |
+| A-07 | LLM 실패·지연 시 금칙어 폴백 (adapter 내부) | P1 | A-02 | API 키를 빼도 필터가 금칙어로 동작하고 예외를 던지지 않음. 금칙어 5개 항목의 적중 문장이 기대 판정(선택 항목 `suggest`·`rewrite: null`, 항상 차단 `block`)과 `quality` 50을 돌려주고, 꺼 둔 선택 항목은 `pass`. Jev 지연·5xx 모의에서 사유 코드 확인. 키 제거 시험은 로컬에서만 하고 Supabase Secrets는 지우지 않음. `moderation-test-set.json`의 `quality` 그룹 100문장 오탐 0건, `trap` 그룹 `pass` 기대 25문장은 결과 기록. `passesAllFilters`는 항상 `false`, 서버 로그에는 사유 코드만 남음 |
+| A-08 | 필터 검증용 테스트 문장 세트 + Deno 회귀 스크립트 + 시연 메시지 판정 사전 확인 + 고정 안내문 사람 검수 | P1 | A-02 | 혐오 기대값을 `block`으로 고치고 `server.ts`의 혐오 구분은 `prd.md`, `filter-templates.json`은 2절 표에 맞춤. Deno 스크립트로 `moderation-test-set.json` 판정 300문장 전량과 `expected_verdict=suggest`에서 뽑은 수정 문장 30건 표본을 실행(`ai_fallback`이 1건이라도 나오면 그 실행은 무효). 기대 판정 일치율 90% 이상(불일치는 읽어 보고 필터 오류와 기대값 오류를 구분, 항상 차단 항목의 `block→pass` 건수는 따로 기록), 실제 판정이 `suggest`인 표본 중 수정 문장 재검사 통과 80% 이상, 시연용 문장은 전부 기대대로, 안내문 10개 확정. `influencer-message-set.json`(정상 홍보·공지 20문장, 필수 항목 위반 10문장)의 정상 문장 오탐 0건, 위반 문장은 결과 기록. 선택 필터를 끈 상태에서 `pass`가 되는 욕설 문장의 `passesAllFilters`가 `false`인지 확인 |
+| A-09 | 카드 확률 계산과 발급 `private.issue_card` | P0 | B-01 (전에는 로컬 테이블로 진행) | 등급·템플릿 선택 경계값 시험 통과, 1,000회 분포 기록과 등급별 3σ 범위 확인(벗어나면 다시 돌리기 전에 원인 확인), 강제 발급 시 `forced` 저장, 누적 4→5장 `entryUnlocked` true·5→6장 false, `min_earned_draws` 변경 시 경계 이동, `user_cards`만 있고 `draws`가 없으면 누적 0, 설정 누락·음수·합계 오류는 `CONFIG_INVALID`이고 소수 확률은 허용, 저장 실패 시 `draws`·`user_cards` 변경 없음, `has_function_privilege`로 `anon`·`authenticated`의 EXECUTE가 false임을 확인 |
 
 > **이관:** A-06(카드 이미지 30장 생성, P0)은 현호P가 AI 툴로 생성하는 것으로 옮겼다. 내용은 1절의 현호P 항목을 따른다.
 

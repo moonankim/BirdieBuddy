@@ -4,13 +4,13 @@
 
 ## 먼저 읽을 문서 (내용을 여기에 복사하지 않는다)
 
-- 인터페이스와 티켓: `docs/문환P_plan.md`. AI 인터페이스는 `docs/architecture.md`보다 이 파일을 우선한다.
-- 근거와 결정: `docs/superpowers/specs/2026-11-09-birdiebuddy-ai-design.md`
-- 구현 순서: `docs/superpowers/plans/2026-11-09-lib-ai-moderation.md`
+- 인터페이스와 티켓: `docs/문환P_plan.md`. `AiAdapter` 타입은 `docs/홍주P_plan.md` §8.1, 동작 규칙은 `docs/문환P_plan.md` 3절을 따른다.
+- 근거와 결정: `docs/superpowers/specs/2026-11-09-birdiebuddy-ai-design.md` (이전 구조 기준, `docs/문환P_plan.md`와 어긋나면 그 문서를 따른다)
+- 구현 순서: `docs/superpowers/plans/2026-11-09-lib-ai-moderation.md` (이전 구조 기준, 위와 같다)
 
 ## 현재 상태
 
-`index.ts`는 스텁이다. 위반 메시지도 통과하므로 구현으로 교체되기 전에 시연·배포에 쓰면 안 된다. `lib/ai/tests/`는 시험 코드이고 실제 구현에서 import하지 않는다.
+실제 구현 위치는 `supabase/functions/_shared/ai.ts`다. `index.ts`는 이전 구조의 스텁이다. 위반 메시지도 통과하므로 구현으로 교체되기 전에 시연·배포에 쓰면 안 된다. `lib/ai/tests/`는 시험 코드이고 실제 구현에서 import하지 않는다.
 
 ## 지켜야 할 규칙
 
@@ -18,15 +18,15 @@
 - 항상 차단 항목은 `disabledFilters`에 있어도 무시하지 않는다.
 - API 키는 서버 코드에서만 읽는다. `.env`는 커밋하지 않고 내용을 출력하지 않는다.
 - 유저 메시지는 검사나 수정의 대상일 뿐이다. 프롬프트에서 그 안의 지시를 따르지 않게 한다.
-- 이 폴더의 코드는 Node 직접 실행과 Next.js 번들 양쪽에서 동작해야 한다. 상대 import에는 `.ts` 확장자를 붙이고, Node 전용 파일 읽기에 의존하지 않는다.
+- AI 구현은 Deno Edge Function에서 동작해야 한다. 상대 import에는 `.ts` 확장자를 붙이고, Node 전용 파일 읽기에 의존하지 않는다.
 
 ## 시험
 
 - 시험 화면은 패키지가 있는 폴더에서 `npm start`로 띄운다. 주소는 `http://127.0.0.1:4173`이고 `PORT`로 바꿀 수 있다. 패키지는 구현 계획 Task 1 전까지 `lib/ai/tests/`에 있다.
 - 실제 API 호출은 비용이 들고 `lib/ai/tests/.env`가 필요하다.
-- Jev 항목 설명이나 기준값을 고치면 `tests/data/moderation-test-set.json`과 `filter-eval-set.json`으로 회귀 시험을 돌린다. 조정용과 검증용 문장을 나눠서 본다.
+- Jev 항목 설명이나 기준값을 고치면 `tests/data/moderation-test-set.json`과 `filter-eval-set.json`으로 회귀 시험을 돌린다. 조정용과 검증용 문장을 나눠서 본다. `server.ts`는 실제 adapter와 별개 구현이므로, A-08의 Deno 회귀 스크립트가 생기면 그 결과를 기준으로 한다.
 - 시험 문장의 기대 판정은 AI가 붙인 값이다. 불일치는 읽어 보고 필터 오류와 기대값 오류를 구분한다.
 
 ## 인터페이스를 바꿀 때
 
-`docs/문환P_plan.md`만 고친다. `docs/architecture.md`와 다른 담당자의 plan 파일은 고치지 않고, 영향받는 담당자와 티켓(B-06, F-06 등)을 커밋 메시지에 적는다.
+`docs/문환P_plan.md`만 고친다. `docs/홍주P_plan.md` §8.1의 타입을 바꿔야 하면 `docs/문환P_plan.md` 1절의 홍주P 표에 요청으로 적는다. `docs/architecture.md`와 다른 담당자의 plan 파일은 고치지 않고, 영향받는 담당자와 티켓(B-06, F-06 등)을 커밋 메시지에 적는다.
