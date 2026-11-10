@@ -279,7 +279,7 @@ fixture는 로컬·테스트 전용이며 실제 AI 성공으로 보고하지 �
 | chat_rooms | id PK, influencer_id FK UQ, created_at | 인증 사용자 / seed. 비공개 필터 포함 안 함 |
 | room_members | room_id FK, user_id FK, gauge numeric(5,1) 0~100, status, joined_at/latest joined_month, left_at nullable, left_month nullable, updated_at, PK(room_id,user_id) | 본인·방 소유자 / 입장·월마감RPC |
 | messages | id bigint identity PK, id_text text UQ, room_id FK, sender_id FK, sender_type(user/influencer), message_kind(user_question/influencer_answer/influencer_broadcast/greeting), recipient_user_id nullable, sender_name, reply_to bigint nullable, reply_to_text text nullable, reply_context text nullable, body nullable(삭제 후 null; 일반 1~2000자), deleted_at nullable, passes_all_filters bool nullable, support_badge nullable, own_score/quality_score/priority numeric(5,2) nullable, cluster_id nullable, created_at, updated_at | 입장 기간·수신자·질문 관계를 적용한 fan RLS / 방 소유자는 전체. 검증 저장·답변·인사말·전체 메시지·삭제 RPC |
-| message_clusters | id PK, room_id FK, representative 1~200자, created_at, updated_at | 본인 질문이 속한 묶음의 fan·방 소유자 / 묶기 저장RPC. 활성 참여자 수는 조회 시 계산 |
+| message_clusters | id PK, room_id FK, representative 1~200자, created_at, updated_at | 방 소유자만 / 묶기 저장RPC. 활성 참여자 수는 조회 시 계산 |
 | verifications | id PK, influencer_id FK, type, evidence_url, status, rejection_reason nullable, reviewed_by FK nullable, reviewed_at nullable, created_at | 본인 influencer·admin / 신청·검토RPC |
 | game_config | key text PK, value jsonb, updated_at, version int≥1 | 인증 사용자 / update_game_config |
 
@@ -326,7 +326,8 @@ Edge의 processing 행은 lease_token/lease_until 필수다. 일반 RPC의 성�
 
 - anon은 DB 카탈로그·사용자 데이터·RPC에 접근하지 못한다. 공개 Storage 읽기만 허용.
 - admin은 인증 심사·데모 관리만 추가 허용. 다른 사람의 카드·대화·인박스나 influencer 명의 답변 권한은 없다.
-- user는 활성 방에서 본인 질문, 본인의 입장 구간과 created_at이 겹치는 전체 메시지·인사말·답변, 그리고 퇴장 기간에 달린 본인 질문의 답변을 읽는다. 재입장 후에는 과거의 본인 입장 구간 대화가 다시 보인다. 퇴장 중에는 메시지 SELECT를 허용하지 않는다. greeting은 recipient_user_id=auth.uid()인 팬만 읽는다. 다른 팬 질문 행은 SELECT·Realtime에서 항상 제외한다. 질문 인용은 답변의 안전한 snapshot만 허용하며 질문의 passes_all_filters가 false면 reply_context를 저장하지 않는다. 묶음 대표 질문과 활성 참여자 수는 본인 질문이 속한 묶음에 한해 보여 준다.
+- user는 활성 방에서 본인 질문, 본인의 입장 구간과 created_at이 겹치는 전체 메시지·인사말·답변, 그리고 퇴장 기간에 달린 본인 질문의 답변을 읽는다. 재입장 후에는 과거의 본인 입장 구간 대화가 다시 보인다. 퇴장 중에는 메시지 SELECT를 허용하지 않는다. greeting은 recipient_user_id=auth.uid()인 팬만 읽는다. 다른 팬 질문 행은 SELECT·Realtime에서 항상 제외한다. 질문 인용은 답변의 안전한 snapshot만 허용하며 질문의 passes_all_filters가 false면 reply_context를 저장하지 않는다. 팬에게는 본인 메시지의 cluster_id와 답변 reply_context만 제공한다.
+- message_clusters는 방 소유자만 SELECT할 수 있다. 방 소유자는 대표 질문과 활성 참여자 수를 확인하고, 팬은 cluster 행을 직접 읽지 않는다.
 - influencer broadcast는 생성 시각에 활성 room_member_periods가 있는 멤버만 읽는다. 첫 입장 greeting은 해당 사용자의 최초 membership 기간만 생성하며 재입장 때 재발송하지 않는다.
 - 방 소유자는 본인 방 멤버십·전체 대화·인박스·필터·인사말 설정·AI 기능에 접근한다. 답변·전체 메시지만 본인 권한으로 soft delete할 수 있다. 인박스는 저장된 own_score와 support_badge snapshot을 읽는다.
 - view는 security_invoker=true. 본인 카드 수만 집계하고 기초 테이블 RLS를 유지한다.
@@ -474,7 +475,7 @@ lib/api의 쿼리·호출 로직은 createBackendApi(client)로 주입한 Supaba
 | FILTERS_CHANGED | 판정중 필터 변경, 재판정 필요 | true |
 | SOURCE_CHANGED | AI 계산 중 질문이 답변되는 등 source 자격 변경 | true |
 | RATE_LIMITED | retryAfterSeconds | true |
-| FILTER_UNAVAILABLE | 키워드 fallback 불가·adapter 예외·불량 응답·점수 오류 | true |
+| FILTER_UNAVAILABLE | 키워드 fallback 불가·adapter 예외·불량 최종 adapter 반환값·점수 오류 | true |
 | ALREADY_REVIEWED / PENDING_EXISTS | 심사 완료/신청중 중복 | false |
 | ALREADY_REPLIED | 질문 답변 완료 | false |
 | NETWORK_ERROR / INTERNAL_ERROR | 통신/예상 밖 장애 | true |
@@ -645,7 +646,7 @@ user 질문 body는 trim 후1~2000 Unicode code point, 요청≤16KiB, 추가 ke
 6. suggest/block은 messages 없이 moderation metadata만 기록한다. 안전한 수정안이 있으면 별도 일회성 token과 만료시각을 반환하고, 제안 원문은 저장하지 않는다. 팬이 10분 안에 수정 없이 token과 같은 문구를 보내면 재검사 없이 pass 저장하며 해당 rewriteQuality를 사용한다. 이 제출의 requestId 재시도는 token 소비 후에도 성공 결과를 반환한다. 수정·새 전송은 token 없이 새 requestId로 일반 판정한다.
 7. 판정중 퇴장은 ROOM_INACTIVE, 필터 변경은 FILTERS_CHANGED로 미저장. 같은 requestId로 최신 필터 재판정 가능.
 
-**인플루언서 메시지:** replyToMessage와 sendBroadcast는 send-influencer-message Edge를 호출한다. body는 1~2000자이며 JWT 기준 verified 방 소유자만 가능하다. adapter에 선택 항목을 모두 disabled로 전달해 필수 차단 7개만 검사한다. block이면 저장하지 않는다. pass한 답변은 미답변 질문 또는 열린 묶음 하나에만 원자적으로 연결한다. 원 질문의 passesAllFilters=true일 때만 reply_context를 다른 팬에게 보여 주고, 묶음 답변은 검증된 대표문장을 쓴다. 답변 삭제 시 질문 또는 묶음의 미답변 상태를 복원한다. 전체 메시지는 작성 트랜잭션 시점에 active인 사용자들에게 room_member_periods로 범위를 제한한다. 인플루언서 발송은 팬 질문 점수·인박스 행을 만들지 않는다.
+**인플루언서 메시지:** replyToMessage와 sendBroadcast는 send-influencer-message Edge를 호출한다. body는 1~2000자이며 JWT 기준 verified 방 소유자만 가능하다. adapter에 `senderType:'influencer'`와 선택 항목을 모두 disabled로 전달해 필수 차단 7개만 검사한다. block이면 저장하지 않는다. pass한 답변은 미답변 질문 또는 열린 묶음 하나에만 원자적으로 연결한다. 원 질문의 passesAllFilters=true일 때만 reply_context를 다른 팬에게 보여 주고, 묶음 답변은 검증된 대표문장을 쓴다. 답변 삭제 시 질문 또는 묶음의 미답변 상태를 복원한다. 전체 메시지는 작성 트랜잭션 시점에 active인 사용자들에게 room_member_periods로 범위를 제한한다. 인플루언서 발송은 팬 질문 점수·인박스 행을 만들지 않는다.
 
 **인사말 설정(P2 B-15):** updateRoomGreeting은 update-room-greeting Edge에서 선택 필터를 제외한 필수 차단 항목을 검사하고 verified owner·200자 이내를 검증한다. 빈 값은 room_settings.greeting_text=null로 저장해 PRD 기본 문구를 복원한다. 기본 문구는 "○○ 채팅방에 오신 것을 환영합니다. 카드를 모아 찾아와 주셔서 감사합니다. 골프 이야기나 궁금한 점을 메시지로 보내 보세요."를 사용하고 ○○을 방 인플루언서 이름으로 치환한다. B-15를 구현한 뒤 첫 join transaction에서만 수신자·입장 시점 문구 snapshot을 저장한다. 기존 greeting 행은 설정 수정 후에도 변경하지 않는다.
 
@@ -664,17 +665,17 @@ user 질문 body는 trim 후1~2000 Unicode code point, 요청≤16KiB, 추가 ke
 | submit_influencer_message | p_actor_id, p_room_id, p_request_id, p_kind(answer/broadcast), p_reply_to nullable, p_body, p_lease_token | verified owner·필수 필터 판정·활성 팬 범위·답변 상태를 재검증하고 안전한 answer/broadcast 저장 |
 | update_room_greeting | p_actor_id, p_room_id, p_expected_version, p_body nullable, p_filter_lease | verified owner·필수 필터·200자·version 검사 후 greeting_text 저장. 빈 값은 기본 문구로 reset |
 | fail_message_submission | p_actor_id, p_request_id, p_lease_token, p_error_code | token 일치 시 failed, 원문·stack 미저장 |
-| begin_room_ai_operation | p_actor_id, p_room_id, p_operation(summary/cluster), p_request_id, p_payload_hash | 소유권·방/actor rate limit·lease·cache |
+| begin_room_ai_operation | p_actor_id, p_room_id, p_operation(summary/cluster), p_request_id, p_payload_hash | 소유권·방/actor rate limit·29초 lease·cache |
 | finish_room_ai_operation | 위 식별자, p_lease_token, p_source_message_ids, p_result jsonb | source·방·lease 재검증, cluster/summary·성공기록 |
 | fail_room_ai_operation | 작업 식별자, p_lease_token, p_error_code | 유효 lease만 failed |
 
 ID=uuid, source IDs=bigint[], hash=text, lease token=uuid, version=int, body/category/code=text, verdict enum, quality=numeric. begin 반환은 state(processing/succeeded/failed)와 nullable lease/cachedResult를 갖는 JSONB. finish는 외부 SDK에 반환할 payload JSONB, fail은 `{updated:boolean}`. 일반 내부 함수 입력도 추가·길이·형식을 검증한다.
 
-lease는 30초이며 UUID token을 발급한다. 팬 질문·인플루언서 답변/전체 메시지/인사말 설정 Edge는 각 operation 종류에 맞는 reservation을 만들고 verified owner·필수 필터·requestId를 검증한다. 처리 중 재시도는 REQUEST_IN_PROGRESS/retryAfterMs. finish/fail은 잠근 operation의 state=processing, 현재 token 일치, lease_until>now()를 모두 검사한다. 만료됐지만 아직 재예약되지 않은 token도 완료할 수 없다. 만료·실패 후 재시도는 새 token을 발급한다. lease당 AI 호출은 한 번이며 adapter의 숨은 자동 재시도는 없다. 외부 timeout 직전 처리 등으로 **공급자 과금 exactly-once는 보장하지 않는다**. DB 저장 중복은 반드시 막는다.
+메시지 처리 lease는 30초이며 UUID token을 발급한다. room AI 작업은 29초 lease를 사용한다. 팬 질문·인플루언서 답변/전체 메시지/인사말 설정 Edge는 각 operation 종류에 맞는 reservation을 만들고 verified owner·필수 필터·requestId를 검증한다. 처리 중 재시도는 REQUEST_IN_PROGRESS/retryAfterMs. finish/fail은 잠근 operation의 state=processing, 현재 token 일치, lease_until>now()를 모두 검사한다. 만료됐지만 아직 재예약되지 않은 token도 완료할 수 없다. 만료·실패 후 재시도는 새 token을 발급한다. lease당 AI 호출은 한 번이며 adapter의 숨은 자동 재시도는 없다. 외부 timeout 직전 처리 등으로 **공급자 과금 exactly-once는 보장하지 않는다**. DB 저장 중복은 반드시 막는다.
 
 pass 성공은 저장된 응답 복구. block/suggest operations에는 verdict/category/reason만 저장하고 원문·rewrite 없음. 제안이 있으면 10분 TTL의 token, 본문 hash, rewriteQuality만 `moderation_suggestions`에 저장하고 제안 원문은 서버에도 저장하지 않는다. token은 actor·room·본문 hash와 결합되고 한 번만 소비된다. 변경된 본문은 token과 일치하지 않아 일반 판정으로 돌아간다. 만료되거나 사용된 suggestion metadata는 cleanup한다. 일반 suggest 재조회에 원문 rewrite를 복구할 수 없으므로 같은 requestId는 rewrite=null일 수 있고, SDK는 최초 수정안을 메모리에 둔다.
 
-payloadHash에는 정리한 body/roomId, 판정/filterVersion은 제외. FILTERS_CHANGED 실패 후 같은 요청은 최신 필터로 재판정하되 기존 성공 pass는 다시 처리하지 않는다. AI 공급자 장애는 문환P adapter의 키워드 fallback으로 처리한다. fallback 검사 통과면 `quality=50`, 통과하지 못하면 저장하지 않고 block 처리하며 fallback block은 위반 집계에서 제외한다. 내부 RPC는 Edge 사전 검사만 믿지 않고 현재 actor 권한을 재검사한다.
+payloadHash에는 정리한 body/roomId, 판정/filterVersion은 제외. FILTERS_CHANGED 실패 후 같은 요청은 최신 필터로 재판정하되 기존 성공 pass는 다시 처리하지 않는다. Jev 공급자 장애·키 누락·응답 형식 불량은 문환P adapter의 키워드 fallback으로 처리하며, 선택 항목 적중은 `suggest`/`rewrite:null`, 항상 차단 항목 적중은 `block`, 미적중은 `pass`다. fallback pass만 `quality=50`으로 저장하며 fallback block도 오늘 차단 집계에 포함한다. fallback을 구분하는 누적 위반 집계는 실서비스 과제다. 내부 RPC는 Edge 사전 검사만 믿지 않고 현재 actor 권한을 재검사한다.
 
 ### 7.4 도메인 잠금
 
@@ -692,7 +693,7 @@ update_room_filters도 같은 방 잠금을 획득한다. 최종 메시지 저�
 type Verdict = 'pass' | 'suggest' | 'block';
 interface AiAdapter {
   moderateAndScore(input: {
-    body:string; disabledFilters:string[]; signal:AbortSignal;
+    body:string; disabledFilters:string[]; senderType?:'user'|'influencer'; signal:AbortSignal;
   }): Promise<{
     verdict:Verdict; category:string|null; reason:string|null;
     rewrite:string|null; quality:number; rewriteQuality:number|null;
@@ -707,11 +708,11 @@ interface AiAdapter {
 }
 ```
 
-홍주P는 adapter·형식검사·전송 계층, 문환P는 LLM·프롬프트·금칙어 fallback·품질을 소유한다. `passesAllFilters`는 disabledFilters와 무관하게 모든 10개 필터를 통과했는지를 돌려주며 질문 인용에 사용한다. `rewriteQuality`는 안전한 제안 문구의 품질이며 suggestion token으로 변경 없이 전송될 때 최종 question quality로 쓴다. fixture는 테스트에서 정한 입력별 결과이며 브라우저가 판정을 주입하는 API는 없다.
+홍주P는 adapter·형식검사·전송 계층, 문환P는 LLM·프롬프트·금칙어 fallback·품질을 소유한다. 팬 질문은 `senderType` 생략 시 `user`로 판정하며 답변·전체 메시지·인사말 판정에는 `influencer`를 전달한다. `passesAllFilters`는 disabledFilters와 무관하게 모든 10개 필터를 통과했는지를 나타내며 질문 인용에 사용한다. 금칙어 fallback은 전체 10개 필터 검사가 아니므로 항상 `false`다. `rewriteQuality`는 안전한 제안 문구의 품질이며 suggestion token으로 변경 없이 전송될 때 최종 question quality로 쓴다. fixture는 테스트에서 정한 입력별 결과이며 브라우저가 판정을 주입하는 API는 없다.
 
-- 공급자 키 누락·timeout·5xx는 문환P adapter의 키워드 fallback으로 판정한다. fallback이 현재 정책을 통과하면 `pass`, quality=50으로 저장하고, 통과하지 못하면 저장하지 않고 차단한다. 폴백 차단은 위반 횟수에 포함하지 않는다. fallback 자체가 없거나 adapter 예외·JSON schema 오류·점수 범위 오류면 FILTER_UNAVAILABLE로 fail closed하며 저장하지 않는다. 전체 처리 목표는12초다.
+- Jev 키 누락·timeout·5xx·응답 형식 불량 또는 판정 전 취소는 문환P adapter의 키워드 fallback으로 처리한다. 필수 차단 항목 적중은 `block`, 선택 항목 적중은 `suggest`와 `rewrite:null`, 미적중은 `pass`다. fallback의 `quality`는 50, `rewriteQuality`는 `null`, `passesAllFilters`는 항상 `false`이며 pass만 저장한다. Claude 수정 문장 생성·재검사가 실패하거나 시한에 걸리면 `suggest`와 `rewrite:null`을 반환한다. fallback 결과는 응답에 표시하지 않고 서버 로그에는 `ai_fallback`과 `no_key`·`timeout`·`provider_error` 사유 코드만 남긴다. 메시지 본문·JWT·rewrite·키는 로그에 남기지 않는다. 유효하지 않은 최종 adapter 반환값·adapter 예외·fallback 불가 시 `FILTER_UNAVAILABLE`로 fail closed하고 저장하지 않는다. moderated 판정 adapter 시한은 8초이며 Edge 전체 처리 목표는 12초다.
 - 사용자 입력을 비신뢰 데이터로 전달한다. 키·계정정보·차단 원문을 추가 문맥으로 넘기지 않는다.
-- pass는 category/reason/rewrite=null, quality 0~100, passesAllFilters boolean이다. suggest는 선택 category와 rewrite null 또는 1~2000자, rewrite가 있으면 rewriteQuality 0~100을 요구한다. block은 category 필수·rewrite=null이다. AI의 자유문장 reason은 저장·로그·사용자 응답에 사용하지 않는다. 원문을 인용할 수 있기 때문이다. 최종 reason은 아래 고정 안내문으로 만든다. 불량 category/결과를 pass로 보정하지 않는다.
+- pass는 category/reason/rewrite=null, quality 0~100, passesAllFilters boolean이다. suggest는 선택 category와 rewrite null 또는 1~2000자, rewrite가 있으면 rewriteQuality 0~100을 요구한다. block은 category 필수·rewrite=null이다. adapter의 `reason`은 항상 null이며, 최종 사용자 안내는 아래 고정 문구로 만든다. 자유문장 reason은 저장·로그·사용자 응답에 사용하지 않는다. 원문을 인용할 수 있기 때문이다. 불량 category/최종 adapter 결과를 pass로 보정하지 않는다.
 - metadata7일 보관. 본문/JWT/rewrite 서버로그 금지. 만료 moderation_events·operations·과거 rate_windows는 서버 전용 cleanup 및 일별 pg_cron으로 정리하고 실행 여부 검증.
 - 실제 adapter/키 없으면 actual AI 미검증. fixture를 실제 판정 성공으로 보고하지 않는다.
 
@@ -722,7 +723,7 @@ interface AiAdapter {
 | 선택 | profanity, belittling, appearance | 방 소유자만 disabledFilters로 해제 |
 | 항상 차단 | threat, stalking, sexual_harassment, privacy, hate, illegal_ad, spam | 해제 불가 |
 
-초기 disabledFilters=[]. 선택 enum만, 중복 제거·정렬 저장, version 증가. 해제 가능한 항목은 욕설·가벼운 비하·외모 평가뿐이다. 혐오는 필수 차단이며 방 설정으로 해제할 수 없다. threat/stalking/sexual_harassment/privacy/hate/illegal_ad/spam은 항상 차단한다. 답변·전체 메시지·인사말은 선택 필터 설정을 적용하지 않고 필수 차단 7개만 검사한다. 수정 제안 문구는 선택 설정과 무관하게 10개 전부를 통과해야 한다. 질문 인용에 쓰이는 `passesAllFilters`도 선택 설정을 무시하고 10개 전부를 통과했는지 나타낸다. moderation metadata는 팬에게 공개하지 않는다. 인박스에는 pass 질문만 있다.
+초기 disabledFilters=[]. 선택 enum만, 중복 제거·정렬 저장, version 증가. 해제 가능한 항목은 욕설·가벼운 비하·외모 평가뿐이다. 혐오는 필수 차단이며 방 설정으로 해제할 수 없다. threat/stalking/sexual_harassment/privacy/hate/illegal_ad/spam은 항상 차단한다. 답변·전체 메시지·인사말은 선택 필터 설정을 적용하지 않고 필수 차단 7개만 검사한다. 수정 제안 문구는 선택 설정과 무관하게 10개 전부를 통과해야 한다. 질문 인용에 쓰이는 `passesAllFilters`도 선택 설정을 무시하고 10개 전부를 통과했는지 나타내며, keyword fallback 결과는 항상 false다. moderation metadata는 팬에게 공개하지 않는다. 인박스에는 pass 질문만 있다.
 
 연속 도배는 별도 코드 제한으로 판정한다. 최근 10초 안에 5건을 초과하는 새 전송 요청이 오면 30초간 해당 사용자의 전송을 막고 RATE_LIMITED와 retryAfterSeconds를 반환한다. 동일 requestId 재시도는 새 요청으로 세지 않으며 위반 횟수에도 넣지 않는다. 프로토타입에는 위반 누적·제재 단계·재검토 절차를 구현하지 않는다.
 
@@ -737,7 +738,7 @@ JWT 인증 **방 소유 influencer만**, admin 타방 호출도 불가. 브라�
 | summarizeRoom({requestId,roomId}) | 최신pass/답변100개·총20,000자, 최신 우선 포함 후id정렬 | `{roomId,summary,sourceMessageIds,generatedAt}` |
 | clusterQuestions({requestId,roomId}) | 미답변user pass 최신100개·총20,000자 | `{roomId,clusters:[{id,representative,memberCount,messageIds}]}` |
 
-summary≤2000자, 빈 source는 summary=""/IDs=[]·LLM0회. cluster는2개 이상 묶음만, 대표문장≤200자, 메시지는 한 묶음에만. source 밖·다른방·중복ID 결과는 전체 거부. singleton cluster_id=null.
+summary≤2000자, 빈 source는 summary=""/IDs=[]·LLM0회. cluster는2개 이상 묶음만, 대표문장≤200자, 메시지는 한 묶음에만. source 밖·다른방·중복ID 결과는 전체 거부. singleton cluster_id=null. Edge는 25초 `AbortSignal`을 전달하고 adapter는 20초 안에 완료한다. room AI 작업 lease는 29초이며 자동 재시도와 keyword fallback은 없다. 실패·시한 초과는 기존 결과를 보존하고 `FILTER_UNAVAILABLE`로 반환한다.
 
 묶기 완료는 source ID의 기존 cluster_id 정리와 새 묶음을 한 트랜잭션에 반영한다. source 밖 메시지의 묶음은 유지하되 참조 수를 재계산한다. 1개만 남은 묶음도 해당 메시지의 cluster_id를 null로 만들고 삭제한다. 같은 방 작업은 직렬화한다. summary는 공개 테이블 없이 operation 결과로 캐시한다. 실패 시 기존 결과·묶음을 보존하며 자동 무한 재실행은 없다.
 
@@ -905,7 +906,7 @@ P0/P1/P2는 PRD 순서이며 전체완료 요청에서 P2를 임의 제외하는
 
 일정 참고: 1일차 오전 기반·추첨, 오후 강화·입장·전송, 저녁P0, 밤게이지·인박스. 2일차 오전인증·필터·AI계층, 점심P1, 오후수정·동결·리허설. 생략한 티켓은 완료로 표시하지 않는다.
 
-migration 순서: core/config→private/Auth→RLS/helpers→cards/views→rooms/month→messages/score/inbox→verification/filters/config→AI/cleanup→Storage/Realtime. CLI로 기존 파일과 충돌 없는 이름 생성. 적용된 migration을 고치지 않고 새 migration으로 수정한다.
+migration 순서: core/config→private/Auth→RLS/helpers→문환P A-09 `issue_card`→cards/views의 `complete_round`→rooms/month→messages/score/inbox→verification/filters/config→AI/cleanup→Storage/Realtime. `issue_card`는 private/Auth 이후, `complete_round` 전에 추가한다. B-01 병합 전에 만든 migration은 B-01 병합 후 타임스탬프 순서를 다시 확인한다. CLI로 기존 파일과 충돌 없는 이름을 만들고 적용된 migration은 수정하지 않고 새 migration으로 보완한다.
 
 ## 12. 필수 검증
 
@@ -921,10 +922,10 @@ migration 순서: core/config→private/Auth→RLS/helpers→cards/views→rooms
 | 입장 | 누적 발급 4/5회 경계·카드 미소모·강화 후 자격 유지. 퇴장 후 해당 월 0/2/3회 재입장 경계와 gauge50 초기화. eligible면 left인 모든 방을 입장 가능. 카드 템플릿 없는 방은 "카드 준비 중"으로 입장 거부 |
 | 월 | 정산 대상 월은 기준3회에서 2회면 -12.5·3회면 유지·4회면 +12.5, 8회에서 최대100. 입장/재입장 월은 라운드 0/2/4회 모두 증가·감소 없이 완전 제외. getMyRoundGaugeSummary의 유효 월·전체 라운드 수·목표·잔여 회수 확인. 게이지12.5 이하 인앱 경고, 같은 월 병렬 요청 마감 1회, 월 마감·라운드 저장 경합과 비데모 데이터 보존 확인 |
 | 메시지·기간 | 팬은 자기 질문·현재/과거 본인 입장 기간의 influencer 메시지만 조회. 입장 전·퇴장 기간의 전체 메시지와 다른 팬 질문은 차단. 재입장 후 과거 기간 복귀, 퇴장 중 내 질문의 답변은 재입장 후만 예외 조회. greeting은 최초 1회 수신자/본문 snapshot, 재입장 재전송 없음 |
-| 안전·인용 | pass만 저장. optional 필터가 꺼져 있어도 질문 passesAllFilters=false이면 답변 인용문을 다른 팬에게 숨김. 항상 차단 7개(hate 포함)는 설정으로 끌 수 없음. suggestion은 10분·1회·본문 hash 일치 시 재검사 없이 rewriteQuality 사용, 수정 문구는 새 판정. fallback pass 품질50, fallback block 위반 미집계 |
+| 안전·인용 | pass만 저장. optional 필터가 꺼져 있어도 질문 passesAllFilters=false이면 답변 인용문을 다른 팬에게 숨김. 항상 차단 7개(hate 포함)는 설정으로 끌 수 없음. suggestion은 10분·1회·본문 hash 일치 시 재검사 없이 rewriteQuality 사용, 수정 문구는 새 판정. fallback pass quality=50, 모든 fallback의 passesAllFilters=false, 선택 항목 fallback은 suggest/rewrite null, 필수 항목 fallback은 block |
 | influencer 발송·삭제 | 답변·전체 메시지·인사말 설정에 필수 필터. 전체 메시지는 작성 시 active 팬만 열람. 답변/전체 메시지 삭제는 body null + UPDATE, greeting/팬 메시지 삭제 거부. 답변 삭제 뒤 질문/묶음 미답변 복귀 |
 | 신뢰 | JWT 없음·만료·위조·key만 가진 요청 거부. 내부 RPC 직접 호출·직접 INSERT·actor/verdict/quality 위조 거부 |
-| AI 장애 | timeout·키 누락은 keyword fallback. fallback pass quality50·fallback 차단 위반 미집계. fallback 없음·불량 JSON·NaN·점수 범위 오류 때 저장 없음. 판정 중 퇴장·필터 변경 거부 |
+| AI 장애 | Jev timeout·키 누락·5xx·응답 형식 불량은 keyword fallback. fallback block은 오늘 차단 집계에 포함하며 fallback 여부를 분리한 위반 누적은 실서비스 과제. 불량 최종 adapter 반환값·예외·fallback 불가 때 FILTER_UNAVAILABLE·저장 없음. moderateAndScore 8초, cluster/summary adapter 20초·Edge signal 25초·lease 29초, 자동 재시도 없음. 판정 중 퇴장·필터 변경 거부 |
 | 인박스 | PRD의 Badge+style bonus 점수 예시·과거 snapshot 불변. 동점 페이지 중복·누락 없음. 타방·답변 대상·중복 답변 거부 |
 | Realtime | 두 세션 송수신, 타방·left 이벤트 차단, 초기 버퍼 중복 제거, INSERT 복구, 오프라인 중 삭제된 오래된 행의 updated_at cursor 복구, 삭제 UPDATE의 삭제 표시 반영, 계정 전환 정리, 폴링 중단. 큰 bigint 문자열과 동일 방 동시 전송도 확인 |
 | 인증 | 본인 신청만 허용·pending 중복 거부. 승인/반려 경합 1회 성공. type·배지·이력 일관. 승인 시 11번째 방 생성, 카드 템플릿 30개 불변. 증빙 URL fetch 없음 |

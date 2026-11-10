@@ -164,7 +164,7 @@ lib/api는 브라우저 SDK이며 서버 구현 위치가 아니다. 클라이�
 | chat_rooms | 인증된 인물당 1개 방. 기본10개, 11번째 신청 승인 시 카드 템플릿 없는 방 추가. 필터·인사말 설정은 private |
 | room_members | gauge(소수점 1자리)·active/left·최신 입장 월·퇴장 효력 월. 입장·월 마감 RPC 변경 |
 | messages | 팬 질문·influencer 답변/전체 메시지/첫 입장 인사말. 입장 기간과 수신자에 따른 RLS, 문자열 ID, 안전한 reply context, priority snapshot, soft delete와 updated_at 변경 cursor |
-| message_clusters | 같은 방의 미답변 질문 묶음·대표문장. 활성 고유 질문자 수는 조회 시 계산 |
+| message_clusters | 같은 방의 미답변 질문 묶음·대표문장. 방 소유자만 읽으며 활성 고유 질문자 수는 조회 시 계산 |
 | verifications | 본인 인증 신청·관리자 심사 상태 |
 | game_config | 검증 가능한 게임 설정·version. 인증 사용자 읽기·관리자 RPC 변경 |
 
@@ -174,7 +174,7 @@ lib/api는 브라우저 SDK이며 서버 구현 위치가 아니다. 클라이�
 
 - 모든 public 테이블에 RLS와 명시적 grants. security_invoker view는 기초 테이블의 RLS를 유지한다.
 - anon은 DB 데이터·RPC 접근 없이 공개 카드·프로필 이미지 읽기만 가능하다. 가입은 항상 user이며 역할·데모 capability는 서버 관리 경계에서만 부여한다.
-- user는 본인 카드·라운드와 자기 질문, 본인의 입장 구간에 게시된 influencer 답변/전체 메시지/인사말만 읽는다. 입장 전·퇴장 기간 메시지는 숨기고 퇴장 중에는 방을 열 수 없다. 재입장 시 과거 입장 구간 대화는 복구하며, 퇴장 기간에 달린 본인 질문의 답변은 예외로 읽는다. greeting은 수신자 본인만 읽는다. 다른 팬 질문 행은 Data API와 Realtime에서 모두 숨긴다. influencer는 본인 인증 신청과 매핑된 본인 방의 전체 대화·인박스·필터·인사말 설정·AI 기능을 사용한다. admin은 인증 심사·설정·카드 자산·허용된 데모를 관리한다. admin이라는 이유로 타인 카드·대화·인박스를 읽거나 influencer 명의로 답변하지 못한다.
+- user는 본인 카드·라운드와 자기 질문, 본인의 입장 구간에 게시된 influencer 답변/전체 메시지/인사말만 읽는다. 입장 전·퇴장 기간 메시지는 숨기고 퇴장 중에는 방을 열 수 없다. 재입장 시 과거 입장 구간 대화는 복구하며, 퇴장 기간에 달린 본인 질문의 답변은 예외로 읽는다. greeting은 수신자 본인만 읽는다. 다른 팬 질문 행은 Data API와 Realtime에서 모두 숨기며 `message_clusters`는 방 소유자만 읽는다. 팬 화면은 본인 메시지의 `cluster_id`와 답변의 `reply_context`를 이용한다. influencer는 본인 인증 신청과 매핑된 본인 방의 전체 대화·인박스·필터·인사말 설정·AI 기능을 사용한다. admin은 인증 심사·설정·카드 자산·허용된 데모를 관리한다. admin이라는 이유로 타인 카드·대화·인박스를 읽거나 influencer 명의로 답변하지 못한다.
 - submit_moderated_message·submit_influencer_message 등 내부 저장 RPC는 Edge의 service-only 호출만 허용한다. 인증·멤버십 기간·필터 version은 최종 저장 시 DB에서 재검사하고 점수를 계산한다.
 - messages에는 block/suggest 원문을 저장하지 않는다. private moderation_events에는 판정 metadata만 7일 보관하며 rewrite·원문·JWT·키를 DB 감사 기록이나 로그에 복사하지 않는다.
 - Realtime에는 messages INSERT와 influencer 답변/전체 메시지의 삭제 UPDATE를 전달한다. 방 필터 조건이 아니라 SELECT RLS가 이벤트 권한 경계다. 팬은 본인 질문과 현재 수신 자격이 있는 influencer 메시지만 받고 방 주인은 방 전체를 받는다. SDK는 updated_at,id cursor로 reconnect 뒤 오래된 행의 soft delete도 복구한다. 로그아웃·퇴장·계정/방 변경 시 구독·캐시·폴링을 정리한다.
@@ -240,13 +240,13 @@ B-01은 첫 단계에서 `package.json`·`package-lock.json`, backend toolchain�
 
 | adapter 함수 | 역할 | 홍주P 검증·저장 경계 |
 | --- | --- | --- |
-| moderateAndScore | 본문·disabledFilters → pass/suggest/block·category·rewrite·quality·rewriteQuality·passesAllFilters | JWT·active·필터 version 재검사. pass만 저장하고 모든 필터 통과 여부로 질문 인용을 제한 |
+| moderateAndScore | 본문·disabledFilters·선택적 senderType → pass/suggest/block·category·rewrite·quality·rewriteQuality·passesAllFilters | JWT·active·필터 version 재검사. pass만 저장하고 모든 필터 통과 여부로 질문 인용을 제한 |
 | clusterQuestions | 허용된 같은 방 질문 ID/본문 → 대표문장·ID 묶음 | source·중복·미답변 재확인, 같은 방 트랜잭션 반영 |
 | summarize | 허용된 같은 방 대화 → 요약문 | 소유권·입력/출력 길이·source 검증 |
 
 AiAdapter 타입의 유일한 상세 기준은 홍주P 계획 §8.1이다. 여기서 다른 함수 시그니처를 중복 정의하지 않는다. ownScore·priority는 AI 모듈이 아니라 DB helper/저장 RPC에서 계산한다.
 
-개발자가 주입하는 로컬 fixture는 전송·권한·응답 형식 검증에만 쓴다. Jev/AI 키 누락 또는 공급자 timeout·5xx는 문환P adapter의 keyword fallback으로 처리한다. fallback을 통과한 질문은 quality=50으로 저장하고, fallback 차단은 위반 횟수에 넣지 않는다. 이는 실제 LLM 성공으로 보고하지 않는다. Adapter 예외·응답 형식 불량·점수 오류는 FILTER_UNAVAILABLE이며 저장하지 않는다. 답변·전체 메시지·인사말은 선택 필터 설정을 적용하지 않고 필수 차단 7개(threat, stalking, sexual_harassment, privacy, hate, illegal_ad, spam)를 적용한다. 상세 token·멱등성·저장 규칙은 홍주P 계획 §§7~8을 따른다.
+개발자가 주입하는 로컬 fixture는 전송·권한·응답 형식 검증에만 쓴다. Jev 키 누락·timeout·5xx·응답 형식 불량은 문환P adapter의 keyword fallback으로 처리한다. 선택 항목 적중은 `suggest`와 rewrite 없음, 필수 항목 적중은 `block`, 미적중은 `pass`이며 fallback 결과의 `passesAllFilters`는 항상 false다. fallback pass는 quality=50으로 저장하고 fallback block은 오늘 차단 집계에 포함한다. fallback 여부를 분리한 누적 위반 집계는 실서비스 과제이며 현재 계획 범위에 없다. Claude 수정 문장 생성·재검사가 실패하거나 시한을 넘기면 `suggest`와 `rewrite:null`을 반환한다. 유효하지 않은 최종 adapter 반환값·adapter 예외·fallback 불가에는 `FILTER_UNAVAILABLE`로 응답하고 저장하지 않는다. fallback은 실제 LLM 성공으로 보고하지 않으며 서버 로그에는 fallback 사유 코드만 남긴다. `moderateAndScore` adapter 시한은 8초(Edge 전체 처리 목표 12초), cluster/summary adapter 시한은 20초다. cluster/summary Edge는 25초 signal과 29초 lease를 사용하고 자동 재시도와 fallback이 없다. 답변·전체 메시지·인사말은 influencer sender type으로 선택 필터를 적용하지 않고 필수 차단 7개(threat, stalking, sexual_harassment, privacy, hate, illegal_ad, spam)를 적용한다. 상세 token·멱등성·저장 규칙은 홍주P 계획 §§7~8을 따른다.
 
 ## 6. 초기화·환경·배포
 
