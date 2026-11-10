@@ -43,7 +43,8 @@
 
 - 로컬 필수 환경은 Node.js 24, 기존 package manager(신규 저장소는 npm), Deno 2, 실행 중인 Docker 호환 런타임이다. 존재 여부·버전을 먼저 확인하고 의존성은 lockfile에 고정한다. 없는 환경은 구체적으로 보고하고 가능한 코드·정적 검증을 계속한다.
 - 로컬 Supabase는 자체 Auth/DB 관리 연결 값을 사용한다. **사용자가 제공한 원격 키나 CLI 로그인은 로컬 구현·통합 검증의 선행 조건이 아니다.** 로컬 값을 얻는 순서는 §10.3에 고정한다.
-- 실제 LLM 품질 검증은 문환P 모듈·실제 공급자 자격증명, 팀 화면 검증은 담당자 화면 코드, 원격 적용은 프로젝트 관리 권한·명시적인 적용 요청이 있어야 완료할 수 있다. 이 세 상태를 로컬 백엔드 완료와 구분한다.
+- AI 공급자 키 관리 결정: `TYPESAFE_API_KEY`와 `ANTHROPIC_API_KEY`를 §2.1의 Supabase 프로젝트 Edge Function Secrets에 저장하고 Edge Function에서만 사용한다. 실제 Jev/Claude 검증과 시연에는 각각의 키와 문환P 모듈이 필요하며, 이 상태를 로컬 백엔드 완료와 구분한다.
+- 로컬 코드·DB 개발은 키 없이 진행할 수 있다. 키가 없는 실행은 §8의 keyword fallback 등 계약된 대체 동작으로 검증하며 실제 LLM 성공으로 기록하지 않는다. 원격 Secret 설정은 대상 환경 및 Owner/Administrator 권한 확인 뒤 별도 기록한다.
 - 현재 작업은 계획 최종 검토다. supabase/·환경 파일·앱 코드를 미리 생성하거나 실제 배포를 시작하지 않는다.
 
 ## 1. 아키텍처와 담당 경계
@@ -112,7 +113,7 @@ tests/backend/                     Edge·SDK·동시 요청·Realtime 테스트
 | project ref | `kjfaqfpvfvgbrvdoosyi` |
 | URL | `https://kjfaqfpvfvgbrvdoosyi.supabase.co` |
 | 대시보드 | [프로젝트 관리](https://supabase.com/dashboard/project/kjfaqfpvfvgbrvdoosyi) |
-| 용도 | 사용자가 제공한 해커톤 연결 대상. 개발/운영 구분·기존 데이터는 미확인 |
+| 용도 | 사용자가 제공한 해커톤 연결 대상. Dashboard에서 `main` 브랜치가 `PRODUCTION`으로 표시됨. 이를 해커톤 시연용으로 써도 되는지와 실제 데이터 상태는 별도 확인 필요 |
 
 개발 착수 후 이 원격 프로젝트를 사용할 때 루트 `.env.local`에 작성할 값:
 
@@ -155,7 +156,7 @@ npx --yes supabase@3.0.0 init
 mkdir -p supabase/migrations supabase/functions/_shared supabase/tests lib/supabase
 ```
 
-이후 `supabase/seed.sql`, 루트 `.env.example`, `supabase/functions/.env.example`을 만든다. seed는 §10.1의 비기밀 데이터만 담는다. 루트 예제의 URL/key는 `https://your-project-ref.supabase.co`와 `sb_publishable_replace_me`를 사용한다. **초기 개발의 실제 .env.local은 §10.3에서 얻은 로컬 값으로 생성한다.** §2.1의 원격 값은 원격 연결 단계에서만 사용하며 로컬 테스트에 섞지 않는다. Functions 예제에는 `ANTHROPIC_API_KEY`, `TYPESAFE_API_KEY`, `ALLOWED_ORIGINS` 이름과 비밀 아닌 자리표시자만 적는다. API 키가 없으면 문환P adapter가 로컬·원격 모두 keyword fallback을 사용하며 이를 실제 LLM 성공으로 표시하지 않는다. 기존 `.gitignore`를 보존하면서 `.env*` 제외·`.env.example` 예외·`supabase/.temp/` 제외 규칙을 확인한다. 실제 env 파일은 stack 시작 후 local:env가 생성한다.
+이후 `supabase/seed.sql`, 루트 `.env.example`, `supabase/functions/.env.example`을 만든다. seed는 §10.1의 비기밀 데이터만 담는다. 루트 예제의 URL/key는 `https://your-project-ref.supabase.co`와 `sb_publishable_replace_me`를 사용한다. **초기 개발의 실제 .env.local은 §10.3에서 얻은 로컬 값으로 생성한다.** §2.1의 원격 값은 원격 연결 단계에서만 사용하며 로컬 테스트에 섞지 않는다. Functions 예제에는 `ANTHROPIC_API_KEY`, `TYPESAFE_API_KEY`, `ALLOWED_ORIGINS` 이름과 비밀 아닌 자리표시자만 적는다. 두 provider key는 §2.7 계약대로 hosted Edge Function Secrets를 사용하며, local live-AI test가 필요할 때만 보호된 gitignored 파일에 별도로 둔다. 키가 없으면 문환P adapter의 계약된 fallback을 사용하고 이를 실제 LLM 성공으로 표시하지 않는다. 기존 `.gitignore`를 보존하면서 `.env*` 제외·`.env.example` 예외·`supabase/.temp/` 제외 규칙을 확인한다. 실제 env 파일은 stack 시작 후 local:env가 생성한다.
 
 CLI가 생성한 config는 다음 기준으로 보완한다. 이 설정을 위해 사전 생성된 파일을 필요로 하지 않는다.
 
@@ -221,6 +222,19 @@ DB 암호는 Management API/PAT 범위가 제한되어도 별도의 DB 권한을
 - [ ] 승인된 원격 작업 범위와 금지 작업(초기화·삭제·기존 데이터 교체)을 기록
 
 현재 위 항목은 문서에 준비 절차만 적혀 있으며 전부 미확인·미실행이다. 링크/공개 URL 응답, Codex Full Access, MCP 문서 검색, CLI dry-run만으로 Supabase 로그인이나 원격 권한이 입증되지는 않는다.
+
+### 2.7 AI 공급자 키 저장과 호출 계약
+
+홍주P·문환P 합의에 따라 `TYPESAFE_API_KEY`와 `ANTHROPIC_API_KEY`는 §2.1의 Supabase 프로젝트에서 Edge Function hosted Secrets로 관리한다. 저장 대상은 Supabase Dashboard의 Edge Functions > Secrets이며, 저장 후 Edge Function이 `Deno.env.get("TYPESAFE_API_KEY")`와 `Deno.env.get("ANTHROPIC_API_KEY")`로 읽는다. 실제 Secret 값은 이 문서·Git·브라우저 코드·SQL/seed·일반 로그에 기록하지 않는다. Edge Function Secrets 관리의 공식 절차는 [Supabase Environment Variables](https://supabase.com/docs/guides/functions/secrets)를 따른다.
+
+| 변수 | 담당 공급자·호출 | 노출 경계 |
+| --- | --- | --- |
+| `TYPESAFE_API_KEY` | TypeSafe Jev의 메시지 안전 필터 판정 | Jev를 호출하는 Edge Function만 읽음 |
+| `ANTHROPIC_API_KEY` | Claude의 suggest 수정 문장 및 대화 요약·묶기 | Claude를 호출하는 Edge Function만 읽음 |
+
+원격 host 설정은 프로젝트 환경(해커톤/운영)과 대상 ref를 확인하고, Owner/Administrator Secret 변경 권한을 확인한 뒤 진행한다. 채팅·저장소·로그에 입력된 provider key는 재사용하지 않고 공급자 대시보드에서 회전/재발급한 값을 저장한다. 기존 키를 회수할 때는 새 키가 Edge runtime에서 동작하는 것을 확인한 뒤 순서를 정한다.
+
+로컬 코드·DB·SDK 작업에는 provider key가 필요하지 않으며 키가 없을 때의 로컬 fallback을 허용한다. live Jev 검증에는 `TYPESAFE_API_KEY`, Claude suggest/summary 검증에는 `ANTHROPIC_API_KEY`가 필요하다. 시연의 전체 AI 경로 검증에는 두 키가 모두 설정되어야 한다. 일부 키 누락이나 fallback 결과를 live AI 성공으로 보고하지 않는다. Secret 저장 후 Supabase Edge Function 재배포는 필요하지 않지만, 실제 공급자 호출로 런타임 동작을 검증한다.
 
 ## 3. 팀 의존성 없이 진행하는 기본안
 
@@ -803,7 +817,7 @@ setup script는 @supabase/supabase-js와 pg만 사용하고 database.types.ts·�
 | CLI 저장소·셸 | SUPABASE_ACCESS_TOKEN / 필요시 SUPABASE_DB_PASSWORD | 비밀값 문서/Git 금지 |
 | Edge runtime | SUPABASE_URL / SUPABASE_PUBLISHABLE_KEYS / SUPABASE_SECRET_KEYS | 서버만, 실제 제공 여부 확인 |
 | 로컬 Edge .env | BB_LOCAL_PUBLISHABLE_KEY / BB_LOCAL_SECRET_KEY | 로컬 key fallback만. 호스트 URL·관리 DB URL은 넣지 않음. 호스팅에서는 이 fallback을 사용하지 않음 |
-| Edge .env/Secrets | ANTHROPIC_API_KEY / TYPESAFE_API_KEY / ALLOWED_ORIGINS | 키는 Edge 전용. 미설정 시 adapter keyword fallback, 키워드 fallback 동작과 실제 LLM 동작을 구분 |
+| Edge .env/Secrets | ANTHROPIC_API_KEY / TYPESAFE_API_KEY / ALLOWED_ORIGINS | hosted provider key는 §2.7대로 Edge 전용 Secrets에 저장하고 Deno.env에서 읽음. 미설정 시 계약된 fallback을 쓰며 live AI와 구분 |
 | Edge .env/Secrets | ALLOWED_ORIGINS | localhost:3000·승인된 프리뷰 origin allowlist |
 
 publishable key는 apikey, 사용자 access token은 Authorization Bearer. 공개키를 JWT로 보지 않는다. legacy anon/service_role key를 신규 기준으로 쓰지 않는다. 런타임 key JSON의 키 이름을 명시하고 서버 비밀모듈의 브라우저 import를 막는다.
@@ -822,7 +836,7 @@ local:start는 `node scripts/prepare-local-env.mjs --start`로 구현한다. 고
 
 수집 로직은 고정 CLI의 `supabase status --output json`을 자식 프로세스로 실행해 stdout을 메모리에서만 파싱한다. 실제 출력 필드명에 맞춰 로컬 API URL·publishable key·secret key·DB URL을 정규화한다. 필수 값이 없으면 설명 가능한 오류로 중단하고 원격 URL/key·legacy 키로 조용히 대체하지 않는다.
 
-정규화된 값으로 프론트 .env.local, Node .env.backend.local, Functions .env를 만든다. Functions .env에 local allowlist를 넣고 AI 키는 실제 호출 승인·공급자 조건이 마련된 경우에만 보호된 경로로 추가한다. 키가 없을 때의 fallback은 모의 fixture가 아니며 문환P의 keyword fallback이다. 기존 env의 비밀값은 덮어쓰기 전에 비교하고 보존한다. URL/DB host가 loopback이 아니면 local:env와 로컬 쓰기 script가 거부한다. 원격 연결이 선택된 프론트 파일을 로컬 테스트가 읽지 않도록 테스트는 .env.backend.local만 사용한다.
+정규화된 값으로 프론트 .env.local, Node .env.backend.local, Functions .env를 만든다. Functions .env에 local allowlist를 넣는다. 기본 local 개발은 provider key 없이 진행한다. local live-AI 검증이 승인된 경우에만 회전된 provider key를 보호된 gitignored 파일에 별도로 공급하고, hosted Secret 값을 local env로 자동 복사하지 않는다. 키가 없을 때의 fallback은 모의 fixture가 아니며 문환P의 계약된 fallback이다. 기존 env의 비밀값은 덮어쓰기 전에 비교하고 보존한다. URL/DB host가 loopback이 아니면 local:env와 로컬 쓰기 script가 거부한다. 원격 연결이 선택된 프론트 파일을 로컬 테스트가 읽지 않도록 테스트는 .env.backend.local만 사용한다.
 
 ```bash
 npm ci
@@ -933,7 +947,7 @@ migration 순서: core/config→private/Auth→RLS/helpers→cards/views→rooms
 - 변경 범위는 reviewed migration과 필요한 함수(`submit-message`, `send-influencer-message`, `update-room-greeting`, `summarize-room`, `cluster-questions`)로 제한한다. 문서상 예정 함수 목록을 실제 배포 완료로 보지 않는다.
 - 현재 schema, migration history, DB major version, 기존 함수/Secret 이름, Storage bucket/object, `messages` publication, Auth URL/redirect, 기존 사용자와 데이터를 읽어 baseline을 만든다. 소유되지 않은 기존 구조와 이력은 임의로 채택·삭제·repair하지 않는다.
 - §12의 로컬 migration/권한/Function 검증을 통과한 commit을 대상으로 한다. 사용 중인 DB와 호환성을 확인하고, 복구에 필요한 백업/기존 Function 소스를 확보하지 못하면 쓰기 단계로 넘어가지 않는다.
-- 실제 AI를 호출하는 검증은 `TYPESAFE_API_KEY`·필요 시 `ANTHROPIC_API_KEY`와 호출량/비용 조건이 별도로 확인된 경우에만 한다. 키가 없을 때는 문환P adapter의 keyword fallback을 쓰며 실제 모델 판정으로 보고하지 않는다. 키가 없다고 fail-closed만 하지는 않으며 fallback pass는 PRD대로 quality 50으로 저장한다.
+- 실제 Jev 검증에는 `TYPESAFE_API_KEY`, Claude suggest/summary 검증에는 `ANTHROPIC_API_KEY`가 필요하다. 전체 AI 경로의 시연 검증은 §2.7에 따라 두 hosted Secrets를 설정하고 호출량/비용 조건을 확인한 뒤 수행한다. 키가 없을 때는 문환P adapter의 계약된 fallback을 쓰며 실제 모델 판정으로 보고하지 않는다. 키가 없다고 fail-closed만 하지는 않으며 fallback pass는 PRD대로 quality 50으로 저장한다.
 
 ### 13.2 인증 및 읽기 전용 preflight
 
@@ -955,7 +969,7 @@ CLI의 출력 대상과 대시보드 ref가 일치하지 않으면 즉시 중단
 - 로컬 `supabase/config.toml`은 개발용 `localhost`·이메일 확인 설정을 포함하므로 원격에 통째로 push하지 않는다. `config push`가 필요한 경우 먼저 현재값과 계획값의 차이를 항목별 검토하고 승인된 Auth URL/redirect/CORS 설정만 반영한다. hosted confirmation 정책을 로컬 설정값으로 낮추지 않는다.
 - Auth `site_url` 및 redirect allowlist는 배포할 실제 origin만 설정한다. `localhost`, 임의 wildcard, 확인되지 않은 프리뷰 URL을 운영 allowlist에 추가하지 않는다. 브라우저 Auth 동작은 실제 공개 배포 origin과 로그인 세션으로 별도 확인한다.
 - Functions Secrets는 프로젝트 전역에서 여러 함수에 영향을 줄 수 있으므로 기존 Secret 이름과 사용 함수를 먼저 확인한다. Edge platform이 제공하는 `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEYS`, `SUPABASE_SECRET_KEYS`는 존재 여부만 확인하고 직접 덮어쓰거나 사용자 Secret으로 만들지 않는다. `SUPABASE_*` 예약 이름, PAT, DB 암호, 로컬 `BB_LOCAL_*` 키는 hosted custom Secrets에 넣지 않는다.
-- hosted custom Secret 파일은 승인된 보안 저장소/로컬 비추적 파일에서 준비한다. 현재 adapter가 사용하는 변수명은 `TYPESAFE_API_KEY`, `ANTHROPIC_API_KEY`, 정확한 `ALLOWED_ORIGINS`다. 실 키 값은 이 문서·명령행 인수·Git에 적지 않는다. 로컬 mock/테스트 fixture를 원격에 복사하지 않는다. 키가 없으면 keyword fallback이 동작하므로 키 설정을 배포의 필수 조건이나 실제 AI 검증 증거로 오해하지 않는다.
+- hosted custom Secrets의 provider key는 §2.7대로 `TYPESAFE_API_KEY`와 `ANTHROPIC_API_KEY` 두 이름으로 설정한다. 키 값은 이 문서·명령행 인수·Git·일반 로그에 적지 않고, 채팅 등에 노출된 값은 회전/재발급 후에만 저장한다. 정확한 `ALLOWED_ORIGINS`는 별도 설정이다. 로컬 mock/테스트 fixture를 원격에 복사하지 않는다. provider key는 schema/Edge 배포 및 fallback 경로의 선행 조건은 아니지만, 실제 AI 검증과 전체 AI 시연 경로에는 필요한 조건이다.
 - scoped PAT 또는 DB 암호를 Functions runtime Secret으로 저장하지 않는다. secret key도 플랫폼에서 제공되는지 먼저 확인하고, 제공되지 않을 때만 승인된 서버용 값을 보호 경로로 공급한다.
 
 ### 13.4 DB migration과 선택적 초기 데이터
@@ -1058,12 +1072,13 @@ cards는 현호P, rooms/chat/filters/verifications는 자성P가 사용한다. �
 | --- | --- | --- |
 | 계획 단독 실행 준비 | 범위·기본값·타입·권한·순서·검증·외부조건 | 문서 보완·정적 교차 검토 완료 |
 | 백엔드 로컬 완료 | B-01~17 코드·필수로컬검증 | 미착수/미검증 |
+| LLM hosted Secrets 준비 | `TYPESAFE_API_KEY`·`ANTHROPIC_API_KEY` 존재 여부와 회전된 값의 실제 호출 검증 | Dashboard에서 두 Secret 이름 저장 확인. 값·회전 여부 미열람·미확인, live 호출 미실행 |
 | 실제AI 검증 | live 호출·3판정·장애 | 미검증 |
 | 팀화면 통합 | 담당화면 P0/P1/P2·오류·구독 | 미검증 |
 | Supabase 관리 연결 | CLI/ref/DB접근 | 문서상 절차만 준비 |
-| Supabase 로그인·프로젝트 권한 | 계정/PAT 범위/프로젝트 멤버십 | 미확인·미실행 |
+| Supabase 로그인·프로젝트 권한 | 계정/PAT 범위/프로젝트 멤버십 및 Owner/Administrator Secret 쓰기 권한 | Dashboard에서 §2.1 ref 확인 및 Secret 저장 성공. 브랜치 label은 `main PRODUCTION`; 프로젝트 역할과 시연 환경 적합성은 미확인 |
 | 원격 preflight | target ref·DB 이력·버전·dry-run·백업 | 미실행 |
-| 원격 적용 | 승인환경migration/Functions/Secrets·스모크 | 미실행 |
+| 원격 적용 | 승인환경migration/Functions/Secrets·스모크 | 부분 반영: 두 Edge Secrets 저장. migration·Function 배포·스모크 미실행 |
 | 데모 완료 | 동결 후 전체리허설2회 | 미실행 |
 
 보고 순서는 변경 파일 → 명령/증거 → 완료 티켓 → 외부 조건/미검증 → 재개 방법이다. 외부 권한·AI 모듈이 없어도 독립 가능한 구현은 끝까지 진행한다.
@@ -1091,6 +1106,8 @@ cards는 현호P, rooms/chat/filters/verifications는 자성P가 사용한다. �
 2026-11-10 착수 전 확인 회신(후속 요청으로 root 순서는 아래 기록에서 변경): F-01이 최초 `package.json`을 만들어 main에 올리고 B-01은 그 위에 backend scripts/toolchain을 더하는 순서로 검토했다. 보유 카드·강화 경로를 `/collection/owned`·`/collection/upgrade`로 맞추고 architecture의 역할 표를 F-01~F-16으로 고쳤다. `getRoomDailyBlockCount`는 원문을 보관하지 않고 비공개 moderation metadata에서 KST 오늘의 block 수만 읽는 소유자 전용 SDK/RPC로 추가했다. Realtime 상태 union, 3초 fallback 조건, `reconcileRoomMessages`의 내부 pagination·병합, 인플루언서 SDK 입력/반환 계약을 §6·§9에 반영했다. 로컬 demo setup·계정 암호 발급은 실행하지 않았다.
 
 2026-11-10 착수 순서 재조정: 새 요청에 따라 B-01 root bootstrap(package·lockfile·backend toolchain/scripts·lib/supabase skeleton)을 F-01보다 먼저 main에 올리고, F-01은 그 위에 Next.js/Tailwind/app을 추가하도록 변경했다. bootstrap은 첫 1시간 목표이며 B-01의 schema/Auth/RLS는 후속 작업으로 F-01과 병행하고 선행조건으로 두지 않는다. `docs/자성P_plan.md`는 사용자 요청에 따라 수정하지 않았다. 실제 root bootstrap, main 반영, local setup은 실행하지 않았다.
+
+2026-11-10 AI 공급자 키 관리 결정 및 설정 결과: §2.7에 `TYPESAFE_API_KEY`는 Jev 필터, `ANTHROPIC_API_KEY`는 Claude suggest/요약·묶기용으로 Supabase Edge Function hosted Secrets에 저장하고 Edge에서만 읽는 방식을 추가했다. 로컬 키 없는 개발/fallback과 live AI·시연 검증을 분리하고 §2.3·§10.2·§10.3·§13·§14.2를 맞췄다. MCP와 Dashboard에서 §2.1 ref 및 Edge Secrets 페이지를 확인했다. 사용자가 Dashboard에서 두 Secret을 저장했고 이름 표시를 확인했으며 값은 열람하지 않았다. live 공급자 호출은 하지 않았다. Dashboard는 `main PRODUCTION`으로 표시되지만 해커톤 시연 환경으로 적합한지, 값이 회전·재발급된 키인지, 프로젝트의 Owner/Administrator 역할인지는 확인되지 않았다. migration·Function 배포·smoke는 실행하지 않았다.
 
 ### 14.4 기술 근거
 
