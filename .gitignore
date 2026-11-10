@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+.env
+.env.*
+!.env.example
+supabase/.temp/
+supabase/functions/.env
+
+.agents/
+harness/
+AGENTS.md

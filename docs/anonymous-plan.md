@@ -1,218 +1,166 @@
 # BirdieBuddy — anonymous 작업 계획
 
-**역할:** 담당 미정 — 개발 완료 후 담당자 결정
+**역할:** U-01 시연 대본·발표 자료, 담당 미정
 
-> 기준 문서: [BirdieBuddy 해커톤 개발 설계 & 역할 분담](https://claude.ai/artifact/HQ7wLf6Cewh2thGTH37Dof) · 작성일 2026-11-09
-> 기획안: spec_BirdieBuddy.md (스크린골프 인플루언서 카드 컬렉션)
+**최종 갱신:** 2026-11-10
 
-## 1. 전체 시스템 아키텍처
+> 담당자는 아직 정하지 않는다. 담당 확정 전에도 초안·입력자료 목록을 준비할 수 있으며, 실제 기능·시연 검증 후 최종본을 확정한다.
+>
+> 공통 폴더 구조·담당 경계는 [architecture.md](./architecture.md), 백엔드·SDK·게임·권한 계약은 [홍주P_plan.md](./홍주P_plan.md)를 기준으로 한다. 이 파일은 공통 아키텍처·스키마·API 명세를 복사하지 않고 U-01의 준비·대본·리허설만 정의한다.
+>
+> 아래 산출물은 담당자가 작업을 시작할 때 만드는 예정이다. 이번 계획 갱신으로 앱·supabase/·환경 파일·배포·발표 파일을 미리 생성하지 않는다.
 
-화면 3종이 하나의 Next.js 앱을 거쳐 Supabase(DB·실시간·스토리지)와 LLM API에 닿는 구조입니다.
-실제 골프존 라운드·회원 연동은 하지 않고 **'라운드 완료' 버튼 + 데모 계정 전환**으로 대체합니다.
+## 1. 담당 범위와 산출물
 
-```mermaid
-flowchart LR
-  subgraph Client["화면 (Next.js App Router)"]
-    U["유저 웹 (모바일)<br/>뽑기 · 컬렉션 · 채팅"]
-    I["인플루언서 인박스<br/>우선순위 · 묶음 · 요약"]
-    A["관리자 화면<br/>인증 승인 · 배지"]
-  end
-  subgraph Server["Next.js API Route"]
-    C["카드 서비스<br/>뽑기 · 강화 · 컬렉션"]
-    CH["채팅 서비스<br/>입장 · 메시지 · 게이지"]
-    AI["AI 모듈 (lib/ai)<br/>필터 · 점수 · 묶기 · 요약"]
-  end
-  DB[("Supabase Postgres")]
-  RT["Supabase Realtime"]
-  ST["Supabase Storage<br/>카드 이미지 30장"]
-  LLM["LLM API"]
+U-01은 구현된 기능을 정확하게 설명하는 5분 시연 대본과 발표 자료를 준비한다. 새 기능·API·운영 도구를 개발하거나 다른 담당자의 구현을 대신 맡지 않는다.
 
-  U --> C
-  U --> CH
-  I --> CH
-  A --> CH
-  CH --> AI
-  AI --> LLM
-  C --> DB
-  CH --> DB
-  DB --> RT
-  RT -. 구독 .-> U
-  RT -. 구독 .-> I
-  U -. 이미지 .-> ST
-```
-
-### 기술 스택 (확정)
-
-| 영역 | 선택 | 비고 |
-| --- | --- | --- |
-| 프론트·API | Next.js (App Router) + TypeScript + Tailwind | 화면과 API를 한 레포에서 |
-| DB | Supabase Postgres | 스키마: `supabase/schema.sql` (홍주P B-01) |
-| 실시간 채팅 | Supabase Realtime (`messages` 테이블 구독) | 막히면 3초 폴링으로 대체 |
-| 이미지 | Supabase Storage | 카드 이미지 30장 사전 생성 |
-| AI | LLM API (메시지당 1회 호출) | 필터 + 품질 점수를 JSON 하나로 |
-| 배포 | Vercel | 1일차 오전 첫 배포 |
-| 보안 | RLS 끔, API Route에서만 service role 키 사용 | 클라이언트는 Realtime 구독용 anon 키만 |
-
-### 레포 구조와 담당 경계
-
-```
-BirdieBuddy/
-├─ docs/                     # architecture.md + 담당자별 plan 파일
-├─ app/
-│  ├─ (user)/draw/            # 카드 뽑기 연출·결과        — 현호P
-│  ├─ (user)/collection/      # 컬렉션·강화                — 현호P
-│  ├─ (user)/chat/            # 채팅방 목록·입장·대화       — 자성P
-│  ├─ inbox/                  # 인플루언서 인박스          — 자성P
-│  ├─ admin/                  # 관리자 인증 승인            — 자성P
-│  └─ api/                    # 모든 API Route              — 홍주P
-│     ├─ rounds/  cards/  me/  rooms/  verifications/  admin/  demo/
-├─ components/
-│  ├─ card/                   # 카드·카드팩·등급 효과       — 현호P
-│  ├─ chat/                   # 메시지·게이지·배지          — 자성P
-│  └─ ui/                     # 공통 UI (디자인 토큰)       — 자성P 셋업, 현호P 디자인
-├─ lib/
-│  ├─ ai/                     # moderateAndScore 등         — 문환P
-│  ├─ db/                     # Supabase 클라이언트·쿼리    — 홍주P
-│  ├─ scoring.ts              # ownScore·priority 공식      — 홍주P
-│  └─ config.ts               # game_config 읽기            — 홍주P
-└─ supabase/
-   ├─ schema.sql              # 테이블 12개 + upgrade_card  — 홍주P
-   └─ seed.sql                # 데모 계정·인플루언서·템플릿 — 홍주P
-```
-
-### 개발 규칙 (전원)
-
-1. **상태가 있는 화면은 클라이언트 컴포넌트로** — 뽑기 연출, 채팅, 인박스, 게이지처럼 상태·이벤트가 있는 컴포넌트는 파일 맨 위에 `'use client'`를 붙입니다. 서버 컴포넌트는 레이아웃·정적 껍데기에만 씁니다.
-2. **데이터는 항상 `/api/*`를 거쳐서** — 화면에서 Supabase 쿼리를 직접 호출하지 않습니다. Supabase를 클라이언트에서 직접 쓰는 건 `messages` **실시간 구독뿐**입니다. API 명세(T-01)가 화면과 서버 사이의 유일한 기준입니다.
-
-### 데이터 모델 (테이블 12개)
-
-| 테이블 | 주요 컬럼 | 용도 |
-| --- | --- | --- |
-| users | id, nickname, role(user/influencer/admin) | 데모 계정 3종 |
-| influencers | id, user_id, name, type(youtuber/media_pro/tour), verified_at | 후보 10명, 배지 = verified_at + type |
-| card_templates | id, influencer_id, style(illust/retro/holo), image_url | 인물 × 스타일 = 30행 |
-| user_cards | user_id, template_id, grade, count | 등급별 보유 장수, 강화 시 grade 한 칸 이동 |
-| rounds | id, user_id, played_at | 라운드 완료 기록 (게이지 계산에도 사용) |
-| draws | id, user_id, round_id, template_id, grade, is_new | 뽑기 결과 이력 |
-| chat_rooms | id, influencer_id, filter_options(jsonb) | 인플루언서당 1개 |
-| room_members | room_id, user_id, gauge, status(active/left) | 입장 상태와 게이지 |
-| messages | id, room_id, sender_id, sender_type, reply_to, body, filter_verdict, own_score, quality_score, priority, cluster_id | 유저 메시지 + 인플루언서 답변, 차단 건도 저장 |
-| message_clusters | id, room_id, representative, member_count | 유사 질문 묶음 |
-| verifications | id, influencer_id, type, evidence_url, status, reviewed_by | 인증 신청과 심사 |
-| game_config | key, value(jsonb) | 확률·기준값 (코드에 하드코딩 금지) |
-
-등급: `common`(일반) → `rare`(레어) → `epic`(에픽) → `special`(스페셜)
-
-### 설정값 (game_config, 잠정 확정 · 배포 없이 값만 변경)
-
-| key | 값 |
+| 예정 산출물 | 내용 |
 | --- | --- |
-| grade_rates | 일반 70 · 레어 22 · 에픽 7 · 스페셜 1 (%) |
-| upgrade_cost | 같은 템플릿·등급 10장 → 다음 등급 1장 |
-| room_entry | 해당 인플루언서 카드 5장 (등급 무관) |
-| priority_weights | 보유 0.6 : 품질 0.4 |
-| gauge | 시작 100, 월 3회 미만이면 달마다 -50, 0이면 퇴장 |
+| docs/demo-script.md | 5분 시간 배분, 발표 문장, 화면 조작, 기대 결과, 역할별 전환 |
+| docs/demo-slides.md | 슬라이드별 제목·핵심 문장·캡처 위치·구현 상태·근거. 발표용 장표 제작의 원본 |
+| docs/demo-rehearsal.md | 환경·사전 상태·리허설 2회 결과·문제/수정·대체 시연 여부 |
 
-### API 목록
+실제 발표용 파일·녹화·캡처는 팀 발표 방식에 맞춰 최종 장표에 연결한다. Markdown 원본만 준비된 상태와 최종 발표 자료가 준비된 상태를 구분한다. 담당자가 확정되면 이름과 산출물 소유자를 기록한다. 별도 역할 계획으로 옮길 경우 이 파일에는 해당 경로를 남긴다.
 
-| 메서드 · 경로 | 하는 일 | 티어 | 구현 | 사용 화면 |
-| --- | --- | --- | --- | --- |
-| POST /api/rounds/complete | 라운드 기록 + 카드 1장 추첨, 결과 반환 | P0 | 홍주P B-03 | 현호P |
-| GET /api/me/collection | 인물별·등급별 보유 현황 | P0 | 홍주P B-04 | 현호P |
-| POST /api/cards/upgrade | 10장 소모 → 다음 등급 1장 (`upgrade_card` 함수) | P0 | 홍주P B-04 | 현호P |
-| GET /api/rooms | 채팅방 목록 + 입장 가능 여부 | P1 | 홍주P B-05 | 자성P |
-| POST /api/rooms/:id/join | 입장 조건 확인 후 입장 | P1 | 홍주P B-05 | 자성P |
-| GET /api/rooms/:id/messages | 유저용 대화 목록 | P1 | 홍주P B-06 | 자성P |
-| POST /api/rooms/:id/messages | 필터 → 점수 → 저장, 차단·수정 제안 반환 | P1 | 홍주P B-06 + 문환P A-02·A-03 | 자성P |
-| GET /api/rooms/:id/inbox | 인플루언서용 우선순위 정렬 목록 | P1 | 홍주P B-08 | 자성P |
-| POST /api/rooms/:id/reply | 인플루언서 답변 | P1 | 홍주P B-08 | 자성P |
-| POST /api/demo/advance-month | 한 달 경과 시뮬레이션 (게이지 감소·퇴장) | P1 | 홍주P B-07 | 자성P |
-| POST /api/verifications | 인증 신청 | P2 | 홍주P B-09 | 자성P |
-| PATCH /api/admin/verifications/:id | 승인·반려, 배지 부여 | P2 | 홍주P B-09 | 자성P |
-| POST /api/rooms/:id/summary | 대화 요약 | P2 | 문환P A-05 | 자성P |
-| PATCH /api/rooms/:id/filter | 선택 필터 해제 | P2 | 홍주P B-10 | 자성P |
+## 2. 최신 구조를 반영한 발표 기준
 
-### AI 모듈 인터페이스 (문환P 제공 → 홍주P 호출)
+발표에서 사용할 기술 설명은 다음 요약으로 통일한다.
 
-우선순위 계산(`ownScore`, `priority`)은 AI가 아닌 공식이므로 홍주P가 `lib/scoring.ts`에 둡니다. AI 모듈은 LLM을 호출하는 함수만 제공합니다.
+- Next.js는 CSR 화면을 제공하고 lib/api SDK가 Supabase Auth·Data API·RPC·Edge Functions·Realtime·Storage를 호출한다.
+- lib/supabase는 클라이언트·생성 타입, lib/api는 화면 호출 SDK다. 게임 규칙·ownScore·priority는 migration의 SQL 함수에서 실행한다.
+- 실제 AI 로직은 supabase/functions/_shared/ai.ts의 adapter 경계에 있으며, 홍주P의 Edge Function이 인증·검증·호출·저장을 맡고 문환P가 모델 로직을 제공한다.
+- 공개 테이블은 RLS로 보호한다. 브라우저에는 publishable key와 사용자 JWT만 사용하며 역할은 실제 Auth 세션으로 구분한다.
+- messages에는 pass 질문과 influencer 답변만 저장한다. suggest/block 원문과 rewrite는 일반 대화·인박스·Realtime에 나타나지 않는다.
+- 실제 골프존 회원·라운드·결제 연동은 범위에 없다. 라운드 완료 버튼·데모 계정·논리 월 시뮬레이션을 실제 운영 연동으로 설명하지 않는다.
 
-```ts
-// lib/ai/index.ts
-export type Verdict = 'pass' | 'suggest' | 'block';
+상세 폴더 트리·SQL·설정·함수 시그니처는 이 파일에 재정의하지 않는다. 발표 자료의 기술 장표는 architecture.md의 현재 구조를 사용한다.
 
-export async function moderateAndScore(input: {
-  body: string;
-  disabledFilters: string[];          // 인플루언서가 끈 선택 필터 (욕설, 비하 등)
-}): Promise<{
-  verdict: Verdict;
-  category?: string;                  // 협박, 성희롱, 스팸 등
-  reason?: string;                    // 유저에게 보여줄 짧은 사유
-  rewrite?: string;                   // suggest일 때 수정 제안
-  quality: number;                    // 0~100, 메시지 품질 점수
-}>;
+## 3. 필요한 입력과 선행 조건
 
-export async function clusterQuestion(roomId: string, body: string): Promise<string | null>; // P2, cluster_id
-export async function summarize(messages: { body: string; sender: string }[]): Promise<string>;  // P2
-```
+초안 작성은 개발 완료를 기다리지 않는다. 아래 항목은 **실제 시연 준비 완료**를 판단할 때 확인한다.
 
-### 범위 우선순위와 체크포인트
-
-| 티어 | 범위 | 완료 시점 |
+| 제공 담당·티켓 | 필요한 입력 | U-01 확인 |
 | --- | --- | --- |
-| P0 | 라운드 완료 → 카드 뽑기 연출 → 컬렉션 → 10장 강화 | 1일차 저녁 (T-03) |
-| P1 | 채팅방 입장 조건, 유저 채팅, AI 안전 필터·안내, 우선순위 인박스, 유지 게이지 | 2일차 점심 (T-04) |
-| P2 | 인증 신청·관리자 승인·배지, 유사 질문 묶기, 대화 요약, 필터 해제 | 2일차 오후 동결 전 |
+| 전원 T-03 | Auth·뽑기·컬렉션 등 P0 화면 통합 결과, 사용할 URL/실행 환경 | 기능별 실제 동작과 사용할 화면 |
+| 전원 T-04 | 입장·전송·필터·Realtime·인박스·답변 통합 결과 | 본 5분 흐름의 P1 준비 여부 |
+| 현호P·홍주P B-03 | 권한 있는 계정의 demoForceGrade 옵션과 화면 연결 | special만 고정하며 인물·스타일은 무작위 |
+| 홍주P B-02·B-05 | userA/userB 카드·첫 방 active 상태·해당 방 소유 influencer | 방과 계정 매핑, 현재 카드·멤버십·gauge |
+| 문환P A-08·홍주P B-06 | 사용할 pass/suggest/block 문장과 실제 판정 결과, 현재 AI 모드 | provider/adapter·필터 설정·검증 날짜 |
+| 홍주P B-08 | 같은 quality의 userA/userB 미답변 질문 각 1개, score snapshot | 비교할 질문 ID와 ownScore·quality·priority |
+| 홍주P B-11·B-13 | 환경·URL·검증 결과·외부 의존성 | 로컬/원격, fixture/live, 미검증 범위 |
+| 전원 T-05 | 기능 동결 시점·리허설 가능 환경 | 최종 대본으로 전체 2회 실행 |
 
-### 공통 티켓 (전원)
+채팅·필터·인박스까지 보이는 대본은 T-03만으로 준비 완료가 아니다. T-04와 해당 화면의 실제 연결 결과를 확인한다. SDK 테스트만 통과했다면 화면 시연 완료로 표시하지 않는다.
 
-- [ ] **T-01** API 명세 합의 — 위 API별 요청·응답 JSON 예시를 킥오프 2시간 안에 고정 (P0)
-- [ ] **T-02** 미정 항목 결정 — 인플루언서 10명, 스타일 3종 (등급 확률·입장 기준·뽑기 로직은 확정) (P0)
-- [ ] **T-03** P0 통합 체크포인트 — 라운드 완료 → 뽑기 → 컬렉션 → 강화가 배포 URL에서 동작 (P0)
-- [ ] **T-04** P1 통합 체크포인트 — 입장 → 전송 → 필터 → 인박스 정렬 (P1)
-- [ ] **T-05** 기능 동결 후 시연 리허설 2회 (P0)
+## 4. 시연 전 사전 상태
 
-### 담당 미정 티켓
+### 4.1 환경과 계정
 
-| ID | 티켓 | 티어 | 담당 | 비고 |
-| --- | --- | --- | --- | --- |
-| U-01 | 시연 대본·발표 자료 | P1 | 미정 (anonymous) | 개발 완료 후 담당 결정 |
+1. 사용할 환경을 로컬 또는 승인된 배포 URL로 고정하고 실제 AI 모드·Function/화면 버전을 기록한다. 로컬 fixture 계약 시연이면 처음부터 그렇게 표시한다.
+2. userA와 해당 방 influencer의 실제 Auth 계정을 준비한다. 암호·관리 키·JWT는 대본·장표·녹화·리허설 로그에 넣지 않는다.
+3. 유저 화면과 인플루언서 화면을 동시에 보일 때는 별도 브라우저 프로필 또는 일반/시크릿처럼 **세션 저장소가 분리된 환경**을 사용한다. 같은 origin의 일반 탭 두 개만으로 계정이 분리됐다고 가정하지 않는다.
+4. 역할 전환은 실제 로그인/로그아웃으로 한다. 화면의 userId·role 값을 수동 변경해 권한을 흉내 내지 않는다.
+5. 현재 game_config와 demo clock 상태를 홍주P의 준비 결과로 확인한다. 5장·10장·100·3회·50은 초기 기본값이며 설정이 바뀌었으면 대본의 숫자도 맞춘다. U-01에서 private 테이블을 직접 읽거나 수정하지 않는다.
 
-### 뽑기 로직 (확정)
+### 4.2 카드와 방
 
-1. game_config의 grade_rates로 **등급을 먼저** 뽑고, 30장(10명 × 3스타일) 중 하나를 **균등 추첨** (인플루언서별 가중치 없음)
-2. **신규(isNew)** = 해당 템플릿(인물 + 스타일)을 등급 무관하게 처음 보유한 경우
-3. 시연용 **등급 고정 옵션**: `POST /api/rounds/complete` 요청에 `{"demoForceGrade": "special"}`을 넣으면 그 등급으로 지급 (데모 계정 전용, 시연 대본에서 스페셜 연출 보여줄 때 사용)
+- 기본 데모 setup 결과의 userA는 첫 인물 카드 12장, userB는 5장이며 두 계정 모두 첫 방에 이미 active다. 실제 준비 결과가 이 상태인지 확인하고, 반복 시연 후에는 초기 장수를 그대로 가정하지 않는다.
+- demoForceGrade는 special **등급만** 고정한다. 뽑힌 인물·스타일은 무작위이므로 “방금 뽑은 카드 한 장으로 특정 방이 해금됐다”는 설명을 하지 않는다.
+- 본 시연은 준비된 카드 조건·active 상태를 확인하고 **기존 첫 방 열기**로 진행한다. active의 join 재호출은 gauge를 회복시키지 않는다.
+- 최초 입장 조건의 4/5장 경계를 직접 보일 필요가 있으면 홍주P가 별도로 준비한 아직 미입장 상태의 로컬 fixture를 사용한다. 기본 active 계정을 최초 입장처럼 설명하지 않는다.
+- 카드 강화는 보조 시연으로 둔다. 해당 template·grade에 현재 upgrade_cost 이상이 있는지 확인하고 special 강화는 시도하지 않는다. 강화 뒤 장수가 줄어도 기존 active가 유지되는 정책을 설명할 수 있다.
 
-## 2. anonymous 담당 범위
+### 4.3 메시지와 인박스
 
-아직 담당자가 정해지지 않은 티켓을 모아 둔 파일입니다. 개발이 끝나면 담당자를 정하고, 그 사람의 plan 파일로 옮깁니다.
+- 인박스 비교용 미답변 질문은 userA/userB 각각 1개, 같은 quality로 준비한다. 답변 완료 fixture가 이 두 건을 대신하지 않는지 확인한다.
+- ownScore·priority는 **전송 시점 snapshot**이다. 시연 중 새 카드를 얻었다고 기존 질문이 다시 채점·정렬됐다고 설명하지 않는다. 비교 대상은 질문 ID와 저장된 점수로 확인하며 전체 인박스의 1·2위라고 가정하지 않는다.
+- 비교용 두 질문은 답변하지 않고 보존한다. 실제 답변 시연은 매 리허설에서 새로 보낸 pass 질문을 대상으로 해 ALREADY_REPLIED와 다음 회차 데이터 손상을 피한다.
+- A-08에서 확인한 무해한 테스트 문장과 기대 판정을 준비한다. 실제 판정이 다르면 성공으로 읽어 넘기지 않고 결과를 기록한다. 필터 설정이 달라졌다면 다시 확인한다.
 
-**작업 경로:** `docs/` (시연 대본·발표 자료)
+## 5. 본 시연 대본 — 5분
 
-**받는 것 (의존)**
+| 시간 | 화면·조작 | 설명·기대 결과 |
+| --- | --- | --- |
+| 0:00~0:30 | 서비스 개요·시연 환경 소개 | 카드 수집과 안전한 팬 소통, 보유량과 질문 품질을 결합한 인박스. live/로컬 fixture 여부 명시 |
+| 0:30~1:15 | userA 라운드 완료·스페셜 카드 연출·컬렉션 확인 | 권한 있는 시연 UI가 completeRound에 demoForceGrade=special을 전달. 인물·스타일·isNew는 실제 결과대로 설명 |
+| 1:15~2:00 | 준비된 첫 방 열기·새 pass 질문 전송 | 기존 active 방임을 설명. 전송이 성공하면 새 메시지 ID를 리허설 기록에 식별 가능하게 남김 |
+| 2:00~3:00 | suggest 수정안 확인·block 결과 확인 | suggest는 자동 게시되지 않음. 사용자가 수정안을 확인하고 다시 보내면 새 requestId. block/suggest 원문은 대화·인박스에 없음 |
+| 3:00~4:15 | 분리된 influencer 세션에서 본인 방 인박스 열기 | 준비한 동일 quality 두 질문의 저장된 ownScore·priority 비교. 새로운 질문이 들어와 순위 위치가 달라도 고정 두 건을 기준으로 설명 |
+| 4:15~5:00 | 이번 회차의 새 pass 질문에 답변·유저 화면 확인 | 방 소유 influencer만 답변, replyTo 연결과 유저 화면 수신 확인. Realtime 대신 폴링 중이면 실제 모드대로 설명하고 마무리 |
 
-- 전원: 완성된 기능과 배포 URL (T-03, T-04)
-- 문환P: 시연용 필터 문장 판정 결과 (A-08)
-- 홍주P: 시연용 데모 상태 시드 (B-02), 등급 고정 옵션 demoForceGrade (B-03)
+각 사용자 동작은 새 requestId를 사용하고 네트워크 재전송만 기존 값을 유지한다. special UI 연결이 없으면 뽑기 반복으로 1% 당첨을 기다리는 대본으로 대체하지 말고 준비 누락으로 기록한다.
 
-**주는 것**
+pass/suggest/block 모두 실제 LLM으로 확인된 경우에만 실제 AI 시연이라고 부른다. 로컬 fixture 결과를 실제 모델 품질의 증거로 제시하거나 원격 환경에 fixture를 켜서 대신하지 않는다.
 
-- 시연 대본·발표 자료 (U-01) → 전원 리허설 (T-05)
+## 6. 보조 시연과 장표 구성
 
-## 3. anonymous 티켓
+다음 기능은 실제 통합 검증이 끝난 경우 보조 장표·질의응답에서 다룬다. 본 5분 대본에 모두 끼워 넣지 않는다.
 
-| ID | 티켓 | 티어 | 선행 | 완료 기준 |
-| --- | --- | --- | --- | --- |
-| U-01 | 시연 대본·발표 자료 — 5분 시연 흐름(라운드 완료 → 스페셜 카드 연출 → 채팅방 입장 → 필터 차단 → 인박스 우선순위), 장표 | P1 | T-03 | 리허설 2회(T-05) 전에 대본과 장표 공유 |
-
-### 체크리스트
-
-- [ ] **U-01** 시연 대본·발표 자료 — 5분 시연 흐름(라운드 완료 → 스페셜 카드 연출 → 채팅방 입장 → 필터 차단 → 인박스 우선순위), 장표 (P1)
-
-## 4. anonymous 타임라인
-
-| 구간 | 할 일 |
+| 기능 | 조건·설명 |
 | --- | --- |
-| 2일차 오전 | 담당자 결정 후 U-01 착수 |
-| 2일차 오후 | T-05 리허설 전 공유 |
+| 카드 강화 | 현재 동일 template/grade 장수·cost 확인, 차감/적립·최고 등급 거부 |
+| 월 경과·퇴장 | 허용된 demo admin만 advanceDemoMonth. 월 활동 수·현재 gauge 확인, 중복 마감은 추가 감소 없음. 일반 사용자 운영 자동화로 설명하지 않음 |
+| 인증·배지 | 본인 influencer 신청→admin 승인. 이미 처리된 신청을 다시 승인하지 않음. badge는 verifiedAt/type 기준 |
+| 질문 묶기·요약 | 해당 방 소유 influencer만. 질문 0~1개는 묶음 없음, AI 장애·source 변경은 실제 결과대로 표시 |
+| 방 필터 | 방 소유자만 선택 필터 변경. 필수 필터 해제는 시연 기능으로 제공하지 않음 |
+
+발표 자료 원본은 다음 순서로 준비한다.
+
+1. 사용자 문제·서비스 핵심 가치.
+2. 유저의 라운드 완료→카드 수집→기존 팬 소통방 흐름.
+3. 필터의 pass/suggest/block과 인플루언서 인박스·답변.
+4. architecture.md의 CSR·Supabase 구조와 담당 간 연결. 세부 SQL·키를 장표에 넣지 않는다.
+5. 검증된 범위·실제 데모 연동·후속 과제. 가상 인물/placeholder/fixture/미검증 화면은 해당 상태를 표시한다.
+
+## 7. 리허설·장애 대응
+
+### 7.1 리허설 2회
+
+기능 동결 후 최종 대본으로 전체 2회를 실행한다. 매 회 사전 상태를 다시 확인하고 다음 항목을 docs/demo-rehearsal.md에 기록한다.
+
+- 날짜·회차·담당자·환경/URL·버전·AI 모드. 현재 미정 항목은 미정으로 표시.
+- 계정 역할과 방, 비교용 질문 ID·점수, 이번 회차의 새 질문·답변 ID.
+- 단계별 소요 시간·실제 판정·대화/인박스 노출 여부·실시간/폴링 상태.
+- 성공/실패·원인·수정 담당·재검증 결과. 실패 후 성공했다면 두 결과를 구분.
+- 캡처/녹화 출처·시각·그 결과가 live인지 이전 검증 자료인지.
+
+setup 재실행은 상태 초기화가 아니다. 필요한 초기화는 홍주P에게 대상·범위를 확인하고 **로컬 reset+setup** 절차로 준비한다. U-01 담당자가 원격 reset·직접 DB 수정·역할 승격으로 시연 상태를 맞추지 않는다. 월 경과·인증 승인 같은 상태 변경은 재실행 가능 조건을 확인한 뒤 보조 시연한다.
+
+### 7.2 실패했을 때
+
+| 상황 | 대응 |
+| --- | --- |
+| AI 판정 실패 | FILTER_UNAVAILABLE이면 메시지가 저장되지 않았는지 확인. 검증된 이전 녹화/캡처를 쓰면 이전 결과라고 표시 |
+| 네트워크 응답 유실 | 이미 저장됐을 수 있으므로 결과를 미확정으로 표시. 기존 requestId로 복구·조회하고 새 ID로 중복 재전송하지 않음 |
+| Realtime 연결 장애 | 구현된 3초 폴링 fallback인지 확인하고 실시간 소켓 성공으로 설명하지 않음 |
+| 계정·권한 오류 | 역할·세션·방 매핑 확인. userId 변경·RLS 완화·관리 키 브라우저 주입으로 우회하지 않음 |
+| 시연 데이터가 달라짐 | 해당 기능 담당자에게 상태 확인. 준비된 대체 자료 또는 별도 fixture 사용 여부를 기록 |
+| P2 미구현·미검증 | 본 5분 흐름을 유지하고 후속 과제로 명시. 구현 완료 장표에 포함하지 않음 |
+
+## 8. U-01 티켓·완료 기준
+
+| ID | 작업 | 티어 | 선행 | 완료 기준 |
+| --- | --- | --- | --- | --- |
+| U-01 | 5분 시연 대본·발표 자료·리허설 기록 | P1 | 초안은 독립 진행. 실제 시연은 T-03·T-04, B-02/03/05/06/08, A-08 결과 확인 | 담당자 확정, 대본·최종 장표 준비, 기능 동결 후 전체 리허설 2회, 오류·대체 자료·미검증 상태 기록 |
+
+- [ ] 담당자와 발표 산출물 소유자 확정
+- [ ] 최신 architecture·SDK·데모 정책을 반영한 대본 초안
+- [ ] P0/P1 화면·환경·실제 AI/fixture 모드 확인
+- [ ] 분리된 Auth 세션·스페셜 옵션·기존 방·비교 질문 준비
+- [ ] 본 5분 대본과 검증된 보조 시연 범위 확정
+- [ ] 발표 자료 원본 및 실제 발표용 장표 준비
+- [ ] 기능 동결 후 리허설 1회 결과 기록
+- [ ] 수정 후 전체 리허설 2회째 결과 기록
+- [ ] 최종 자료 경로·남은 한계·대체 자료를 팀이 확인할 수 있게 인계
+
+## 9. 타임라인과 현재 상태
+
+| 시점 | 작업 |
+| --- | --- |
+| 개발 중 | 초안·장표 개요·필요 입력 목록 준비. 아직 없는 화면·결과는 예정으로 표시 |
+| 2일차 오전 목표 | 담당자 확정·사전 상태와 시연 UI 연결 확인 |
+| T-03·T-04 통합 이후 | 실제 화면/AI 결과를 대본에 반영하고 5분 시간 측정 |
+| 기능 동결 이후 | 최종 대본으로 전체 2회 리허설·수정·발표 자료 확정 |
+| 발표 전 | 계정·환경·데이터·자료 링크 최종 확인 |
+
+현재는 **계획 갱신 상태**다. 담당자 배정·발표 산출물 생성·리허설·배포·실제 AI 검증을 완료한 것으로 표시하지 않는다. 데이터·기능 구현은 각 담당자의 티켓에서 수행하고, U-01은 준비 결과와 실제 증거를 연결한다.
