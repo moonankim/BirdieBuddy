@@ -10,6 +10,7 @@ supabase/functions/.env
 .agents/
 harness/
 AGENTS.md
+CONTRIBUTING.md
 
 # graft local graph cache
 /graft/
