@@ -40,7 +40,7 @@
 
 | 착수 전 합의 | 이유 | 제안 |
 | --- | --- | --- |
-| `package.json` 생성 순서 | F-01(Next.js)과 홍주P B-01(toolchain·`tsconfig.backend.json`·backend scripts)이 같은 루트 파일을 만든다. 동시에 만들면 충돌 | **F-01을 먼저 `main`에 올리고**, 홍주P가 그 위에 backend scripts를 추가한다 (홍주P 계획도 "기존 파일 구조 존중") |
+| 루트 세팅 담당 | F-01(Next.js)과 홍주P B-01(toolchain·`tsconfig.backend.json`·backend scripts)이 같은 루트 파일을 만든다. 동시에 만들면 충돌 | **홍주P가 루트 세팅을 먼저 올린다** (루트 `package.json`·toolchain·`lib/`·`supabase/` 뼈대, 1일차 오전 첫 1시간 목표). 자성P는 그 위에 Next.js 앱(F-01)을 추가한다. B-01의 스키마·Auth·RLS 완료를 기다리지 않는다 |
 | 보유 카드·강화 라우트 경로 | architecture는 `app/(user)/owned-cards/`, 현호P 계획은 `/collection/owned`·`/collection/upgrade` | 현호P 경로(`/collection/owned`, `/collection/upgrade`)로 F-01을 만들고 architecture 표기를 맞추자고 제안. 확정 전에는 F-01에서 두 경로를 만들지 않고 `/collection` 아래 현호P가 추가 |
 
 | 필요한 입력 | 담당 | 준비 전 진행 방법 | 교체 지점 |
@@ -121,7 +121,7 @@
 
 | ID / 우선순위 | 작업과 산출물 | 선행 | 완료 기준 | 현재 상태 |
 | --- | --- | --- | --- | --- |
-| F-01 / P0 | Next.js(App Router·TS·Tailwind) 골격, 공통 레이아웃, 빈 라우트 `/draw` `/collection` `/chat` `/inbox` `/admin`(보유 카드·강화 경로는 2절 합의 후), lint·format·`dev`/`build` scripts | 2절 합의 | `npm run build` 통과. 홍주P가 backend scripts를, 현호P가 카드 화면을 같은 `package.json`에 이어서 추가 가능. env 파일은 만들지 않음 | 미착수 |
+| F-01 / P0 | 홍주P 루트 세팅 위에 Next.js(App Router·TS·Tailwind) 앱 추가: 공통 레이아웃, 빈 라우트 `/draw` `/collection` `/chat` `/inbox` `/admin`(보유 카드·강화 경로는 2절 합의 후), 프론트 lint·`dev`/`build` scripts | 홍주P 루트 세팅, 2절 합의 | `npm run build` 통과, 홍주P backend scripts와 함께 동작. 현호P가 카드 화면을 이어서 추가 가능. env 파일은 만들지 않음 | 미착수 |
 | F-02 / P0 | 세션 Provider(`useSession()` → userId·role·nickname, 세션 변경 알림), 로그인·계정 전환(이메일+암호 입력), 역할별 첫 화면(user→/draw, influencer→/inbox, admin→/admin) | F-01, 실제 연결은 B-01·B-02 | 전환 시 실제 signOut→signIn, 이전 구독·캐시 정리. 암호를 코드에 넣지 않음. 현호P가 `useSession()`으로 현재 사용자와 변경을 받음 | 미착수 |
 | F-03 / P1 | 방 목록: `joinReason`별 상태 문구·버튼, 입장 중·퇴장 중·카드 준비 중, 인증 배지, 본인 보유 배지 | F-02, B-05 | `canJoin=false`는 사유 표시, 입장 중이면 대화로 이동, 퇴장 중이면 대화를 열지 않음, 카드 준비 중은 입장 버튼 없음 | 미착수 |
 | F-04 / P1 | 입장 화면: 안내 문구 2문장, 게이지 50 시작 안내, `joinRoom`, 응답의 `welcomeMessage` 표시 | F-03, B-05 | INSUFFICIENT_CARDS·REJOIN_NOT_AVAILABLE 상세값 안내, 성공 후 `getMyMembership`으로 최신 상태 | 미착수 |
@@ -149,8 +149,8 @@
 
 ### 단계 1 — 팀 골격 (1일차 오전, 최우선)
 
-1. 2절 합의(`package.json` 순서, 보유 카드 경로)를 킥오프에서 정한다.
-2. F-01 골격을 만들어 `main`에 먼저 올린다. 홍주P(backend scripts·`lib/api`)와 현호P(카드 화면)가 이 위에서 시작한다.
+1. 2절 합의(보유 카드 경로)를 킥오프에서 정한다. 홍주P가 루트 세팅을 먼저 `main`에 올린다.
+2. 그 위에 F-01 Next.js 앱을 추가해 `main`에 올린다. 현호P(카드 화면)가 이 위에서 시작한다.
 3. F-02 세션 Provider와 계정 전환을 더미 세션 5종으로 먼저 만들고 `useSession()` 사용법을 현호P에게 넘긴다.
 
 ### 단계 2 — 더미 기반 P1 화면 (1일차 오후)
@@ -220,7 +220,7 @@
 2. `subscribeRoomMessages`의 `onStatus` 상태 값 목록 (폴링 전환 조건).
 3. `updateRoomGreeting`·`uploadInfluencerProfilePhoto`·`sendBroadcast`·`deleteInfluencerMessage`의 SDK 입력 형식 확인.
 4. `reconcileRoomMessages`의 역할 (재연결 복구를 SDK가 대신하는지, 화면이 `getMessageChanges`를 직접 부르는지).
-5. 2절 `package.json` 생성 순서.
+5. 루트 세팅(루트 `package.json`·toolchain·`lib/`·`supabase/` 뼈대)을 1일차 오전 첫 1시간 안에 먼저 올려 줄 수 있는지. Next.js 앱 부분은 자성P가 F-01로 추가.
 
 **현호P·홍주P에게 확인**
 
