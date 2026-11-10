@@ -1,245 +1,216 @@
 # BirdieBuddy — 자성P 작업 계획
 
-**역할:** 프론트엔드 — 채팅 서비스 화면 중심
+**역할:** 프론트엔드 — 채팅 서비스 화면 중심 (프로젝트 셋업·인박스·관리자 화면 포함)
 
-> 기준 문서: [BirdieBuddy 해커톤 개발 설계 & 역할 분담](https://claude.ai/artifact/HQ7wLf6Cewh2thGTH37Dof) · 작성일 2026-11-09
-> 기획안: spec_BirdieBuddy.md (스크린골프 인플루언서 카드 컬렉션)
+**최종 갱신:** 2026-11-10 (`main` af2f451 기준. prd 개정 2ab190f·8c43152: 재입장·혐오 표현·AI 폴백, 채팅 규칙 확정)
 
-## 1. 전체 시스템 아키텍처
+**공통 기준:** 제품 규칙은 [prd.md](./prd.md), 구조는 [architecture.md](./architecture.md), 백엔드·SDK 계약은 [홍주P_plan.md](./홍주P_plan.md) §§6~9, 동료 요청은 [문환P_plan.md](./문환P_plan.md) 1절, 디자인 인계는 [현호P_plan.md](./현호P_plan.md) §2.3, 용어는 [GLOSSARY.md](../GLOSSARY.md)를 따른다.
 
-화면 3종이 하나의 Next.js 앱을 거쳐 Supabase(DB·실시간·스토리지)와 LLM API에 닿는 구조입니다.
-실제 골프존 라운드·회원 연동은 하지 않고 **'라운드 완료' 버튼 + 데모 계정 전환**으로 대체합니다.
+> **우선순위:** 화면에 보이는 제품 동작은 `prd.md`를 따른다. 호출 방법·타입·오류 코드는 `홍주P_plan.md`를 따른다. 홍주P 계획은 아직 이번 prd 개정을 반영하지 않았으므로(4절), 화면은 prd 기준으로 만들고 SDK에 없는 필드는 숨기거나 기본값으로 처리한다.
+>
+> 이 문서는 계획이다. 문서 갱신이 코드 착수나 완료를 뜻하지 않으며, 더미 검증과 실제 SDK 연동 완료는 구분해 기록한다.
 
-```mermaid
-flowchart LR
-  subgraph Client["화면 (Next.js App Router)"]
-    U["유저 웹 (모바일)<br/>뽑기 · 컬렉션 · 채팅"]
-    I["인플루언서 인박스<br/>우선순위 · 묶음 · 요약"]
-    A["관리자 화면<br/>인증 승인 · 배지"]
-  end
-  subgraph Server["Next.js API Route"]
-    C["카드 서비스<br/>뽑기 · 강화 · 컬렉션"]
-    CH["채팅 서비스<br/>입장 · 메시지 · 게이지"]
-    AI["AI 모듈 (lib/ai)<br/>필터 · 점수 · 묶기 · 요약"]
-  end
-  DB[("Supabase Postgres")]
-  RT["Supabase Realtime"]
-  ST["Supabase Storage<br/>카드 이미지 30장"]
-  LLM["LLM API"]
+## 1. 목표와 담당 경계
 
-  U --> C
-  U --> CH
-  I --> CH
-  A --> CH
-  CH --> AI
-  AI --> LLM
-  C --> DB
-  CH --> DB
-  DB --> RT
-  RT -. 구독 .-> U
-  RT -. 구독 .-> I
-  U -. 이미지 .-> ST
-```
+우선 목표는 **방 목록 → 입장 → 메시지 전송(판정 3분기) → 실시간 수신 → 인플루언서 인박스 답변** 흐름을 더미로 먼저 완성하고, 홍주P SDK가 준비되면 같은 화면을 실제 호출로 바꾸는 것이다. 그 전에 팀 전체가 쓰는 Next.js 골격(F-01)과 로그인·계정 전환(F-02)을 가장 먼저 넘긴다.
 
-### 기술 스택 (확정)
-
-| 영역 | 선택 | 비고 |
+| 구분 | 자성P 작업 | 경계 |
 | --- | --- | --- |
-| 프론트·API | Next.js (App Router) + TypeScript + Tailwind | 화면과 API를 한 레포에서 |
-| DB | Supabase Postgres | 스키마: `supabase/schema.sql` (홍주P B-01) |
-| 실시간 채팅 | Supabase Realtime (`messages` 테이블 구독) | 막히면 3초 폴링으로 대체 |
-| 이미지 | Supabase Storage | 카드 이미지 30장 사전 생성 |
-| AI | LLM API (메시지당 1회 호출) | 필터 + 품질 점수를 JSON 하나로 |
-| 배포 | Vercel | 1일차 오전 첫 배포 |
-| 보안 | RLS 끔, API Route에서만 service role 키 사용 | 클라이언트는 Realtime 구독용 anon 키만 |
+| 직접 구현 | 채팅방 목록·입장·대화, 게이지, 판정 안내, 인박스(답변·전체 메시지·삭제·설정), 인박스 설정(인사말·필터·프로필 사진), 관리자 화면, 프로필 사진 표시 | `app/(user)/chat/`, `app/inbox/`, `app/admin/`, `components/chat/` |
+| 구독 연결 | 홍주P SDK의 `subscribeRoomMessages`를 화면 상태로 연결, 장애 시 폴링 | `components/chat/use-room-messages.ts` |
+| 팀 공통 셋업 | Next.js 골격, 공통 레이아웃·라우팅, 세션 Provider·계정 전환 | 루트 설정 파일, `app/layout.tsx`, `components/ui/` (디자인은 현호P) |
+| 다른 담당자 영역 | SDK·DB·RLS·Edge(홍주P), AI 판정·발급(문환P), 카드 화면·디자인·카드 이미지(현호P) | `lib/api`, `lib/supabase`, `supabase/`, `lib/ai`, `components/card/`는 수정하지 않고 필요하면 요청한다 |
 
-### 레포 구조와 담당 경계
+**지키는 규칙 (architecture §2)**
 
-```
-BirdieBuddy/
-├─ docs/                     # architecture.md + 담당자별 plan 파일
-├─ app/
-│  ├─ (user)/draw/            # 카드 뽑기 연출·결과        — 현호P
-│  ├─ (user)/collection/      # 컬렉션·강화                — 현호P
-│  ├─ (user)/chat/            # 채팅방 목록·입장·대화       — 자성P
-│  ├─ inbox/                  # 인플루언서 인박스          — 자성P
-│  ├─ admin/                  # 관리자 인증 승인            — 자성P
-│  └─ api/                    # 모든 API Route              — 홍주P
-│     ├─ rounds/  cards/  me/  rooms/  verifications/  admin/  demo/
-├─ components/
-│  ├─ card/                   # 카드·카드팩·등급 효과       — 현호P
-│  ├─ chat/                   # 메시지·게이지·배지          — 자성P
-│  └─ ui/                     # 공통 UI (디자인 토큰)       — 자성P 셋업, 현호P 디자인
-├─ lib/
-│  ├─ ai/                     # moderateAndScore 등         — 문환P
-│  ├─ db/                     # Supabase 클라이언트·쿼리    — 홍주P
-│  ├─ scoring.ts              # ownScore·priority 공식      — 홍주P
-│  └─ config.ts               # game_config 읽기            — 홍주P
-└─ supabase/
-   ├─ schema.sql              # 테이블 12개 + upgrade_card  — 홍주P
-   └─ seed.sql                # 데모 계정·인플루언서·템플릿 — 홍주P
-```
+1. 상태가 있는 화면은 `'use client'`. 서버 컴포넌트는 정적 shell에만 쓴다.
+2. 데이터 호출은 항상 `lib/api` SDK. Next.js API Route·Server Action·Route Handler를 만들지 않는다.
+3. 모든 mutation에 `requestId`(UUID). **새 사용자 동작은 새 ID, 결과를 모르는 재시도는 같은 ID.**
+4. 브라우저에서 `userId`·`role`·점수·판정을 만들어 보내지 않는다. 사용자는 Supabase 세션으로만 정해진다.
+5. `MessageId`는 문자열로만 다룬다. `Number()` 변환·숫자 비교 금지.
+6. 모든 SDK 응답은 `Result<T>`. `ok:false`면 `error.code`로 분기하고 `retryable`일 때만 재시도 버튼을 보여 준다. 자동 무한 재시도는 하지 않는다.
+7. AI 폴백 여부는 응답에 없으므로 화면에서 추정해 표시하지 않는다 (현호P §3).
 
-### 개발 규칙 (전원)
+## 2. 현재 상태와 착수 조건
 
-1. **상태가 있는 화면은 클라이언트 컴포넌트로** — 뽑기 연출, 채팅, 인박스, 게이지처럼 상태·이벤트가 있는 컴포넌트는 파일 맨 위에 `'use client'`를 붙입니다. 서버 컴포넌트는 레이아웃·정적 껍데기에만 씁니다.
-2. **데이터는 항상 `/api/*`를 거쳐서** — 화면에서 Supabase 쿼리를 직접 호출하지 않습니다. Supabase를 클라이언트에서 직접 쓰는 건 `messages` **실시간 구독뿐**입니다. API 명세(T-01)가 화면과 서버 사이의 유일한 기준입니다.
+`main` af2f451 기준 저장소에는 문서, `GLOSSARY.md`, 문환P의 `lib/ai` 스텁·시험 폴더만 있다. Next.js 앱, `lib/api` SDK, `supabase/`는 아직 없다. 현호P는 F-01 골격이 생기면 그 위에서 P0 화면을 시작하므로 F-01이 팀 전체의 첫 선행 작업이다.
 
-### 데이터 모델 (테이블 12개)
+| 필요한 입력 | 담당 | 준비 전 진행 방법 | 교체 지점 |
+| --- | --- | --- | --- |
+| `lib/api` SDK·타입 (B-03~B-12) | 홍주P | 홍주P §6~8 타입을 그대로 따른 **더미 구현**으로 화면 개발 | `createBackendApi(client)` 실제 인스턴스 |
+| 이번 prd 개정분 SDK (인사말·전체 메시지·삭제·제안 확인값·질문 인용 조건·카드 준비 중 구분값·열람 범위) | 홍주P | 4절 기준으로 더미에 먼저 반영 | 홍주P 계획 갱신 후 이름·형식 맞춤 |
+| `lib/supabase/client.ts`·로컬 env | 홍주P | 더미 모드에서는 Supabase 없이 실행 | `.env.local`의 `NEXT_PUBLIC_SUPABASE_URL`·`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` |
+| 데모 계정 4종 (userA·userB·influencer·admin) | 홍주P B-02 | 더미 세션 4종 | 실제 `signInWithPassword` |
+| 화면 시안·배지 (D-01 토큰·상태, D-10 보유 배지, D-09 인증 배지, D-11 프로필 사진) | 현호P | 기본 Tailwind 스타일·텍스트 배지 | 현호P 시안·자산 |
+| 판정 결과 | 문환P → 홍주P Edge | 입력 문장별 고정 결과를 주는 더미 | `submitMessage` 실제 응답 |
+| 프로필 사진 SDK·표시 URL 필드 | 홍주P (P2 마지막) | 업로드는 더미, 표시는 이름 첫 글자 | 업로드·경로 변경 SDK, `RoomCatalogItem` 표시용 사진 URL |
 
-| 테이블 | 주요 컬럼 | 용도 |
+**더미 원칙:** 더미는 홍주P SDK와 같은 함수 이름·타입·`Result` 형식을 쓰고 `components/chat/` 안에만 둔다. `lib/api`를 대신 만들지 않는다. 아직 이름이 없는 SDK는 더미에서 임시 이름을 쓰고, 홍주P가 정하면 바꾼다. 더미 동작을 실제 연동 완료로 보고하지 않는다.
+
+## 3. 화면별 사용할 SDK
+
+입력·반환 상세는 홍주P §§6~8이 기준이다. "이름 미정"은 이번 prd 개정으로 홍주P가 추가할 SDK다.
+
+| 화면 | SDK | 화면에서 처리할 오류 |
 | --- | --- | --- |
-| users | id, nickname, role(user/influencer/admin) | 데모 계정 3종 |
-| influencers | id, user_id, name, type(youtuber/media_pro/tour), verified_at | 후보 10명, 배지 = verified_at + type |
-| card_templates | id, influencer_id, style(illust/retro/holo), image_url | 인물 × 스타일 = 30행 |
-| user_cards | user_id, template_id, grade, count | 등급별 보유 장수, 강화 시 grade 한 칸 이동 |
-| rounds | id, user_id, played_at | 라운드 완료 기록 (게이지 계산에도 사용) |
-| draws | id, user_id, round_id, template_id, grade, is_new | 뽑기 결과 이력 |
-| chat_rooms | id, influencer_id, filter_options(jsonb) | 인플루언서당 1개 |
-| room_members | room_id, user_id, gauge, status(active/left) | 입장 상태와 게이지 |
-| messages | id, room_id, sender_id, sender_type, reply_to, body, filter_verdict, own_score, quality_score, priority, cluster_id | 유저 메시지 + 인플루언서 답변, 차단 건도 저장 |
-| message_clusters | id, room_id, representative, member_count | 유사 질문 묶음 |
-| verifications | id, influencer_id, type, evidence_url, status, reviewed_by | 인증 신청과 심사 |
-| game_config | key, value(jsonb) | 확률·기준값 (코드에 하드코딩 금지) |
+| 로그인·계정 전환 | Supabase Auth `signInWithPassword` / `signOut`, 본인 profiles(role·nickname) | UNAUTHENTICATED |
+| 방 목록 | `getRooms()` → RoomCatalogItem(canJoin·missingCards·eligibleMonth·membership·verifiedAt) + 카드 준비 중 구분값·표시용 사진 URL (이름 미정) | NETWORK_ERROR |
+| 입장 | `joinRoom({requestId, roomId})`, `getMyMembership(roomId)` | INSUFFICIENT_CARDS, REJOIN_NOT_AVAILABLE, REQUEST_IN_PROGRESS |
+| 대화 | `getMessages({roomId, beforeId?, afterId?, limit?})`, `subscribeRoomMessages({roomId, onMessage, onStatus})` | ROOM_INACTIVE, NETWORK_ERROR |
+| 전송 | `submitMessage({requestId, roomId, body, 제안 확인값?})` → pass / suggest / block | FILTER_UNAVAILABLE, FILTERS_CHANGED, RATE_LIMITED, REQUEST_IN_PROGRESS, ROOM_INACTIVE, VALIDATION_ERROR |
+| 데모 월 경과 (admin) | `advanceDemoMonth({requestId, targetMonth})` | FORBIDDEN, INVALID_MONTH_TRANSITION |
+| 인박스 | `getRoomInbox({roomId, includeAnswered?, cursor?, limit?})`, `replyToMessage({requestId, roomId, replyTo, body})` | ALREADY_REPLIED, FORBIDDEN |
+| 전체 메시지 (influencer) | 이름 미정 | FORBIDDEN, VALIDATION_ERROR |
+| 메시지 삭제 (influencer) | 이름 미정 (본인 답변·전체 메시지만) | FORBIDDEN, 이미 삭제됨 |
+| 인사말 설정 (influencer) | 이름 미정 (현재 문구 조회·200자 이내 변경) | FORBIDDEN, VALIDATION_ERROR |
+| 묶기·요약 | `clusterQuestions({requestId, roomId})`, `summarizeRoom({requestId, roomId})` | RATE_LIMITED, SOURCE_CHANGED, FILTER_UNAVAILABLE |
+| 인증 신청 (influencer) | `requestVerification({requestId, type, evidenceUrl})`, `getMyVerifications()` | PENDING_EXISTS, VALIDATION_ERROR |
+| 인증 심사 (admin) | `getPendingVerifications()`, `approveVerification({requestId, verificationId, decision, reason?})` | ALREADY_REVIEWED |
+| 필터 설정 (influencer) | `getRoomFilters({roomId})`, `updateRoomFilters({requestId, roomId, disabledFilters, expectedVersion})` | FILTERS_CHANGED, VALIDATION_ERROR |
+| 프로필 사진 변경 (influencer) | 이름 미정 (공개 버킷 본인 폴더 업로드 + 경로 변경 RPC) | FORBIDDEN, VALIDATION_ERROR, NETWORK_ERROR |
 
-등급: `common`(일반) → `rare`(레어) → `epic`(에픽) → `special`(스페셜)
+**구독 처리 (`use-room-messages.ts`, 홍주P §9.1)**
 
-### 설정값 (game_config, 잠정 확정 · 배포 없이 값만 변경)
+- 구독 SUBSCRIBED → 초기 조회 → 버퍼 병합 → id 중복 제거 → id 오름차순.
+- 재연결 시 마지막 id 이후를 `getMessages({afterId})`로 다시 받아 빈틈을 메운다.
+- 연결 장애일 때만 3초 폴링, 복구되면 중단. 권한 거부·퇴장(left)·로그아웃이면 폴링도 중단한다.
+- 방·계정 전환·로그아웃 시 이전 채널·캐시·폴링 타이머를 모두 정리한다.
+- 삭제 이벤트가 오면 해당 말풍선을 "삭제된 메시지"로 바꾼다 (삭제 이벤트 형식은 홍주P 확인).
 
-| key | 값 |
-| --- | --- |
-| grade_rates | 일반 70 · 레어 22 · 에픽 7 · 스페셜 1 (%) |
-| upgrade_cost | 같은 템플릿·등급 10장 → 다음 등급 1장 |
-| room_entry | 해당 인플루언서 카드 5장 (등급 무관) |
-| priority_weights | 보유 0.6 : 품질 0.4 |
-| gauge | 시작 100, 월 3회 미만이면 달마다 -50, 0이면 퇴장 |
+## 4. prd와 현재 홍주P 계약의 차이 (화면 영향)
 
-### API 목록
+홍주P 계획은 fb404d0 이후 바뀌지 않았다. 아래는 prd가 기준이고 홍주P 반영을 기다리는 항목 중 내 화면에 영향을 주는 것이다. 화면은 prd 동작으로 설계하고, 판단은 서버 응답(`canJoin` 등)을 그대로 따른다.
 
-| 메서드 · 경로 | 하는 일 | 티어 | 구현 | 사용 화면 |
-| --- | --- | --- | --- | --- |
-| POST /api/rounds/complete | 라운드 기록 + 카드 1장 추첨, 결과 반환 | P0 | 홍주P B-03 | 현호P |
-| GET /api/me/collection | 인물별·등급별 보유 현황 | P0 | 홍주P B-04 | 현호P |
-| POST /api/cards/upgrade | 10장 소모 → 다음 등급 1장 (`upgrade_card` 함수) | P0 | 홍주P B-04 | 현호P |
-| GET /api/rooms | 채팅방 목록 + 입장 가능 여부 | P1 | 홍주P B-05 | 자성P |
-| POST /api/rooms/:id/join | 입장 조건 확인 후 입장 | P1 | 홍주P B-05 | 자성P |
-| GET /api/rooms/:id/messages | 유저용 대화 목록 | P1 | 홍주P B-06 | 자성P |
-| POST /api/rooms/:id/messages | 필터 → 점수 → 저장, 차단·수정 제안 반환 | P1 | 홍주P B-06 + 문환P A-02·A-03 | 자성P |
-| GET /api/rooms/:id/inbox | 인플루언서용 우선순위 정렬 목록 | P1 | 홍주P B-08 | 자성P |
-| POST /api/rooms/:id/reply | 인플루언서 답변 | P1 | 홍주P B-08 | 자성P |
-| POST /api/demo/advance-month | 한 달 경과 시뮬레이션 (게이지 감소·퇴장) | P1 | 홍주P B-07 | 자성P |
-| POST /api/verifications | 인증 신청 | P2 | 홍주P B-09 | 자성P |
-| PATCH /api/admin/verifications/:id | 승인·반려, 배지 부여 | P2 | 홍주P B-09 | 자성P |
-| POST /api/rooms/:id/summary | 대화 요약 | P2 | 문환P A-05 | 자성P |
-| PATCH /api/rooms/:id/filter | 선택 필터 해제 | P2 | 홍주P B-10 | 자성P |
-
-### AI 모듈 인터페이스 (문환P 제공 → 홍주P 호출)
-
-우선순위 계산(`ownScore`, `priority`)은 AI가 아닌 공식이므로 홍주P가 `lib/scoring.ts`에 둡니다. AI 모듈은 LLM을 호출하는 함수만 제공합니다.
-
-```ts
-// lib/ai/index.ts
-export type Verdict = 'pass' | 'suggest' | 'block';
-
-export async function moderateAndScore(input: {
-  body: string;
-  disabledFilters: string[];          // 인플루언서가 끈 선택 필터 (욕설, 비하 등)
-}): Promise<{
-  verdict: Verdict;
-  category?: string;                  // 협박, 성희롱, 스팸 등
-  reason?: string;                    // 유저에게 보여줄 짧은 사유
-  rewrite?: string;                   // suggest일 때 수정 제안
-  quality: number;                    // 0~100, 메시지 품질 점수
-}>;
-
-export async function clusterQuestion(roomId: string, body: string): Promise<string | null>; // P2, cluster_id
-export async function summarize(messages: { body: string; sender: string }[]): Promise<string>;  // P2
-```
-
-### 범위 우선순위와 체크포인트
-
-| 티어 | 범위 | 완료 시점 |
+| 항목 | prd 기준 화면 동작 | 화면 처리 |
 | --- | --- | --- |
-| P0 | 라운드 완료 → 카드 뽑기 연출 → 컬렉션 → 10장 강화 | 1일차 저녁 (T-03) |
-| P1 | 채팅방 입장 조건, 유저 채팅, AI 안전 필터·안내, 우선순위 인박스, 유지 게이지 | 2일차 점심 (T-04) |
-| P2 | 인증 신청·관리자 승인·배지, 유사 질문 묶기, 대화 요약, 필터 해제 | 2일차 오후 동결 전 |
+| 메시지 공개 범위 | 팬은 자기 메시지와 인플루언서 메시지(답변·전체 메시지·인사말)만 본다 | RLS 변경 전에도 화면은 내 메시지와 인플루언서 메시지만 렌더 |
+| 열람 범위 | 입장 중이던 기간의 메시지만. 퇴장 중에는 방을 열 수 없음. 퇴장 기간에 달린 내 질문의 답변은 재입장 뒤 보임. 재입장하면 예전 입장 기간 대화가 그대로 보임 | 서버가 준 목록을 그대로 표시. 퇴장 중이면 대화 화면 대신 재입장 안내 |
+| 답변의 질문 인용 | 원래 질문은 모든 필터 항목을 통과한 것만 다른 팬에게 인용. 대표 질문은 AI가 새로 쓴 200자 이내 문장. 인용이 비면 답변만 보여 주되, 질문한 본인 화면에는 자기 질문을 인용 | 인용 필드가 있으면 표시, 없으면 답변만. 본인 질문이면 내 원문을 인용하고 "내 질문에 대한 답변" 표시 |
+| 전체 메시지·인사말 | 인플루언서 말풍선. 인사말은 처음 입장 때 1회, 그 팬에게만, 입장 시점 문구로 고정 | 인플루언서 말풍선으로 같은 스타일. 인사말이 있으므로 첫 입장 빈 상태 안내는 두지 않음 |
+| 삭제된 메시지 | 인플루언서의 답변·전체 메시지 삭제 시 팬 화면에 "삭제된 메시지". 수정 기능 없음 | 삭제 표시 필드가 오면 본문 대신 "삭제된 메시지" |
+| 보유 배지 | 버디·이글·알바트로스. 인박스와 본인 메시지에만 | 필드가 오면 표시, 없으면 숨김. 다른 팬에게 노출 금지 |
+| 게이지 | 시작 50, 최대 100, 월 3회 기준 ±12.5, 50=여유 4회. 입장한 달·재입장한 달은 정산 없음 | 게이지 바 + "여유 라운드 N회". 숫자는 SDK 값 그대로 |
+| 퇴장·재입장 | 자발적 퇴장 없음. 게이지 소진으로만 퇴장. 한 달에 라운드 3회를 완료한 달에 퇴장한 모든 방에 재입장, 게이지 50 | "나가기" 버튼 없음. 재입장 안내 문구는 "이번 달 라운드 3회를 완료하면 다시 입장할 수 있어요" |
+| 입장 자격 | 누적 획득 5장, 강화·퇴장으로 잃지 않음. 자동 입장 없음 | `canJoin`·`missingCards`를 그대로 표시 |
+| 입장 안내 문구 | "이 채팅방은 AI가 부적절한 메시지를 자동으로 걸러냅니다. 내 질문은 답변과 함께 닉네임 없이 다른 팬에게 보일 수 있습니다." | 두 문장 모두 표시 |
+| 수정 제안 | 제안 문장은 모든 필터 항목을 통과한 것만. 만들지 못하면 안내만(`rewrite: null`). 그대로 보내면 재검사 없이 전송(제안 확인값 동봉), 고치면 새로 검사. 10분 동안 1회만 유효 | "이대로 보내기"는 확인값 포함, 입력창에서 고치면 확인값 없이 새 requestId로 전송 |
+| 필터 항목 | 항상 차단 7종(threat·stalking·sexual_harassment·privacy·hate·illegal_ad·spam), 선택 3종(profanity·belittling·appearance) | `getRoomFilters`의 `mandatoryFilters`·`disabledFilters`로 그림. 하드코딩하지 않음 |
+| 팬용 "필터 꺼짐" 안내 | 삭제 | 만들지 않음. 인플루언서 해제 동의 문구는 유지 |
+| 차단 메시지 저장 | pass만 저장 | "오늘 N건 걸러냈어요"는 홍주P 별도 집계를 쓰고, 없으면 숨김 |
+| 인박스 정렬 | 우선순위 점수 순, 동점이면 최신순. 답변한 묶음은 닫힘. 퇴장 중인 팬의 미답변은 숨기고 묶음 인원수에서도 뺌 | 서버 순서를 그대로 표시. 화면에서 다시 정렬하지 않음 |
+| 11번째 신청자 | 승인되면 방은 열리지만 카드가 없어 입장 불가. 방 목록에 인증 배지와 "카드 준비 중" | 구분값이 있으면 "카드 준비 중" 표시, 입장 버튼 없음 |
+| 프로필 사진 | 인플루언서당 1장, 카드 이미지와 별개. 방 목록·방 상단·인플루언서 말풍선(답변·전체 메시지·인사말)에 표시. 바꾸면 과거 메시지에도 새 사진 | 표시 URL이 `null`이거나 로드 실패면 이름 첫 글자 |
 
-### 공통 티켓 (전원)
+화면에 직접 영향은 없지만 알아 둘 변경: 발급 확률 70/20/7.5/2.5%, `completeRound` 응답의 `entryUnlocked`(현호P 결과 화면의 입장 가능 안내, 이동 링크는 `/chat`), AI 장애 시 금칙어 폴백 통과면 전송·품질 50(화면 표시 없음).
 
-- [ ] **T-01** API 명세 합의 — 위 API별 요청·응답 JSON 예시를 킥오프 2시간 안에 고정 (P0)
-- [ ] **T-02** 미정 항목 결정 — 인플루언서 10명, 스타일 3종 (등급 확률·입장 기준·뽑기 로직은 확정) (P0)
-- [ ] **T-03** P0 통합 체크포인트 — 라운드 완료 → 뽑기 → 컬렉션 → 강화가 배포 URL에서 동작 (P0)
-- [ ] **T-04** P1 통합 체크포인트 — 입장 → 전송 → 필터 → 인박스 정렬 (P1)
-- [ ] **T-05** 기능 동결 후 시연 리허설 2회 (P0)
+## 5. 티켓별 실행 계획
 
-### 담당 미정 티켓
+상태는 이 표 한 곳에서 관리한다. 완료 표시에는 검증 결과가 필요하며, 더미 완료와 실제 SDK 연동 완료를 따로 적는다.
 
-| ID | 티켓 | 티어 | 담당 | 비고 |
+### P0·P1
+
+| ID / 우선순위 | 작업과 산출물 | 선행 | 완료 기준 | 현재 상태 |
 | --- | --- | --- | --- | --- |
-| U-01 | 시연 대본·발표 자료 | P1 | 미정 (anonymous) | 개발 완료 후 담당 결정 |
+| F-01 / P0 | Next.js(App Router·TS·Tailwind) 골격, 공통 레이아웃, 빈 라우트 `/draw` `/collection` `/collection/upgrade` `/collection/owned` `/chat` `/inbox` `/admin`, lint·format·`dev`/`build` scripts | 없음 | `npm run build` 통과, 현호P·홍주P가 같은 `package.json`에 이어서 작업 가능. env 파일은 만들지 않음 | 미착수 |
+| F-02 / P0 | 세션 Provider(`useSession()` → userId·role·nickname, 세션 변경 알림), 데모 계정 전환, 역할별 첫 화면(user→/draw, influencer→/inbox, admin→/admin) | F-01, 실제 연결은 B-01·B-02 | 전환 시 실제 signOut→signIn, 이전 구독·캐시 정리. 현호P가 `useSession()`으로 현재 사용자와 변경을 받음 | 미착수 |
+| F-03 / P1 | 방 목록: 입장 가능·"카드 N장 더 필요"·입장 중·퇴장 중(재입장 조건)·"카드 준비 중", 인증 배지 | F-02, 실제 연결은 B-05 | `canJoin=false` 방은 사유 표시, 입장 중이면 대화로 이동, 퇴장 중이면 대화를 열지 않음, 카드 준비 중 방은 입장 버튼 없음 | 미착수 |
+| F-04 / P1 | 입장 화면: 안내 문구 2문장, 게이지 시작 안내, `joinRoom` | F-03, B-05 | INSUFFICIENT_CARDS·REJOIN_NOT_AVAILABLE 안내, 성공 후 `getMyMembership`으로 최신 상태 | 미착수 |
+| F-05 / P1 | 대화 화면 (버블형): 내 메시지 + 인플루언서 말풍선(답변·전체 메시지·인사말), 답변 위 인용 규칙, "내 질문에 대한 답변", "삭제된 메시지", 본인 메시지 보유 배지, 과거 메시지 더보기 | F-04, B-06 | 두 브라우저에서 답변·전체 메시지가 새로고침 없이 도착. 다른 팬 질문은 보이지 않고 인용 규칙대로만 보임. 끊겼다 복구해도 누락·중복 없음 | 미착수 |
+| F-06 / P1 | 전송·판정 UI: pass 즉시 표시, suggest는 사유 + 수정안(없으면 안내만) → "이대로 보내기"(확인값 포함) 또는 고쳐서 보내기, block은 사유만 | F-05, B-06·A-02 | 3분기 모두 동작. 수정안 그대로 전송 시 재검사 없이 저장, 고치면 새로 검사. FILTERS_CHANGED·REQUEST_IN_PROGRESS는 같은 requestId로 재시도, FILTER_UNAVAILABLE·RATE_LIMITED는 재시도 안내 | 미착수 |
+| F-07 / P1 | 게이지 바 + 여유 라운드, "이번 달 N회 남음" 안내, 퇴장 화면과 재입장 안내("한 달에 라운드 3회"). admin 데모 관리의 "한 달 경과" 버튼 | F-05, B-07 | 시연 흐름: 입장 → 월 경과 3회(입장한 달 마감, 50→12.5→0)로 퇴장 → 라운드 3회 완료로 재입장. 퇴장 시 구독 해제·전송 차단 | 미착수 |
+| F-08 / P1 | 인플루언서 인박스: 서버 순서 그대로 미답변 질문, 보유 배지, 답변 완료 포함 토글, 답변 작성, "오늘 N건 걸러냄" | F-02, B-08 | 같은 품질이면 보유 배지 높은 질문이 위, 동점이면 최신순. 답변이 팬 화면에 실시간 표시. ALREADY_REPLIED 처리 | 미착수 |
 
-### 뽑기 로직 (확정)
+### P2 (prd 8절 순서대로 진행)
 
-1. game_config의 grade_rates로 **등급을 먼저** 뽑고, 30장(10명 × 3스타일) 중 하나를 **균등 추첨** (인플루언서별 가중치 없음)
-2. **신규(isNew)** = 해당 템플릿(인물 + 스타일)을 등급 무관하게 처음 보유한 경우
-3. 시연용 **등급 고정 옵션**: `POST /api/rounds/complete` 요청에 `{"demoForceGrade": "special"}`을 넣으면 그 등급으로 지급 (데모 계정 전용, 시연 대본에서 스페셜 연출 보여줄 때 사용)
-
-## 2. 자성P 담당 범위
-
-채팅방 목록·입장·대화, 유지 게이지, 차단·수정 제안 UI. 추가로 프로젝트 셋업, 인플루언서 인박스, 관리자 승인 화면을 맡습니다.
-
-**작업 경로:** `app/(user)/chat/`, `app/inbox/`, `app/admin/`, `components/chat/`, `components/ui/` (셋업)
-
-**받는 것 (의존)**
-
-- 홍주P: 채팅·입장·게이지·인박스·인증 API (B-05~B-10)
-- 문환P: 필터 응답 형식(verdict/reason/rewrite) — A-02
-- 현호P: 채팅·인박스·관리자 화면 디자인(D-01), 배지 3종(D-09)
-
-**주는 것**
-
-- Next.js 프로젝트 골격·공통 레이아웃 (F-01) → 현호P가 그 위에서 작업
-- 데모 계정 전환 토글 (F-02) → 전원 시연에 사용
-
-## 3. 자성P 티켓
-
-| ID | 티켓 | 티어 | 선행 | 완료 기준 |
+| 순서 / ID | 작업과 산출물 | 선행 | 완료 기준 | 현재 상태 |
 | --- | --- | --- | --- | --- |
-| F-01 | Next.js(App Router, TS, Tailwind) 프로젝트 셋업, Supabase 클라이언트, 공통 레이아웃·라우팅 | P0 | - | 레포 공유, Vercel 프리뷰에서 빈 화면 4개(/draw /collection /chat /inbox) 이동 가능 |
-| F-02 | 데모 계정 전환 토글 (유저·인플루언서·관리자) | P0 | B-02 | 헤더에서 계정을 바꾸면 화면과 API 요청의 사용자 ID가 바뀜 |
-| F-03 | 채팅방 목록 + 입장 가능 여부·부족한 카드 장수 표시 | P1 | B-05 | 입장 불가 방에 "카드 N장 더 필요" 표시 |
-| F-04 | 채팅방 입장 화면 + AI 필터 안내 문구 | P1 | F-03 | 입장 시 "AI가 부적절한 메시지를 자동으로 걸러냅니다" 노출 |
-| F-05 | 대화 화면 (메시지 목록, 전송, 실시간 구독, 보유량 배지) | P1 | B-06 | 두 브라우저에서 보낸 메시지가 새로고침 없이 보임 |
-| F-06 | 전송 시 차단 사유 안내·표현 수정 제안 UI | P1 | A-02 | block이면 사유 표시, suggest면 수정안을 한 번에 적용해 재전송 |
-| F-07 | 유지 게이지 상단 바, "이번 달 N회 남음" 안내, 소진 시 퇴장·재입장 | P1 | B-07 | advance-month 호출 후 게이지 감소, 0이면 퇴장 화면 |
-| F-08 | 인플루언서 인박스 (우선순위 정렬, 배지, 답변, "오늘 N건 걸러냄") | P1 | B-08 | 보유량 많은 유저 메시지가 위에 뜨고, 답변이 유저 화면에 표시 |
-| F-09 | 인박스 유사 질문 묶음(N명 질문)·대화 요약 버튼 | P2 | A-04, A-05 | 묶음 카드에 인원수 표시, 요약 버튼으로 요약문 표시 |
-| F-10 | 관리자 인증 승인 화면 + 채팅방·카드에 배지 표시 | P2 | B-09, D-09 | 승인 시 해당 인플루언서 채팅방에 유형별 배지 표시 |
-| F-11 | 인플루언서 필터 해제 설정 + "이 방은 필터가 꺼져 있어요" 안내 | P2 | B-10 | 해제 확인 동의 후 유저 입장·전송 화면에 안내 노출 |
+| 1 / F-10 | 인플루언서 인증 신청 화면, 관리자 심사 화면(승인·반려 사유), 방 목록·채팅방에 유형별 인증 배지 | F-02, B-09·D-09 | 11번째 신청자 승인 → 방 목록에 새 방, 인증 배지, "카드 준비 중" | 미착수 |
+| 2·3 / F-09 | 질문 묶기 실행·묶음 표시(질문한 고유 인원수, 대표 질문), 묶음 답변, 대화 요약 | F-08, B-12·A-04·A-05 | 묶음 1회 답변이 묶인 질문 전체에 반영되고 묶음이 닫힘, 요약문 표시, 빈 결과 처리 | 미착수 |
+| 4 / F-11 | 인플루언서 필터 설정: 항상 차단 항목 잠금 표시, 선택 항목 해제·해제 동의 문구, 버전 충돌 시 최신값 다시 읽기 | F-08, B-10 | 항상 차단 항목은 끌 수 없음. 저장 후 다음 메시지부터 반영 | 미착수 |
+| 5 / F-14 | 인박스 설정의 인사말: 현재 문구(기본 문구 포함) 표시, 200자 이내 수정 | F-08, 홍주P 인사말 SDK | 저장 후 새로 처음 입장한 팬에게만 새 문구. 실패 시 이전 문구 유지, 200자 초과 안내 | 미착수 |
+| 6 / F-15 | 인박스의 전체 메시지 작성 칸 | F-08, 홍주P 전체 메시지 SDK | 보낸 시점에 입장 중인 팬 화면에 실시간 도착. 실패 시 입력 유지·재시도 | 미착수 |
+| 7 / F-16 | 인플루언서 메시지 삭제: 본인 답변·전체 메시지, 되돌릴 수 없다는 확인 문구 | F-08·F-15, 홍주P 삭제 SDK | 팬 화면 "삭제된 메시지", 답변 삭제 시 질문(묶음이면 전체)이 인박스 미답변으로 돌아옴. 인사말은 삭제 불가 | 미착수 |
+| 8 / F-13 | 프로필 사진 표시: 방 목록·방 상단·인플루언서 말풍선의 원형 사진, 없거나 로드 실패면 이름 첫 글자 | F-03·F-05, `RoomCatalogItem` 표시 URL, D-11 | 사진 변경 후 과거 메시지에도 새 사진 | 미착수 |
+| 8 / F-12 | 인박스 설정의 프로필 사진 변경: 현재 사진, 파일 선택, 미리보기, JPG·PNG·WebP 5MiB 이하 검사, 브라우저에서 512×512 WebP로 재인코딩(메타데이터 제거) 후 업로드 | F-13, 홍주P 프로필 사진 SDK, D-11 | 변경 즉시 세 곳 반영, 실패 시 이전 사진 유지. 인코딩 결과가 WebP가 아니면 업로드하지 않고 안내 | 미착수 |
 
-### 체크리스트
+**인박스 추가 기능(F-14·F-15·F-16) 공통 화면 상태:** 전송·저장·삭제 중 중복 클릭을 막는다. 실패하면 입력을 유지하고 재시도를 제공한다. 본인 방이 아니면 권한 없음을 안내한다.
 
-- [ ] **F-01** Next.js(App Router, TS, Tailwind) 프로젝트 셋업, Supabase 클라이언트, 공통 레이아웃·라우팅 (P0)
-- [ ] **F-02** 데모 계정 전환 토글 (유저·인플루언서·관리자) (P0)
-- [ ] **F-03** 채팅방 목록 + 입장 가능 여부·부족한 카드 장수 표시 (P1)
-- [ ] **F-04** 채팅방 입장 화면 + AI 필터 안내 문구 (P1)
-- [ ] **F-05** 대화 화면 (메시지 목록, 전송, 실시간 구독, 보유량 배지) (P1)
-- [ ] **F-06** 전송 시 차단 사유 안내·표현 수정 제안 UI (P1)
-- [ ] **F-07** 유지 게이지 상단 바, "이번 달 N회 남음" 안내, 소진 시 퇴장·재입장 (P1)
-- [ ] **F-08** 인플루언서 인박스 (우선순위 정렬, 배지, 답변, "오늘 N건 걸러냄") (P1)
-- [ ] **F-09** 인박스 유사 질문 묶음(N명 질문)·대화 요약 버튼 (P2)
-- [ ] **F-10** 관리자 인증 승인 화면 + 채팅방·카드에 배지 표시 (P2)
-- [ ] **F-11** 인플루언서 필터 해제 설정 + "이 방은 필터가 꺼져 있어요" 안내 (P2)
+## 6. 단계별 실행 순서
 
-## 4. 자성P 타임라인
+### 단계 1 — 팀 골격 (1일차 오전, 최우선)
+
+1. F-01 골격을 만들어 `main`에 먼저 올린다. 현호P(카드 화면)와 홍주P(`lib/api`·scripts 통합)가 이 위에서 시작한다.
+2. F-02 세션 Provider와 계정 전환을 더미 세션 4종으로 먼저 만들고 `useSession()` 사용법을 현호P에게 넘긴다.
+
+### 단계 2 — 더미 기반 P1 화면 (1일차 오후)
+
+1. `components/chat/` 안에 홍주P §6~8 타입 그대로의 더미 SDK를 만든다. 4절 prd 동작(인용 규칙, 인사말, 전체 메시지, 삭제 표시, 제안 확인값)을 더미에 먼저 넣는다.
+2. F-03 → F-04 → F-05 → F-06 순서로 화면 흐름을 완성한다.
+
+### 단계 3 — 실제 SDK 연결 (1일차 저녁 ~ 밤)
+
+1. T-03 P0 통합 때 F-02를 실제 Auth로 교체한다.
+2. B-05·B-06이 나오는 대로 F-03~F-06을 실제 SDK로 바꾸고 `use-room-messages.ts`를 실제 구독에 연결한다.
+3. F-07 게이지와 F-08 인박스를 연결한다.
+
+### 단계 4 — P2와 시연 준비 (2일차)
+
+1. prd 8절 순서: F-10 인증 → F-09 묶기·요약 → F-11 필터 해제 → F-14 인사말 → F-15 전체 메시지 → F-16 삭제 → F-13·F-12 프로필 사진.
+2. T-04 P1 통합 후 기능 동결, T-05 리허설. 동결 시점에 끝나지 않은 P2는 순서 뒤쪽부터 뺀다.
 
 | 구간 | 할 일 |
 | --- | --- |
-| 사전 준비 | F-01 |
-| 1일차 오전 | T-01·T-02 킥오프 후 F-02 |
-| 1일차 오후 | F-03, F-04, F-05 (목 데이터로 먼저) |
-| 1일차 저녁 | T-03 P0 통합 (전원) |
-| 1일차 밤 | F-06, F-07, F-08 |
-| 2일차 오전 | F-09, F-10 |
-| 2일차 점심 | T-04 P1 통합 (전원) |
-| 2일차 오후 | F-11 여유분 → 기능 동결 → T-05 리허설 |
+| 1일차 오전 | T-01·T-02 킥오프, F-01, F-02(더미) |
+| 1일차 오후 | 더미 SDK, F-03~F-06 |
+| 1일차 저녁 | T-03 P0 통합, F-02 실제 Auth 전환 |
+| 1일차 밤 | F-03~F-06 실제 연결, F-07, F-08 |
+| 2일차 오전 | F-10, F-09, F-11, F-14 |
+| 2일차 점심 | T-04 P1 통합 |
+| 2일차 오후 | (여유 시) F-15, F-16, F-13, F-12 → 기능 동결 → T-05 리허설 |
+
+> P2가 8개로 늘었다(이번 개정으로 인사말·전체 메시지·삭제 추가). 1인 일정으로는 2일차 안에 모두 끝내기 어려울 수 있으므로, 1일차 밤까지 P1이 끝나지 않으면 F-15 이후를 시연 범위에서 빼는 것을 팀과 문환P에게 미리 공유한다.
+
+## 7. 검증과 완료 판단
+
+| 묶음 | 확인할 것 |
+| --- | --- |
+| 골격 | `npm run build`·lint 통과, 7개 라우트 이동 |
+| 세션 | 4계정 전환 시 화면·역할·구독이 바뀌고 이전 사용자 데이터가 남지 않음 |
+| 버블형 | userA·userB 두 브라우저에서 서로의 질문이 보이지 않고, 인플루언서 메시지만 공유됨. 필터를 다 통과하지 못한 질문의 인용은 질문한 본인에게만 보임 |
+| 열람 범위 | 퇴장 중 방이 열리지 않음, 재입장 후 예전 대화와 퇴장 기간 내 질문의 답변이 보임 |
+| 실시간 | 연결을 끊었다 복구해도 메시지 누락·중복 없음, 장애 중에만 3초 폴링, 삭제가 실시간 반영 |
+| 판정 | pass·suggest(수정안 있음/없음, 그대로 전송/고쳐서 전송)·block과 재시도 오류 코드별 화면 |
+| 멱등 | 전송 버튼 연타·결과 모르는 재시도 시 메시지 1건만 생성 |
+| 인박스 | 서버 순서 유지, 답변 후 팬 화면 실시간 반영, 중복 답변 차단, 답변 삭제 시 미답변 복귀 |
+| 게이지 | 월 경과 3회로 퇴장, 라운드 3회로 재입장(게이지 50) |
+| 권한 | admin이 남의 대화·인박스를 볼 수 없고 influencer 명의로 답변 못 함. 다른 인플루언서 방 설정에 진입점 없음 |
+| 인사말·전체 메시지 | 처음 입장한 팬에게만 입장 시점 인사말, 재입장 시 다시 오지 않음. 전체 메시지는 그 시점 입장 중인 팬에게만 |
+| 프로필 사진 | 6MiB 파일·GIF 거부, 정상 이미지는 512×512 WebP로 올라가고 위치정보가 남지 않음, 변경 즉시 세 곳 반영, 실패 시 이전 사진 유지, 없을 때 이름 첫 글자 |
+
+검증 기록에는 환경(더미/로컬/원격)·계정·결과·미검증 범위를 함께 남긴다.
+
+## 8. 확인할 것과 인계
+
+**홍주P에게 확인**
+
+1. 데모 계정 전환의 암호 전달 방식. 프론트에 암호를 넣을 수 없으므로 로그인 폼 입력인지, 로컬 전용 다른 방식인지.
+2. 이번 prd 개정분의 SDK 이름·형식과 반영 시점: 인사말 조회·변경, 전체 메시지 전송, 메시지 삭제와 삭제 이벤트, 메시지 종류 필드(질문·답변·전체 메시지·인사말), 답변의 질문 인용 필드(passesAllFilters 조건), 제안 확인값, 카드 준비 중 구분값, 열람 범위 반영 방식.
+3. "오늘 N건 걸러냈어요" 집계 방법. 차단 메시지를 저장하지 않으므로 별도 카운트가 필요함.
+4. `subscribeRoomMessages`의 `onStatus` 상태 값 목록 (폴링 전환 조건).
+5. 프로필 사진 SDK 이름·입력 형식과 `RoomCatalogItem` 표시용 사진 URL 필드명.
+
+**현호P에게 확인**
+
+1. D-01 채팅·인박스·관리자 시안 범위에 전체 메시지 작성 칸, 인사말 설정, 삭제된 메시지 표시, "카드 준비 중"이 들어가는지와 전달 시점.
+2. D-10 보유 배지, D-09 인증 배지, D-11 프로필 사진 시안·샘플 전달 시점.
+3. `components/ui/` 공통 컴포넌트 범위 (골격은 자성P, 디자인 적용은 현호P).
+
+**문환P에게 공유**
+
+- P2 일정 부담(6절 주석). 시연 범위 조정이 필요하면 미리 알린다.
+
+**넘겨줄 것**
+
+- F-01 골격과 실행 방법 → 전원
+- `useSession()` 사용법과 계정 전환 동작 → 현호P
+- 화면에서 실제로 호출하는 SDK 목록과 발견한 계약 문제 → 홍주P
