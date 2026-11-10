@@ -2,7 +2,7 @@
 
 **대상:** 자성P와 자성P의 코딩 에이전트
 
-**작성 기준:** 2026-11-10, `main` 9f7e17d. [자성P_plan.md](./자성P_plan.md)(무엇을·언제), 이 문서(어떻게 만드는가)
+**작성 기준:** 2026-11-10, `main` 2d144f4 (홍주P 계약 §6.5 인플루언서 SDK·§9.1 구독 계약, architecture §4 root bootstrap·라우트). [자성P_plan.md](./자성P_plan.md)(무엇을·언제), 이 문서(어떻게 만드는가)
 
 **기준 문서 우선순위:** 제품 동작은 [prd.md](./prd.md) → SDK·타입·오류는 [홍주P_plan.md](./홍주P_plan.md) §§6~9 → 구조는 [architecture.md](./architecture.md) → 화면 구현 세부는 이 문서. 이 문서가 위 문서와 어긋나면 위 문서를 따르고 이 문서를 고친다.
 
@@ -11,7 +11,7 @@
 사용자가 **"자성P 개발 정의서 기반으로 개발 시작해"** 또는 특정 티켓(예: "F-05 진행해")을 요청하면 다음 순서로 진행한다.
 
 1. `git status`와 실제 파일을 확인한다. 기존 수정사항을 보존하고, 체크 표시만 보고 완료를 가정하지 않는다.
-2. 루트 `package.json`·toolchain이 있는지 확인한다. 홍주P 루트 세팅이 없으면 F-01을 시작하지 않고 그 사실만 보고한다. 루트 파일을 직접 새로 만들지 않는다.
+2. 루트 `package.json`·`package-lock.json`·toolchain이 있는지 확인한다. 홍주P B-01 root bootstrap이 `main`에 없으면 **레포 밖 샌드박스 `../BirdieBuddy-ui/`에서 개발**한다(15절). 레포 루트 파일은 직접 만들지 않는다. bootstrap이 생긴 뒤 샌드박스가 있으면 15.3 이전 절차를 먼저 수행한다. 커밋 메시지는 `CONTRIBUTING.md` 형식을 따른다.
 3. `lib/api`가 있는지 확인한다. 있으면 실제 SDK를, 없으면 6절의 더미 SDK를 주입해 화면을 만든다.
 4. 요청된 티켓을 8절 정의대로 구현한다. 담당 경로(2절) 밖의 파일은 수정하지 않는다. 필요한 변경은 11절 형식으로 담당자 요청 목록에 남긴다.
 5. 13절 검증을 실행하고 실패를 고친다. 실행하지 못한 검증은 이유를 남긴다.
@@ -56,7 +56,7 @@ components/ui/                      공통 UI 기본 컴포넌트 셋업 (디자
 lib/session/                        세션 Provider·useSession (F-02)
 ```
 
-`app/(user)/draw/`, `app/(user)/collection/`, 보유 카드·강화 경로, `components/card/`는 현호P 소유다. F-01은 빈 placeholder 페이지만 만들고 이후 수정하지 않는다. 보유 카드·강화 경로는 현호P가 확정하기 전에는 만들지 않는다.
+`app/(user)/draw/`, `app/(user)/collection/`(하위 `owned/`·`upgrade/` 포함), `components/card/`는 현호P 소유다. F-01은 이 경로들의 빈 placeholder 페이지만 만들고 이후 수정하지 않는다.
 
 ## 3. 공통 규칙
 
@@ -111,8 +111,8 @@ function useSession(): SessionState & {
 // components/chat/api/chat-api.ts
 export type ChatApi = Pick<BackendApi,
   'getRooms' | 'getMyMembership' | 'joinRoom' | 'getMyRoundGaugeSummary' | 'advanceDemoMonth'
-  | 'getMessages' | 'getMessageChanges' | 'subscribeRoomMessages' | 'submitMessage'
-  | 'getRoomInbox' | 'replyToMessage' | 'sendBroadcast' | 'deleteInfluencerMessage'
+  | 'getMessages' | 'subscribeRoomMessages' | 'reconcileRoomMessages' | 'submitMessage'
+  | 'getRoomInbox' | 'replyToMessage' | 'sendBroadcast' | 'deleteInfluencerMessage' | 'getRoomDailyBlockCount'
   | 'getRoomGreeting' | 'updateRoomGreeting' | 'clusterQuestions' | 'summarizeRoom'
   | 'getRoomFilters' | 'updateRoomFilters'
   | 'requestVerification' | 'getMyVerifications' | 'getPendingVerifications' | 'approveVerification'
@@ -124,7 +124,8 @@ export function useChatApi(): ChatApi;
 
 - 화면은 `useChatApi()`로만 SDK를 쓴다. `lib/api`를 직접 import하는 곳은 `app/layout.tsx`의 Provider 연결 한 곳뿐이다.
 - `lib/api`가 없는 동안은 `createMockChatApi()`(6절)를 주입한다. 실제 SDK가 생기면 Provider에 넣는 값 한 줄만 바꾼다.
-- `BackendApi` 타입은 `lib/api/types.ts`에서 가져온다. 아직 없으면 `components/chat/api/types.ts`에 홍주P §§6.1·6.3·7.1·7.2 타입을 그대로 옮겨 두고, SDK가 생기면 이 파일을 지우고 import 경로만 바꾼다.
+- `BackendApi` 타입은 `lib/api/types.ts`에서 가져온다. 아직 없으면 `components/chat/api/types.ts`에 홍주P §§6.1·6.3·6.5·7.1·7.2 타입을 그대로 옮겨 두고, SDK가 생기면 이 파일을 지우고 import 경로만 바꾼다.
+- `getMessageChanges`는 SDK 저수준 API다. 화면 복구 경로는 `reconcileRoomMessages`만 쓴다.
 
 ### 5.3 요청 훅 (`components/chat/hooks/use-request.ts`)
 
@@ -189,28 +190,33 @@ Button, IconButton, TextArea(글자 수 표시), Modal(확인 대화상자), Toa
 
 **판정 규칙 (본문 키워드로 고정):** `[block]` 포함 → block, `[suggest]` → suggest + rewrite, `[suggest-null]` → suggest + rewrite null, `[slow]` → 2초 지연, `[fail]` → FILTER_UNAVAILABLE, 그 외 → pass.
 
-**실시간:** `subscribeRoomMessages`는 메모리 이벤트 버스. 다른 계정이 보낸 답변·전체 메시지·삭제가 열린 화면에 INSERT/UPDATE로 전달된다. `options.dropConnection()`으로 연결 끊김을 흉내 낸다.
+**실시간:** `subscribeRoomMessages`는 메모리 이벤트 버스. 다른 계정이 보낸 답변·전체 메시지·삭제가 열린 화면에 INSERT/UPDATE로 전달된다. `options.dropConnection()`은 `onStatus('CHANNEL_ERROR')`, `options.restoreConnection()`은 `onStatus('SUBSCRIBED')`를 보낸다. `reconcileRoomMessages`는 메모리 상태에서 cursor 이후 변경을 upsert한 전체 목록을 돌려준다.
+
+**오늘 차단 수:** `getRoomDailyBlockCount`는 더미 상태에서 block 판정이 날 때마다 1씩 오른 값을 `{roomId, day, count}`로 돌려준다.
 
 ## 7. 실시간 구독 훅 (`components/chat/use-room-messages.ts`)
 
 ```ts
+type SubscribeStatus = 'SUBSCRIBED' | 'TIMED_OUT' | 'CHANNEL_ERROR' | 'CLOSED';
 function useRoomMessages(roomId: string): {
   messages: Message[];           // id 오름차순, 중복 없음
   status: 'connecting' | 'live' | 'polling' | 'stopped';
   loadOlder(): Promise<void>;    // beforeId 페이지
   hasOlder: boolean;
-  applyLocal(message: Message): void; // 내 pass 전송 결과 즉시 반영
+  applyLocal(message: Message): void; // 내 pass 전송 결과·인플루언서 발송 결과 즉시 반영
 };
 ```
 
-1. `subscribeRoomMessages` 시작, SUBSCRIBED 전 이벤트는 버퍼에 보관.
-2. SUBSCRIBED 후 `getMessages({roomId, limit:50})` → 버퍼 병합 → id 중복 제거 → id 오름차순.
-3. INSERT: 없는 id면 추가. UPDATE: 같은 id 교체(삭제 시 `body=null`·`deletedAt`). UPDATE로 새 행을 만들지 않는다.
-4. 마지막 (updatedAt, id)를 기억한다. 재연결 시 `getMessageChanges({roomId, updatedAfter, afterId})`로 끊긴 동안의 생성·삭제를 복구한다(`reconcileRoomMessages`가 같은 일을 하면 그것을 쓴다).
-5. 연결 장애일 때만 3초 간격 `getMessageChanges` 폴링, 복구되면 중단. ROOM_INACTIVE·FORBIDDEN·로그아웃이면 구독·폴링 모두 중단하고 `status='stopped'`.
-6. roomId 변경·언마운트·`session-reset`에서 채널·타이머·캐시를 정리한다.
+홍주P §9.1 계약을 그대로 따른다.
 
-단위 테스트: 버퍼 병합, 중복 INSERT, UPDATE 교체, 끊김 후 복구, 정리.
+1. `subscribeRoomMessages({roomId, onMessage, onStatus})`와 `getMessages({roomId, limit:50})`를 동시에 시작한다. 첫 조회가 끝나기 전 `onMessage` 이벤트는 버퍼에 두고 조회 결과와 병합 → id 중복 제거 → id 오름차순.
+2. `onMessage`: 없는 id면 추가, 있는 id면 교체(삭제 UPDATE는 `body=null`·`deletedAt`). UPDATE로 새 행을 만들지 않는다.
+3. `onStatus('SUBSCRIBED')`: 폴링을 멈추고 `reconcileRoomMessages({roomId, currentMessages: messages, updatedAfter, afterId})`를 한 번 호출해 결과 `messages`로 목록을 교체하고 cursor(`updatedAfter`·`afterId`)를 저장한다. `status='live'`.
+4. `onStatus('TIMED_OUT' | 'CHANNEL_ERROR' | 'CLOSED')`: 3초 간격으로 같은 `reconcileRoomMessages` 호출(`status='polling'`). 화면이 직접 unsubscribe한 뒤 오는 `CLOSED`는 무시한다.
+5. ROOM_INACTIVE·FORBIDDEN·UNAUTHENTICATED 오류, membership left, 로그아웃이면 구독과 폴링을 모두 멈춘다(`status='stopped'`).
+6. roomId 변경·언마운트·`session-reset`에서 unsubscribe 함수 호출, 타이머·버퍼·cursor 정리.
+
+단위 테스트: 버퍼 병합, 중복 INSERT, 삭제 UPDATE 교체, CHANNEL_ERROR → 폴링 → SUBSCRIBED 복구, unsubscribe 뒤 CLOSED 무시, 정리.
 
 ## 8. 화면 정의
 
@@ -218,9 +224,9 @@ function useRoomMessages(roomId: string): {
 
 ### F-01 Next.js 앱 골격 (P0)
 
-- 홍주P 루트 세팅 위에 Next.js 의존성·`next.config`·`tailwind.config`·`app/layout.tsx`·빈 페이지(`/draw`, `/collection`, `/chat`, `/inbox`, `/admin`, `/login`)를 추가한다. 기존 루트 scripts는 지우지 않고 `dev`·`build`·`lint`·`test:frontend`를 추가한다.
+- 홍주P root bootstrap의 `package.json`·`package-lock.json`에 Next.js·Tailwind 의존성을 추가하고 `next.config`·`tailwind.config`·`app/layout.tsx`·빈 페이지(`/login`, `/draw`, `/collection`, `/collection/owned`, `/collection/upgrade`, `/chat`, `/inbox`, `/admin`)를 만든다. 기존 루트 scripts는 지우지 않고 `dev`·`build`·`lint`를 추가한다(`test:frontend`는 홍주P와 합의 후).
 - 레이아웃: 상단 바(앱 이름, 현재 계정, 계정 전환 버튼), 본문 최대 폭 480px.
-- **완료 기준:** `npm run build`·`npm run lint` 통과, 6개 경로 이동, 홍주P backend scripts 동작 유지, env 파일 미생성.
+- **완료 기준:** `npm run build`·`npm run lint` 통과, 8개 경로 이동, 홍주P backend scripts 동작 유지, env 파일 미생성.
 
 ### F-02 로그인·세션·계정 전환 (P0)
 
@@ -305,7 +311,7 @@ function useRoomMessages(roomId: string): {
 - 방 선택(본인 방 1개면 생략). 목록: `getRoomInbox({roomId, includeAnswered, cursor, limit:50})`, 서버 순서 그대로, "더 보기"로 cursor 페이지.
 - 항목: 본문, 보유 배지, 시각, 답변 상태. "답변 완료 포함" 토글.
 - 답변: 항목 펼침 → TextArea → `replyToMessage({requestId, roomId, replyTo, body})`. block이면 사유 표시, ALREADY_REPLIED면 목록 새로고침.
-- 상단 요약: "오늘 AI가 {N}건을 걸러냈어요" — 홍주P 집계 SDK가 생기면 연결, 없으면 숨김.
+- 상단 요약: `getRoomDailyBlockCount({roomId})` → "오늘 AI가 {count}건을 걸러냈어요". 인박스 진입·답변 후 다시 조회하고 count가 0이어도 표시한다. 같은 문구를 인박스 설정의 필터 영역에도 보여 준다.
 - **완료 기준:** 같은 품질이면 보유 배지 높은 질문이 위, 동점은 최신순. 답변이 팬 화면에 실시간 반영.
 
 ### F-10 인증 신청·심사 (P2-1)
@@ -328,13 +334,13 @@ function useRoomMessages(roomId: string): {
 
 ### F-14 인사말 `/inbox/settings` (P2-5)
 
-- `getRoomGreeting` → 현재 문구(`isDefault`면 "기본 문구" 라벨), TextArea 200자, 저장 → `updateRoomGreeting`. 비우고 저장하면 기본 문구로 복원.
+- `getRoomGreeting` → 현재 문구(`isDefault`면 "기본 문구" 라벨)와 `version`, TextArea 200자, 저장 → `updateRoomGreeting({requestId, roomId, expectedVersion: version, text})`. 비우고 저장하면 기본 문구로 복원. 성공 응답의 `RoomGreeting`으로 화면과 version을 갱신한다.
 - 안내: "새로 처음 입장하는 팬에게만 적용돼요."
 - **완료 기준:** 200자 초과 저장 불가, block·실패 시 이전 문구 유지.
 
 ### F-15 전체 메시지 `/inbox` (P2-6)
 
-- 인박스 상단 작성 칸 → `sendBroadcast`. 안내: "지금 입장 중인 팬 모두에게 보여요."
+- 인박스 상단 작성 칸 → `sendBroadcast({requestId, roomId, body})`, 응답 `Message`를 인박스 대화 목록에 바로 반영. 안내: "지금 입장 중인 팬 모두에게 보여요."
 - **완료 기준:** 입장 중인 팬 화면에 실시간 도착. 실패·block 시 입력 유지.
 
 ### F-16 메시지 삭제 (P2-7)
@@ -349,10 +355,11 @@ function useRoomMessages(roomId: string): {
 
 ### F-12 프로필 사진 변경 `/inbox/settings` (P2-8)
 
-- `getMyInfluencerProfile` → 현재 사진, 파일 선택(JPG·PNG·WebP, 5MiB 이하), 미리보기.
-- 변환: 이미지를 canvas에 그려 정사각형 중앙 크롭 → 512×512 → `canvas.toBlob(cb, 'image/webp', 0.9)`. 결과 `blob.type !== 'image/webp'`이면 업로드하지 않고 "이 브라우저에서는 사진을 변환할 수 없어요" 안내.
-- 업로드 → `uploadInfluencerProfilePhoto`(requestId 고정, 재시도도 같은 ID). 실패 시 이전 사진 유지.
-- **완료 기준:** 6MiB·GIF 거부, 변환 파일에 EXIF 없음, 변경 즉시 세 곳 반영.
+- `getMyInfluencerProfile` → 현재 사진(없으면 `fallbackImageUrl` 또는 이름 첫 글자), 파일 선택, 미리보기(`URL.createObjectURL`).
+- 화면 사전 검사: MIME `image/jpeg`·`image/png`·`image/webp`, 5MiB(5,242,880 bytes) 이하. 아니면 업로드하지 않고 "JPG·PNG·WebP 형식의 5MB 이하 사진만 올릴 수 있어요" 안내.
+- 업로드: `uploadInfluencerProfilePhoto({requestId, file})`. 512×512 WebP 변환·메타데이터 제거·Storage 업로드·RPC 갱신은 SDK 내부에서 한다. 화면은 변환하지 않는다. 재시도는 같은 requestId·같은 file.
+- 성공 응답 `MyInfluencerProfile`로 현재 사진을 바꾸고 `getRooms`를 다시 읽는다. 실패 시 이전 사진 유지.
+- **완료 기준:** 6MiB 파일·GIF는 화면에서 거부, 변경 즉시 방 목록·방 상단·인플루언서 말풍선에 반영.
 
 ## 9. 고정 문구 (`components/chat/copy.ts`)
 
@@ -375,13 +382,10 @@ function useRoomMessages(roomId: string): {
 
 | 항목 | 현재 처리 | 확정되면 |
 | --- | --- | --- |
-| "오늘 N건" 집계 SDK | 화면에서 숨김 | F-08 상단에 연결 |
-| `onStatus` 상태 값 | SUBSCRIBED 외 값은 모두 "연결 장애"로 보고 폴링 | 값별 분기 |
-| `reconcileRoomMessages` 역할 | `getMessageChanges` 직접 호출 | SDK 함수로 교체 |
-| P2 SDK 입력 형식 (`updateRoomGreeting`·`uploadInfluencerProfilePhoto`·`sendBroadcast`·`deleteInfluencerMessage`) | RPC 입력에서 `p_` 뺀 camelCase로 더미 작성 | 실제 시그니처로 수정 |
 | `getMyProfile` | SessionProvider 한 곳에서 본인 profiles 조회 | SDK로 교체 |
-| 보유 카드·강화 경로 | F-01에서 만들지 않음 | 현호P 결정 경로를 상단 바 링크에 반영 |
 | 디자인 토큰·시안 | Tailwind 기본값 | `tailwind.config` theme 확장, 컴포넌트 스타일 교체 |
+| 데모 계정 이메일·암호 | 더미 계정 5개 | 홍주P demo:setup 후 전달받은 이메일을 로그인 화면 안내에 반영, 암호는 입력 |
+| 프론트 단위 테스트 script | Vitest 설정만 준비 | 홍주P와 합의 후 `test:frontend` 추가 |
 
 ## 11. 다른 담당자에게 요청할 때
 
@@ -389,7 +393,7 @@ function useRoomMessages(roomId: string): {
 
 ```text
 [요청] 홍주P / lib/api/chat.ts
-- 필요한 것: getMessageChanges 반환에 ...
+- 필요한 것: getRoomInbox 반환에 ...
 - 이유: F-05 재연결 복구에서 ...
 - 임시 처리: ...
 ```
@@ -406,7 +410,7 @@ function useRoomMessages(roomId: string): {
 | 종류 | 명령·방법 | 기준 |
 | --- | --- | --- |
 | 타입·린트·빌드 | `npm run typecheck`(있으면), `npm run lint`, `npm run build` | 오류 0 |
-| 단위 테스트 | `npm run test:frontend` (Vitest) | `use-room-messages` 병합·복구·정리, `use-request` ID 규칙, 오류 매핑, Avatar 대체, 이미지 변환 검사 |
+| 단위 테스트 | `npm run test:frontend` (Vitest, 합의 후) | `use-room-messages` 병합·폴링·복구·정리, `use-request` ID 규칙, 오류 매핑, Avatar 대체, 사진 파일 사전 검사 |
 | 더미 시나리오 | 더미 모드로 6절 계정 전환하며 8절 완료 기준 확인 | 티켓별 통과 |
 | 실제 연동 | 홍주P 로컬 stack + demo:setup 후 같은 시나리오 | 티켓별 통과, 두 브라우저 실시간 확인 |
 | 권한 | admin·다른 influencer로 인박스·다른 방 접근 | 권한 없음 안내, 서버 FORBIDDEN 처리 |
@@ -423,3 +427,29 @@ function useRoomMessages(roomId: string): {
 ```
 
 [자성P_plan.md](./자성P_plan.md) 5절 티켓 표의 "현재 상태"도 같은 내용으로 갱신한다.
+
+## 15. 샌드박스 선개발과 레포 이전
+
+### 15.1 언제 쓰는가
+
+홍주P B-01 root bootstrap(`package.json`·`package-lock.json`·`lib/`·`supabase/` 뼈대)이 `main`에 올라오기 전에 UI를 먼저 만들기 위해 쓴다. bootstrap이 올라오면 15.3대로 옮기고, 이후 개발은 레포에서만 한다.
+
+### 15.2 샌드박스 구성
+
+- 위치: `ax-hackerton/BirdieBuddy-ui/` (레포 `ax-hackerton/BirdieBuddy/`의 형제 폴더). git 저장소로 만들지 않는다.
+- 패키지(샌드박스 자체 `package.json`): `next@16.4`, `react@19.3`, `react-dom@19.3`, `typescript@5.9`, `tailwindcss@4.3`·`@tailwindcss/postcss@4.3`, `eslint`·`eslint-config-next@16.4`, `@types/react`·`@types/node`, `vitest`·`@testing-library/react`·`jsdom`. TypeScript 7.x는 Next.js 호환이 확인되지 않아 쓰지 않는다. 버전은 `package-lock.json`으로 고정하고 이전할 때 같은 버전을 쓴다.
+- 경로: 2절 자성P 소유 경로를 그대로 쓴다. 현호P 경로(`app/(user)/draw`, `app/(user)/collection/**`, `components/card/`)와 `lib/api`·`lib/supabase`·`supabase/`는 만들지 않는다.
+- SDK: `ChatApiProvider`에 `createMockChatApi()`만 주입한다. 타입은 `components/chat/api/types.ts`에 홍주P 계약을 옮겨 둔다. Supabase 연결·env 파일은 만들지 않는다.
+- 범위: F-01(샌드박스 골격), F-02(더미 세션), 5~7절 공통 인프라, F-03~F-08 더미 화면. P2도 더미로 진행할 수 있다.
+- 검증: 샌드박스에서 `npm run build`·`npm run lint`·`npx vitest run`.
+
+### 15.3 레포 이전 절차
+
+1. 레포 `main` pull, bootstrap 파일 확인. `git status`가 깨끗한지 확인한다.
+2. 루트 `package.json`에 샌드박스와 같은 버전의 프론트 의존성을 `npm install`로 추가하고 `dev`·`build`·`lint` scripts를 추가한다. 홍주P scripts·`tsconfig.backend.json`·backend 의존성은 지우거나 덮어쓰지 않는다. 프론트용 `tsconfig.json`은 backend tsconfig와 범위가 겹치지 않게 `app/`·`components/`·`lib/session/`·`lib/api/`를 포함한다.
+3. 샌드박스에서 복사: `app/`(자성P 경로), `components/chat/`, `components/ui/`, `lib/session/`, `next.config.*`, `postcss.config.*`, `eslint.config.*`, `vitest.config.*`. `node_modules/`·`.next/`·샌드박스 `package.json`·lockfile은 복사하지 않는다.
+4. 현호P 경로 placeholder(`/draw`, `/collection`, `/collection/owned`, `/collection/upgrade`)를 추가한다.
+5. `lib/api/types.ts`가 있으면 `components/chat/api/types.ts`를 지우고 import 경로를 바꾼다. 실제 SDK가 있으면 `ChatApiProvider` 주입 값을 실제 SDK로 바꾸고, 없으면 더미를 유지한다.
+6. `npm run build`·`npm run lint`·프론트 테스트, 홍주P `npm run typecheck`가 여전히 통과하는지 확인한다.
+7. `CONTRIBUTING.md` 형식으로 커밋한다(예: `feat: F-01 Next.js 앱 골격과 샌드박스 선개발 화면 이전`). 이전 후 샌드박스 폴더는 더 수정하지 않는다.
+
