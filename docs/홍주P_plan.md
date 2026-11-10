@@ -2,7 +2,7 @@
 
 **담당:** Supabase 백엔드·채팅 서비스·브라우저 호출 SDK
 
-**계약 버전:** 1.0 / 2026-11-09
+**계약 버전:** 1.1 / 2026-11-10
 
 **상태:** 개발 실행 명세. 구현·프로젝트 연결·배포 완료를 뜻하지 않음.
 
@@ -37,6 +37,15 @@
 | Supabase 연결·관리 방법 없음 | §2의 전달받은 값과 관리 인증 절차 |
 | 완료 판단 증거 없음 | §§11~14의 검증·상태·완료표 |
 
+### 0.2 최종 검토 판정과 실행 전제
+
+**추가 기획 문서 없이 초기 파일 생성부터 B-01~B-13의 백엔드 구현·로컬 검증까지 진행하는 기준으로 사용한다.** 구현 중의 라이브러리 설치·타입 생성·공식 도구 사용법 확인은 일반 개발 작업이며, 별도 제품 정책을 사용자에게 다시 결정받을 이유가 아니다.
+
+- 로컬 필수 환경은 Node.js 24, 기존 package manager(신규 저장소는 npm), Deno 2, 실행 중인 Docker 호환 런타임이다. 존재 여부·버전을 먼저 확인하고 의존성은 lockfile에 고정한다. 없는 환경은 구체적으로 보고하고 가능한 코드·정적 검증을 계속한다.
+- 로컬 Supabase는 자체 Auth/DB 관리 연결 값을 사용한다. **사용자가 제공한 원격 키나 CLI 로그인은 로컬 구현·통합 검증의 선행 조건이 아니다.** 로컬 값을 얻는 순서는 §10.3에 고정한다.
+- 실제 LLM 품질 검증은 문환P 모듈·실제 공급자 자격증명, 팀 화면 검증은 담당자 화면 코드, 원격 적용은 프로젝트 관리 권한·명시적인 적용 요청이 있어야 완료할 수 있다. 이 세 상태를 로컬 백엔드 완료와 구분한다.
+- 현재 작업은 계획 최종 검토다. supabase/·환경 파일·앱 코드를 미리 생성하거나 실제 배포를 시작하지 않는다.
+
 ## 1. 아키텍처와 담당 경계
 
 Next.js는 CSR 화면과 정적 UI shell을 제공한다. 브라우저가 Supabase JS로 Auth, Data API, Postgres RPC, Edge Functions, Realtime, Storage를 직접 호출한다. 런타임 백엔드는 Supabase에 둔다.
@@ -60,6 +69,7 @@ Server Actions, API Routes, Route Handlers, 별도 백엔드를 추가하지 않
 ```text
 lib/supabase/client.ts              브라우저 클라이언트
 lib/supabase/database.types.ts      CLI 생성 DB 타입
+lib/api/index.ts                    클라이언트 주입형 API factory·브라우저 export
 lib/api/types.ts                    도메인 타입·Result·ApiError·Page
 lib/api/cards.ts                    completeRound / getCollection / upgradeCard
 lib/api/rooms.ts                    getRooms / joinRoom / getMyMembership / advanceDemoMonth
@@ -76,6 +86,7 @@ supabase/functions/_shared/         인증·CORS·입력 검증·AI adapter·오
 supabase/functions/submit-message/index.ts
 supabase/functions/summarize-room/index.ts
 supabase/functions/cluster-questions/index.ts
+scripts/prepare-local-env.mjs       로컬 stack 시작·연결 값 수집·env 생성, 비밀값 비출력
 scripts/setup-demo-accounts.mjs     로컬 Auth 계정·시나리오
 scripts/verify-backend.mjs          계약·역할별 통합 검증
 supabase/tests/*.sql                DB·권한·RPC 테스트
@@ -116,7 +127,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_QuSwvsbS0CYx6aah9Y69XA_62e7n
 
 ### 2.3 개발 시 관리 연결 절차
 
-2026-11-09 확인한 `supabase@3.0.0`을 devDependency와 lockfile에 고정한다. 기존 package manager를 사용하고 package.json이 없으면 B-01에서 최소 SDK·TypeScript·검증용 package를 만든다.
+2026-11-09 확인한 `supabase@3.0.0`을 devDependency와 lockfile에 고정한다. 기존 package manager를 사용하고 package.json이 없으면 B-01에서 최소 SDK·TypeScript·검증용 package를 만든다. 런타임 의존성은 @supabase/supabase-js와 로컬 관리용 pg, 개발 의존성은 supabase·typescript·@types/node·@types/pg·tsx를 기본으로 한다. 기존 버전이 있으면 호환성을 우선하고 신규 설치는 정확한 버전으로 고정한다. Node SDK용 tsconfig.backend.json과 Edge용 deno.json/deno.lock을 분리한다. SDK의 생성 타입이 준비되기 전에 setup script가 이를 import하지 않도록 한다.
 
 **빈 준비 상태에서의 B-01 초기화:** `supabase/`가 없으면 아래 명령으로 생성한다. 기존 config가 있으면 init을 재실행하거나 덮어쓰지 않고 이 계획과 비교한다.
 
@@ -126,7 +137,7 @@ npx --yes supabase@3.0.0 init
 mkdir -p supabase/migrations supabase/functions/_shared supabase/tests lib/supabase
 ```
 
-이후 `supabase/seed.sql`, 루트 `.env.example`, `supabase/functions/.env.example`을 만든다. seed는 §10.1의 비기밀 데이터만 담는다. 루트 예제의 URL/key는 `https://your-project-ref.supabase.co`와 `sb_publishable_replace_me`를 사용한다. 실제 연결 값은 §2.1에서 `.env.local`로 옮기고 Git에 포함하지 않는다. Functions 예제에는 §10.2의 변수명·자리표시자와 로컬 `AI_MODE=fixture`만 기록한다. 실제 `.env` 파일은 필요 시 복사해 비밀값을 주입한다. 기존 `.gitignore`를 보존하면서 `.env*` 제외·`.env.example` 예외·`supabase/.temp/` 제외 규칙을 확인한다.
+이후 `supabase/seed.sql`, 루트 `.env.example`, `supabase/functions/.env.example`을 만든다. seed는 §10.1의 비기밀 데이터만 담는다. 루트 예제의 URL/key는 `https://your-project-ref.supabase.co`와 `sb_publishable_replace_me`를 사용한다. **초기 개발의 실제 .env.local은 §10.3에서 얻은 로컬 값으로 생성한다.** §2.1의 원격 값은 원격 연결 단계에서만 사용하며 로컬 테스트에 섞지 않는다. Functions 예제에는 §10.2의 변수명·자리표시자와 로컬 `AI_MODE=fixture`만 기록한다. 기존 `.gitignore`를 보존하면서 `.env*` 제외·`.env.example` 예외·`supabase/.temp/` 제외 규칙을 확인한다. 실제 env 파일은 stack 시작 후 local:env가 생성한다.
 
 CLI가 생성한 config는 다음 기준으로 보완한다. 이 설정을 위해 사전 생성된 파일을 필요로 하지 않는다.
 
@@ -150,7 +161,7 @@ npx --yes supabase@3.0.0 projects list
 npx --yes supabase@3.0.0 link --project-ref kjfaqfpvfvgbrvdoosyi
 ```
 
-사용자가 본인 계정으로 로그인한다. 비대화형 환경은 보안 저장소에서 주입한 SUPABASE_ACCESS_TOKEN을 사용한다. projects list에서 대상 ref 접근을 확인하고 link 결과도 확인한다. 접근이 없으면 소유자의 멤버 초대/권한 부여가 필요하다. 브라우저 로그인만으로 CLI 로그인 완료로 보지 않는다.
+위 login/list/link는 **원격 관리 연결을 할 때만** 필요하다. B-01의 로컬 초기화·구현·테스트를 막는 선행 조건으로 두지 않는다. 원격에서는 사용자가 본인 계정으로 로그인한다. 비대화형 환경은 보안 저장소에서 주입한 SUPABASE_ACCESS_TOKEN을 사용한다. projects list에서 대상 ref 접근을 확인하고 link 결과도 확인한다. 접근이 없으면 소유자의 멤버 초대/권한 부여가 필요하다. 브라우저 로그인만으로 CLI 로그인 완료로 보지 않는다.
 
 CLI 3.0.0의 DB 작업은 로컬이 기본이며 원격에는 `--remote`를 명시한다. 아래는 **원격 적용 요청과 환경 확인 후** 수행할 절차다.
 
@@ -177,7 +188,7 @@ DB 암호가 필요하면 보안 셸에서 SUPABASE_DB_PASSWORD로 주입한다.
 | 해커톤 원격 | 위 ref, 환경·권한 확인 후 사용 |
 | 프리뷰·운영 | 별도 프로젝트 또는 명시적으로 승인된 동일 프로젝트. 프론트 변수·Auth redirect 각각 설정 |
 
-로컬 실행에는 Docker 호환 런타임, 관리 연결에는 CLI 로그인·프로젝트 권한, 실제 AI에는 문환P 모듈·공급자 키가 필요하다. 문서만으로 생성할 수 없는 외부 조건이다. 없으면 구현과 정적 검사를 계속하고 실행 불가 항목만 미검증으로 남긴다.
+로컬 실행에는 §0.2의 Node/Deno/Docker 환경, 원격 관리 연결에는 CLI 로그인·프로젝트 권한, 실제 AI에는 문환P 모듈·공급자 키가 필요하다. 문서만으로 생성할 수 없는 외부 조건이다. 없으면 구현과 정적 검사를 계속하고 실행 불가 항목만 미검증으로 남긴다.
 
 ## 3. 팀 의존성 없이 진행하는 기본안
 
@@ -250,7 +261,7 @@ bigint 정밀도를 전송 전에 보존한다. id_text/reply_to_text는 일반 
 | demo_clock | 단일 id=hackathon, current_month date, version. 로컬 seed는 KST 현재 월 첫날 |
 | demo_month_runs | closed_month PK, target_month UQ, actor_id, request_id, 결과JSON, created_at |
 | room_settings | room_id PK/FK, disabled_filters text[], version int default1 |
-| operations | PK(actor_id,operation,request_id), payload_hash, state(processing/succeeded/failed), result jsonb nullable, lease_token UUID nullable, lease_until, created_at, updated_at |
+| operations | PK(actor_id,operation,request_id), payload_hash, state(processing/succeeded/failed), result jsonb nullable, lease_token UUID nullable, lease_until nullable, created_at, updated_at |
 | moderation_events | id PK, actor_id, room_id, request_id, verdict, category nullable, created_at. 원문·수정안 미보관, 7일 보관 |
 | verification_reviews | id PK, verification_id UQ/FK, reviewer_id, decision, reason nullable, reviewed_at. 변경 불가 |
 | rate_windows | PK(actor_id,operation,scope_id,window_start), count. DB 분당 제한 |
@@ -258,12 +269,15 @@ bigint 정밀도를 전송 전에 보존한다. id_text/reply_to_text는 일반 
 
 private 모델도 최소 GRANT만 부여한다. 브라우저에 필요한 작업은 권한 검증 public RPC로 노출한다. block/suggest 작업 기록에도 원문·rewrite를 넣지 않는다(§7.3).
 
+Edge의 processing 행은 lease_token/lease_until 필수다. 일반 RPC의 성공 행은 둘 다 null이며, Edge 완료/실패 후에는 두 값을 지운다. 일반 RPC는 한 트랜잭션 안에서 성공 행을 만들므로 외부에 processing 상태를 남기지 않는다.
+
 ### 4.4 RLS·열·함수 권한
 
 - anon은 DB 카탈로그·사용자 데이터·RPC에 접근하지 못한다. 공개 Storage 읽기만 허용.
 - admin은 인증 심사·데모 관리만 추가 허용. 다른 사람의 카드·대화·인박스나 influencer 명의 답변 권한은 없다.
 - 방 소유자는 본인 방 멤버십·대화·인박스·필터·AI 기능에 접근한다. 회원 카드 대신 저장된 own_score를 읽는다.
 - view는 security_invoker=true. 본인 카드 수만 집계하고 기초 테이블 RLS를 유지한다.
+- room_catalog는 private.demo_accounts/demo_clock을 직접 JOIN하지 않는다. 인자 없이 auth.uid()의 real/demo 유효 현재 월만 date로 반환하는 좁은 SECURITY DEFINER helper를 사용한다. helper는 빈 search_path·완전한 schema qualification을 적용하고 authenticated에 해당 helper 실행만 허용한다. private 테이블 SELECT나 타인 userId 입력은 허용하지 않는다.
 - RLS는 행 경계다. 민감 열 숨김으로 오해하지 않는다. 계정 매핑·demo capability·필터·moderation은 private에 분리한다.
 - 필요한 SECURITY DEFINER 함수는 이유·권한 명시, search_path='', 완전한 schema qualification, PUBLIC EXECUTE 회수, 함수별 최소 grant를 적용한다.
 - 일반 RPC actor는 auth.uid(). **Edge service-only 내부 RPC만** 검증 JWT에서 얻은 actor_id를 받는 예외다. authenticated에 이 함수 실행 권한을 주지 않는다.
@@ -283,6 +297,8 @@ private 모델도 최소 GRANT만 부여한다. 브라우저에 필요한 작업
 | gauge | `{"start":100,"monthly_min_rounds":3,"decay_per_month":50}` |
 
 mutation은 필요한 설정을 트랜잭션 내 한 번 읽는다. 필수/추가 key·enum·숫자를 DB 검증한다. 확률≥0·합계100, weight≥0·그룹 합계1, count_cap/upgrade_cost/min_cards는 양의 정수. gauge.start=1~100, monthly_min_rounds≥0, decay=1~100. 스타일 수3·등급 순서·any_grade=true는 v1 고정이며 변경 설정은 거부한다. 설정 누락·오염은 CONFIG_INVALID로 전체 롤백한다.
+
+이 문서의 10장·5장·100·3회·50은 **초기 설정에서의 예시와 테스트 기준**이다. 추첨·강화·입장·재입장·월 마감·room_catalog·오류 details는 현재 유효한 설정 snapshot을 사용한다. 설정 변경은 기존 카드·gauge·과거 점수를 일괄 변경하지 않고 다음 작업부터 적용한다. grade_points의 네 값은 각각 0~100 유한수, gauge.start/decay_per_month는 범위 안 정수, monthly_min_rounds는 비음수 정수로 추가 검증한다. 설정 변경 테스트에서는 고정된 10/5/100/3/50을 그대로 쓰지 않는지 확인한다.
 
 ### 5.2 추첨·강화
 
@@ -371,6 +387,8 @@ type Message = {
 
 SDK는 세션을 Supabase client에서 얻으며 공개 인자에 userId/actor/role을 받지 않는다. RLS 때문에 비어 있는 결과를 확인하려고 관리자 권한으로 재조회하지 않는다.
 
+lib/api의 쿼리·호출 로직은 createBackendApi(client)로 주입한 SupabaseClient를 사용한다. 브라우저 export는 lib/supabase/client.ts의 인스턴스에 연결한다. Node 통합 테스트는 사용자별 client를 persistSession=false·autoRefreshToken=false로 만들어 같은 API factory를 검증한다. SDK import 시 window/localStorage에 접근하지 않으며 Node 테스트를 위해 Next.js 앱을 먼저 만들지 않는다. 브라우저 전용 초기화는 브라우저 factory 안에서만 수행한다.
+
 ### 6.2 오류 코드
 
 | code | 의미·details | retryable |
@@ -386,6 +404,7 @@ SDK는 세션을 Supabase client에서 얻으며 공개 인자에 userId/actor/r
 | IDEMPOTENCY_CONFLICT | 같은 requestId에 다른 payload | false |
 | REQUEST_IN_PROGRESS | 동일 작업 처리중, retryAfterMs | true |
 | FILTERS_CHANGED | 판정중 필터 변경, 재판정 필요 | true |
+| SOURCE_CHANGED | AI 계산 중 질문이 답변되는 등 source 자격 변경 | true |
 | RATE_LIMITED | retryAfterSeconds | true |
 | FILTER_UNAVAILABLE | AI 미설정·timeout·JSON/점수 오류 | true |
 | ALREADY_REVIEWED / PENDING_EXISTS | 심사 완료/신청중 중복 | false |
@@ -572,6 +591,8 @@ summary≤2000자, 빈 source는 summary=""/IDs=[]·LLM0회. cluster는2개 이�
 
 묶기 완료는 source ID의 기존 cluster_id 정리와 새 묶음을 한 트랜잭션에 반영한다. source 밖 메시지의 묶음은 유지하되 참조 수를 재계산한다. 1개만 남은 묶음도 해당 메시지의 cluster_id를 null로 만들고 삭제한다. 같은 방 작업은 직렬화한다. summary는 공개 테이블 없이 operation 결과로 캐시한다. 실패 시 기존 결과·묶음을 보존하며 자동 무한 재실행은 없다.
 
+cluster 최종 반영 시 source 질문이 여전히 같은 방의 미답변 pass인지 다시 확인한다. AI 계산 중 답변이 생겼다면 SOURCE_CHANGED로 전체 미반영·실패 처리하고 같은 requestId의 재시도에서 source를 다시 읽는다. source가 0~1개면 묶음은 []로 반환하고 LLM을 호출하지 않는다. 새로운 질문이 추가됐다는 이유만으로 기존 source 작업을 무효화하지 않는다.
+
 ### 8.4 인증
 
 - 본인 influencer만 신청. evidenceUrl은 HTTPS≤2048자 문자열, 임의 URL fetch 금지.
@@ -603,6 +624,10 @@ summary≤2000자, 빈 source는 summary=""/IDs=[]·LLM0회. cluster는2개 이�
 
 로컬 script가 Auth Admin으로 userA/userB/influencer/admin 최소4계정을 만든다. user-a@example.test 같은 비실계정 이메일 사용, 암호는 안전하게 생성하거나 환경변수로 받는다. 가입 trigger 이후 관리 연결로 role·private 매핑·demo capability 부여. seed/프론트에 암호·Admin키 금지.
 
+**Auth 생성과 도메인 프로비저닝의 경로를 구분한다.** Auth 계정 생성/기존 계정 확인은 로컬 URL+secret key의 Auth Admin SDK로 수행한다. role·private 매핑·초기 보유량·fixture marker는 pg가 §10.3의 BB_LOCAL_DATABASE_URL로 직접 로컬 DB에 연결한 관리 SQL 트랜잭션으로 기록한다. private schema를 Data API에 노출하거나 authenticated GRANT를 늘려 해결하지 않는다. 이 관리 연결은 Node script에만 있으며 브라우저·Edge에 전달하지 않는다.
+
+setup script는 @supabase/supabase-js와 pg만 사용하고 database.types.ts·브라우저 SDK·Next.js 코드를 import하지 않는다. URL과 DB host가 모두 loopback이며 프로젝트 로컬 포트인지 확인하고 원격 URL이면 쓰기 전에 거부한다. 같은 이메일 계정 재사용·DB marker 확인으로 중간 실패를 복구한다.
+
 거부 테스트에는 다른 방 influencerB와 demo_accounts에 없는 일반 user를 별도 fixture로 추가한다. Auth 계정은 같은 이메일이면 재사용한다. 도메인 시연 데이터는 demo_fixture_runs의 버전 marker와 같은 트랜잭션으로 최초 1회만 주입한다. 재실행으로 카드·게이지·clock·질문·답변·신청을 덮어쓰거나 중복 생성하지 않는다. Auth API 생성과 DB 트랜잭션은 별개이므로 중간 실패 후에도 같은 계정을 재사용해 재개한다.
 
 일반 가입은 influencer/admin을 만들지 못한다. setup은 로컬 URL만 기본 허용·반복 실행 안전. 원격 계정 생성은 대상확인·요청이 있을 때만. 암호는 검증로그 대신 로컬 비밀 저장소에 전달한다.
@@ -621,14 +646,17 @@ summary≤2000자, 빈 source는 summary=""/IDs=[]·LLM0회. cluster는2개 이�
 
 | 위치 | 변수 | 규칙 |
 | --- | --- | --- |
-| 프론트 .env.local | NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY | §2.1 원격 또는 로컬 한 환경만 |
+| 프론트 .env.local | NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY | 처음에는 로컬 값만. §2.1 원격 값은 명시적 원격 연결 단계에서 사용 |
+| Node .env.backend.local | BB_LOCAL_SUPABASE_URL / BB_LOCAL_PUBLISHABLE_KEY / BB_LOCAL_SECRET_KEY / BB_LOCAL_DATABASE_URL | 실행 중인 로컬 stack에서 수집. 로컬 setup·테스트 전용, 브라우저에 주입하지 않음 |
 | CLI 저장소·셸 | SUPABASE_ACCESS_TOKEN / 필요시 SUPABASE_DB_PASSWORD | 비밀값 문서/Git 금지 |
 | Edge runtime | SUPABASE_URL / SUPABASE_PUBLISHABLE_KEYS / SUPABASE_SECRET_KEYS | 서버만, 실제 제공 여부 확인 |
-| 로컬 Edge .env | SUPABASE_PUBLISHABLE_KEY / SUPABASE_SECRET_KEY | 단일키 fallback 필요한 경우만, Git제외 |
+| 로컬 Edge .env | BB_LOCAL_PUBLISHABLE_KEY / BB_LOCAL_SECRET_KEY | 로컬 key fallback만. 호스트 URL·관리 DB URL은 넣지 않음. 호스팅에서는 이 fallback을 사용하지 않음 |
 | Edge .env/Secrets | AI_MODE=fixture 또는 live, LLM_API_KEY/LLM_MODEL/adapter필수값 | fixture 로컬전용, live 누락검증 |
 | Edge .env/Secrets | ALLOWED_ORIGINS | localhost:3000·승인된 프리뷰 origin allowlist |
 
 publishable key는 apikey, 사용자 access token은 Authorization Bearer. 공개키를 JWT로 보지 않는다. legacy anon/service_role key를 신규 기준으로 쓰지 않는다. 런타임 key JSON의 키 이름을 명시하고 서버 비밀모듈의 브라우저 import를 막는다.
+
+로컬 key fallback은 자체 BB_LOCAL_* 변수로 읽어 런타임 예약 변수명을 사용자 Secrets로 덮어쓰지 않는다. **Edge의 API URL은 로컬·hosted 모두 플랫폼 SUPABASE_URL만 사용한다.** 브라우저/Node의 127.0.0.1 URL은 컨테이너 내부에서 다른 주소를 가리키므로 Edge fallback으로 쓰지 않는다. _shared 설정 계층이 플랫폼 URL과 검증된 key를 client 초기화 값으로 매핑한다. hosted에서는 플랫폼 제공 key JSON을 사용한다. local:env가 생성한 .env.backend.local과 Functions .env는 Git에서 제외하고 소유자만 읽고 쓸 수 있는 권한으로 저장한다. 로컬 키·DB URL을 터미널 로그나 검증 기록에 출력하지 않는다.
 
 사용자 Edge는 verify_jwt=true 기본이며 handler도 user JWT를 검증한다. gateway가 선택 서명키/런타임 JWT를 처리하지 못하면 원인 기록 후에만 verify_jwt=false+getUser/getClaims 또는 공식 auth:user wrapper로 전환. 어느 설정이든 key만 가진 호출은 거부. OPTIONS는 인증 전 CORS 응답만, DB/LLM 호출 없음.
 
@@ -636,24 +664,41 @@ publishable key는 apikey, 사용자 access token은 Authorization Bearer. 공�
 
 B-01에서 아래 scripts를 먼저 구현한다. 현재 존재한다고 가정하지 않는다. 기존 package manager가 npm이 아니면 같은 의미로 맞춘다.
 
-실행 전 준비 순서는 package/고정 CLI → config가 없을 때만 §2.3의 init → migration·seed·Function·SDK·scripts 작성 → 실제 로컬 env 준비 → start → reset이다. 타입 출력 디렉터리 lib/supabase와 Functions env-file도 첫 사용 전에 생성한다. 아래 명령은 이 준비가 끝난 뒤 실행한다.
+**처음부터의 순서:** package/고정 CLI 준비 → config가 없을 때만 §2.3의 init → migration·seed·Function·SDK·scripts 작성 → local:start(stack 시작+env 수집) → reset → 타입 생성 → demo setup → 정적/DB/Edge/SDK 검증이다. 실제 로컬 키는 stack 시작 전에는 요구하지 않는다. 타입 출력 디렉터리 lib/supabase도 리다이렉션 전에 생성한다.
+
+local:start는 `node scripts/prepare-local-env.mjs --start`로 구현한다. 고정 CLI start의 stdout/stderr를 캡처하고 상태·정리된 오류만 표시한 뒤 local:env와 같은 수집 로직을 수행한다. 시작 명령이 연결 키를 출력하더라도 그 전체 출력을 로그에 복사하지 않는다. local:env는 stack이 이미 실행 중일 때 env만 갱신하는 `node scripts/prepare-local-env.mjs`다.
+
+수집 로직은 고정 CLI의 `supabase status --output json`을 자식 프로세스로 실행해 stdout을 메모리에서만 파싱한다. 실제 출력 필드명에 맞춰 로컬 API URL·publishable key·secret key·DB URL을 정규화한다. 필수 값이 없으면 설명 가능한 오류로 중단하고 원격 URL/key·legacy 키로 조용히 대체하지 않는다.
+
+정규화된 값으로 프론트 .env.local, Node .env.backend.local, Functions .env를 만든다. Functions에는 AI_MODE=fixture와 로컬 allowlist도 넣는다. 기존 env의 비밀값·live 설정은 덮어쓰기 전에 비교하고 보존한다. URL/DB host가 loopback이 아니면 local:env와 로컬 쓰기 script가 거부한다. 원격 연결이 선택된 프론트 파일을 로컬 테스트가 읽지 않도록 테스트는 .env.backend.local만 사용한다.
 
 ```bash
 npm ci
-npx supabase start
+npm run local:start
 npx supabase db reset
-npm run demo:setup
 npx supabase gen types typescript --local > lib/supabase/database.types.ts
+npm run demo:setup
+npm run typecheck
 npx supabase db lint
 npx supabase test db
 npx supabase functions serve --env-file supabase/functions/.env
 # 별도 터미널
-npm run typecheck
 npm run test:backend
 npm run verify:backend
 ```
 
-신규 package는 npm install로 lockfile 생성 후 npm ci. 고정 CLI --help로 flag 확인. demo:setup=계정/시나리오, typecheck=SDK/테스트 타입, test:backend=DB·Edge·SDK 계약, verify:backend=P0/P1/P2 스모크·Realtime·역할별 거부. Edge 타입/테스트는 고정 Deno 설정·명령으로 연결한다.
+신규 package는 npm install로 lockfile을 먼저 만든 뒤 npm ci를 사용한다. 명령 flag는 고정 CLI의 --help로 확인한다. scripts는 다음 계약으로 구현한다.
+
+| script | 수행 내용 |
+| --- | --- |
+| local:start | CLI start 출력을 비로그로 캡처한 뒤 local:env 수집 로직 수행. Docker/서비스 오류를 비밀값 없이 보고 |
+| local:env | 위 로컬 연결 값 수집·env 생성. 관리 키를 로그에 출력하지 않음 |
+| demo:setup | Node의 --env-file=.env.backend.local로 실행하는 독립 .mjs. 로컬 Auth Admin과 pg로 계정/시나리오 준비 |
+| typecheck | tsc --noEmit -p tsconfig.backend.json으로 Node/SDK/tests 검사 후 별도 deno check로 Edge 검사. Node tsc에 Deno import를 섞지 않음 |
+| test:backend | tsx 기반 Node 테스트로 SDK·권한·동시성 검증, 별도 deno test로 Edge 단위 계약 검증. DB pgTAP은 위 supabase test db에서 실행 |
+| verify:backend | .env.backend.local만 사용해 실행 중인 로컬 Functions·Auth·DB·Realtime의 P0/P1/P2 스모크. 위 단위 테스트의 반복 실행으로 대체하지 않음 |
+
+명령 실패는 exit code로 반영한다. database.types.ts는 reset 후 실제 schema에서 생성하며 setup을 위해 임시 수기 타입을 만들지 않는다. demo setup과 local:env는 생성 DB 타입·브라우저 코드에 의존하지 않는다.
 
 Docker가 없으면 코드·테스트 작성과 정적검사를 계속하고 런타임 미검증으로 기록한다. 원격 DB를 테스트 대용으로 reset하지 않는다.
 
@@ -679,6 +724,8 @@ P0/P1/P2는 순서이며 전체완료 요청에서 P2를 임의 제외하는 기
 
 순서:
 
+점수 계산 SQL helper는 메시지 저장에 필요하므로 B-06에서 먼저 구현한다. B-08은 그 helper의 공식·정렬 검증과 inbox/reply 기능을 완성한다. B-06이 아직 없는 B-08 함수를 기다리거나 임의 점수로 저장하지 않는다.
+
 1. B-01→B-02, B-11 연결/환경 안내 병행.
 2. B-03→B-04→P0 SDK 통합(Auth→draw→collection→upgrade).
 3. B-05→B-06→B-08→P1 SDK 통합(join→판정→Realtime→inbox→reply).
@@ -695,10 +742,11 @@ migration 순서: core/config→private/Auth→RLS/helpers→cards/views→rooms
 | 묶음 | 사례·합격 조건 |
 | --- | --- |
 | 재현 | 빈 로컬 DB에서 migration+seed+setup 및 재실행 성공. 타입 검사·DB lint 통과 |
+| 초기화·env | supabase/·예제 env 없는 상태에서 절차로 생성 가능. stack 시작 후 로컬 키 수집, Node/브라우저와 Edge URL 분리, 원격 host 쓰기 거부, 비밀값 비출력 확인 |
 | 역할 | anon/userA/userB/방 소유자/다른 influencer/admin 각각 허용·거부 확인. 가입 metadata의 admin/demo 값 무시 |
 | 지급 | 같은 requestId 20회 병렬 호출 시 round/draw 각 1개·카드 +1. 다른 payload 재사용 거부. 같은 template 최초 동시 지급의 isNew=true는 정확히 1개 |
 | 강화 | 9장 거부·10장 성공·special 거부. 10장에 서로 다른 요청 2개 병렬 호출 시 1개 성공·1개 부족. 음수·부분 지급 없음 |
-| 확률·설정 | 설정 누락·음수·합계 오류 거부. 난수 경계 검사와 1,000회 분포 기록. 일반 계정 강제 등급 거부 |
+| 확률·설정 | 설정 누락·음수·합계 오류 거부. 난수 경계 검사와 1,000회 분포 기록. 일반 계정 강제 등급 거부. 비용·입장 장수·gauge 설정을 바꾼 뒤 현재 값 적용 확인 |
 | 입장 | 4/5장 경계·카드 미소모·active gauge 보존·강화 후 유지. 퇴장 효력 월 재입장 거부·다음 월 허용 |
 | 월 | 2회면 -50·3회면 유지. 두 무활동 월 뒤 퇴장. 같은 월 병렬 요청에도 마감 1회. 월 마감과 라운드 저장 경합·비데모 데이터 보존 확인 |
 | 메시지 | pass만 저장. suggest/block 원문·rewrite가 DB/Realtime/inbox/log에 없음. 동일 요청 1행·만료 lease 거부 |
@@ -708,7 +756,7 @@ migration 순서: core/config→private/Auth→RLS/helpers→cards/views→rooms
 | Realtime | 두 세션 송수신, 타방·left 이벤트 차단, 초기 버퍼 중복 제거, 재연결 복구, 계정 전환 정리, 폴링 중단. 큰 bigint 문자열과 동일 방 동시 전송도 확인 |
 | 인증 | 본인 신청만 허용·pending 중복 거부. 승인/반려 경합 1회 성공. type·배지·이력 일관, 증빙 URL fetch 없음 |
 | 필터·보관 | 필수 필터 해제·타방 변경 거부. version 충돌·저장 경합 검사. 만료 metadata/operations/rate window 정리 |
-| 묶기·요약 | 소유자만 허용, source 밖·중복 ID 거부, 길이·호출 제한. 빈 source는 AI 0회. singleton 제외·실패 시 기존 결과 보존 |
+| 묶기·요약 | 소유자만 허용, source 밖·중복 ID 거부, 길이·호출 제한. 빈 source는 AI 0회. singleton 제외·처리 중 답변이면 SOURCE_CHANGED·실패 시 기존 결과 보존 |
 | Storage | 공개 읽기 성공, 비관리자 쓰기·덮어쓰기·삭제 거부, 관리자 업로드 성공, 없는 이미지 예제 |
 | 노출 | 번들·Git·fixture·로그에 secret/JWT/암호 없음. private 비노출·민감 RPC의 PUBLIC 실행 금지·권한 상실 후 캐시 조회 거부 |
 
@@ -773,13 +821,15 @@ cards는 현호P, rooms/chat/filters/verifications는 자성P가 사용한다. �
 
 2026-11-10 준비 상태 정리: 사용자 요청에 따라 로컬 `supabase/` 폴더 전체와 루트 `.env.example`을 삭제한다. 위 연결 값과 생성 기준은 이 문서에 보존하며 다음 개발 착수 시 B-01에서 생성한다. 원격 Supabase는 변경하지 않는다.
 
-준비 단계의 전체 계획 검사기는 아직 이 파일들이 존재한다고 가정한다. 따라서 삭제 후 required file 누락도 보고할 수 있다. 이는 의도된 개발 전 상태이며, 검사를 통과시키려고 사용자 요청 전에 파일을 다시 생성하지 않는다. 개발 착수 시 초기화한 뒤 전체 검사를 실행한다.
+준비 단계의 전체 계획 검사기는 아직 이 파일들이 존재한다고 가정하므로 파일 누락 또는 읽기 오류로 중단할 수 있다. 이는 의도된 개발 전 상태이며 검사 때문에 파일을 미리 생성하지 않는다. 개발 착수 후 전체 검사는 참고 결과로 기록하되, 알려진 다른 담당자 문서의 과거 계약 실패를 B-13 백엔드 완료의 게이트로 삼지 않는다. 새로 구현한 백엔드의 필수 검증 실패는 예외 없이 수정한다.
 
 기존 문서의 독립성·계약·권한을 검토하고 위 공백을 보완했다. Supabase 값은 사용자가 전달한 그대로 §2.1에 기록했다. 프로젝트 설정파일 생성·CLI 로그인/link·schema/RPC 생성·원격배포는 이번 작업의 범위가 아니다.
 
 문서 자체 검증: 주요 절 15개, 티켓·체크리스트 13개 일치, TypeScript 예시 5개 구문 분석, 설정 JSON 6개 파싱, 전달받은 URL/key 일치, 코드 블록 짝·공백 검사를 통과했다. git diff --check도 통과했다. 이는 문서 검증이며 DB·Edge·브라우저 실행 증거가 아니다.
 
-기존 전체계획 검사(check-plan.mjs)는 다른 담당자/architecture 문서의 과거 서버API·권한 설명 때문에 보완 전부터 실패했다. 이 파일만 수정하라는 범위를 지켜 다른 문서·검사기를 바꾸지 않는다. 개발 시 이 문서의 CSR 계약을 SDK로 제공하고 공통문서 정리는 별도 범위로 남긴다. 이 검사 실패는 런타임 검증 결과가 아니다.
+초기 전체계획 검사(check-plan.mjs)는 architecture와 다른 담당자 문서의 과거 서버 API·권한 설명 때문에 실패했다. 2026-11-10 사용자 요청으로 architecture.md의 예정 폴더 구조·CSR 흐름·서비스 목록·역할을 이 계획에 맞춰 동기화하고 anonymous-plan.md도 U-01 시연·발표 범위로 정리했다. 자성P·문환P·현호P 계획의 과거 계약과 검사기는 별도 정리 대상으로 남아 있다. 이 검사 결과를 런타임 검증 증거로 사용하지 않는다.
+
+2026-11-10 최종 독립 실행 검토에서는 로컬 키 획득 순서, setup의 직접 DB 연결, Node/Deno 검사 분리, 설정값 변경 적용, 비공개 월 정보 helper, lease nullability와 AI source 변경 처리를 추가 확인·보완했다. 구현 시 harness/verification-log.md가 없으면 날짜·티켓·환경·명령·결과·미검증 필드로 생성한다. 기존 하네스 파일이 없다는 이유로 구현을 멈추지 않으며 이 문서의 §12 검증 기준을 사용한다.
 
 ### 14.4 기술 근거
 
