@@ -29,7 +29,7 @@ flowchart LR
     RPC["Postgres RPC<br/>권한 · 원자적 게임 규칙 · 점수"]
     EDGE["Edge Functions<br/>JWT 검증 · AI adapter"]
     DB[("Postgres<br/>public · private")]
-    RT["Realtime<br/>messages INSERT · SELECT RLS"]
+    RT["Realtime<br/>messages INSERT/UPDATE · SELECT RLS"]
     ST["Storage<br/>card-assets"]
     PROFILE_ST["Storage<br/>influencer-profiles"]
     DATA --> DB
@@ -60,7 +60,7 @@ flowchart LR
 | 인증 | Supabase Auth | profiles.id=auth.users.id, 가입 시 user, 권한 변경은 관리 경계 |
 | DB | Supabase Postgres + migrations | 모든 공개 테이블 RLS, 명시적 grants, 조회 view는 security_invoker |
 | AI | Edge Functions + _shared AI adapter | 문환P 모델 로직, 홍주P 인증·전송·저장·실패 처리 |
-| 실시간 | Realtime Postgres Changes | messages INSERT만, SELECT RLS 범위. 연결 장애 시 3초 폴링 |
+| 실시간 | Realtime Postgres Changes | messages INSERT/UPDATE, SELECT RLS 범위. 연결 장애 시 3초 폴링 |
 | 이미지 | Supabase Storage card-assets / influencer-profiles | 카드 10명×3스타일=30개. 카드 이미지는 공개 읽기·관리자 쓰기, 프로필 사진은 공개 읽기·인증된 본인 인플루언서의 WebP 업로드 전용. 교체 시 새 객체 경로 사용 |
 | 실행·검증 | Node.js 24, Deno 2, Supabase CLI, Docker 호환 런타임 | Node/SDK와 Deno/Edge 검사 분리 |
 | 배포 | Supabase CLI + Vercel | DB/Functions는 Supabase, 프론트는 Vercel |
@@ -97,7 +97,7 @@ BirdieBuddy/
 │     ├─ types.ts                      # 도메인 타입·Result·ApiError·Page
 │     ├─ cards.ts                      # 뽑기·컬렉션·강화
 │     ├─ rooms.ts                      # 목록·입장·멤버십·월 라운드 요약·데모 월 경과
-│     ├─ chat.ts                       # 전송·조회·구독·인박스·답변·AI 기능
+│     ├─ chat.ts                       # 팬/인플루언서 메시지·재연결 복구·인박스·답변·AI 기능
 │     ├─ verifications.ts              # 신청·목록·관리자 심사
 │     ├─ game-config.ts                # 설정 읽기·관리자 변경
 │     ├─ room-filters.ts               # 방 필터 읽기·변경
@@ -112,6 +112,8 @@ BirdieBuddy/
 │     ├─ _shared/                      # 공통 인증·검증·AI adapter
 │     │  └─ ai.ts                      # 문환P AI 로직 ↔ 홍주P adapter 경계
 │     ├─ submit-message/index.ts       # 홍주P: 인증·판정·최종 저장
+│     ├─ send-influencer-message/index.ts # 홍주P: 답변·전체 메시지 mandatory filter
+│     ├─ update-room-greeting/index.ts # 홍주P: 인사말 필터·설정
 │     ├─ summarize-room/index.ts       # 홍주P 전송 계층 + 문환P 요약
 │     └─ cluster-questions/index.ts    # 홍주P 전송 계층 + 문환P 질문 묶기
 ├─ scripts/                            # 홍주P: Node 실행·검증 도구
@@ -157,25 +159,26 @@ lib/api는 브라우저 SDK이며 서버 구현 위치가 아니다. 클라이�
 | card_templates | 인물×스타일 30개, image_path 저장. SDK가 환경별 공개 URL 생성 |
 | user_cards | 사용자·template·grade별 장수. 본인 읽기, 추첨·강화 RPC만 변경 |
 | rounds | 라운드 시각·활동 월·real/demo 구분. 월 마감 집계 기준 |
-| draws | 라운드당 추첨 1회, 등급·template·is_new·is_forced 이력 |
-| chat_rooms | 인증된 인물당 1개 방. 기본10개, 11번째 신청 승인 시 추가. 필터 관리 설정은 private |
-| room_members | gauge(소수점 1자리)·active/left·입장 월·퇴장 효력 월. 입장·월 마감 RPC 변경 |
-| messages | pass 질문·influencer 답변만. 문자열 ID·표시명·보유 배지/점수 snapshot·익명 reply context·reply/cluster 연결 |
-| message_clusters | 같은 방 질문 묶음·대표문장·참조 수. 팬은 본인 질문이 있는 묶음만 조회 |
+| draws | 라운드당 추첨 1회, 등급·template·is_new·forced 이력 |
+| chat_rooms | 인증된 인물당 1개 방. 기본10개, 11번째 신청 승인 시 카드 템플릿 없는 방 추가. 필터·인사말 설정은 private |
+| room_members | gauge(소수점 1자리)·active/left·최신 입장 월·퇴장 효력 월. 입장·월 마감 RPC 변경 |
+| messages | 팬 질문·influencer 답변/전체 메시지/첫 입장 인사말. 입장 기간과 수신자에 따른 RLS, 문자열 ID, 안전한 reply context, priority snapshot, soft delete와 updated_at 변경 cursor |
+| message_clusters | 같은 방의 미답변 질문 묶음·대표문장. 활성 고유 질문자 수는 조회 시 계산 |
 | verifications | 본인 인증 신청·관리자 심사 상태 |
 | game_config | 검증 가능한 게임 설정·version. 인증 사용자 읽기·관리자 RPC 변경 |
 
-비공개 보조 모델은 private schema의 influencer_accounts, demo_accounts, demo_clock, demo_month_runs, room_settings, operations, moderation_events, verification_reviews, rate_windows, demo_fixture_runs다. Data API 노출 schema에 포함하지 않는다. 공개 테이블 12개가 전체 DB 테이블 수의 상한이라는 뜻은 아니다.
+비공개 보조 모델은 private schema의 influencer_accounts, demo_accounts, demo_clock, demo_month_runs, room_settings, room_member_periods, moderation_suggestions, operations, moderation_events, verification_reviews, rate_windows, demo_fixture_runs다. Data API 노출 schema에 포함하지 않는다. 공개 테이블 12개가 전체 DB 테이블 수의 상한이라는 뜻은 아니다.
 
 권한의 공통 기준:
 
 - 모든 public 테이블에 RLS와 명시적 grants. security_invoker view는 기초 테이블의 RLS를 유지한다.
 - anon은 DB 데이터·RPC 접근 없이 공개 카드·프로필 이미지 읽기만 가능하다. 가입은 항상 user이며 역할·데모 capability는 서버 관리 경계에서만 부여한다.
-- user는 본인 카드·라운드, 본인 질문, 본인 질문 또는 그 질문이 속한 묶음에 연결된 influencer 답변만 읽는다. 같은 방의 다른 팬 질문은 Data API와 Realtime에서 모두 숨긴다. influencer는 본인 인증 신청과 매핑된 본인 방의 전체 대화·인박스·필터·AI 기능을 사용한다. admin은 인증 심사·설정·카드 자산·허용된 데모를 관리한다. admin이라는 이유로 타인 카드·대화·인박스를 읽거나 influencer 명의로 답변하지 못한다.
-- submit_moderated_message 등 내부 저장 RPC는 Edge의 service-only 호출만 허용한다. 인증·멤버십·필터 version은 최종 저장 시 DB에서 재검사하고 점수를 계산한다.
+- user는 본인 카드·라운드와 자기 질문, 본인의 입장 구간에 게시된 influencer 답변/전체 메시지/인사말만 읽는다. 입장 전·퇴장 기간 메시지는 숨기고 퇴장 중에는 방을 열 수 없다. 재입장 시 과거 입장 구간 대화는 복구하며, 퇴장 기간에 달린 본인 질문의 답변은 예외로 읽는다. greeting은 수신자 본인만 읽는다. 다른 팬 질문 행은 Data API와 Realtime에서 모두 숨긴다. influencer는 본인 인증 신청과 매핑된 본인 방의 전체 대화·인박스·필터·인사말 설정·AI 기능을 사용한다. admin은 인증 심사·설정·카드 자산·허용된 데모를 관리한다. admin이라는 이유로 타인 카드·대화·인박스를 읽거나 influencer 명의로 답변하지 못한다.
+- submit_moderated_message·submit_influencer_message 등 내부 저장 RPC는 Edge의 service-only 호출만 허용한다. 인증·멤버십 기간·필터 version은 최종 저장 시 DB에서 재검사하고 점수를 계산한다.
 - messages에는 block/suggest 원문을 저장하지 않는다. private moderation_events에는 판정 metadata만 7일 보관하며 rewrite·원문·JWT·키를 DB 감사 기록이나 로그에 복사하지 않는다.
-- Realtime에는 messages INSERT만 전달한다. 방 필터 조건이 아니라 SELECT RLS가 이벤트 권한 경계다. 팬은 본인 질문과 본인에게 보이는 답변만 받고 방 주인은 방 전체를 받는다. 로그아웃·퇴장·계정/방 변경 시 구독·캐시·폴링을 정리한다.
-- influencer 답변은 원 질문 또는 묶음 대표 질문을 닉네임 없이 reply context로 보존한다. 묶음 답변은 해당 묶음 질문자에게 보이고, “내 질문에 대한 답변” 표시는 질문자 본인 화면에만 붙인다.
+- Realtime에는 messages INSERT와 influencer 답변/전체 메시지의 삭제 UPDATE를 전달한다. 방 필터 조건이 아니라 SELECT RLS가 이벤트 권한 경계다. 팬은 본인 질문과 현재 수신 자격이 있는 influencer 메시지만 받고 방 주인은 방 전체를 받는다. SDK는 updated_at,id cursor로 reconnect 뒤 오래된 행의 soft delete도 복구한다. 로그아웃·퇴장·계정/방 변경 시 구독·캐시·폴링을 정리한다.
+- influencer 답변은 원 질문의 passesAllFilters가 참일 때만 원문을 닉네임 없이 reply context로 보존한다. 거짓이면 reply_to 관계만 유지하고 팬 화면은 본인의 질문 행을 사용한다. 묶음 답변은 모든 필터를 통과한 대표 질문을 전달하며 “내 질문에 대한 답변” 표시는 질문자 본인 화면에만 붙인다.
+- 답변·전체 메시지를 삭제하면 body를 null로 지우고 삭제 시각을 기록한다. 팬 화면에는 "삭제된 메시지"를 보이며 답변 삭제는 해당 질문 또는 묶음을 다시 미답변으로 연다. 팬 질문·인사말은 삭제할 수 없다.
 
 ### 게임 설정과 규칙 요약
 
@@ -187,14 +190,14 @@ lib/api는 브라우저 SDK이며 서버 구현 위치가 아니다. 클라이�
 | upgrade_cost | 같은 template·grade 10장→다음 grade 1장 |
 | room_entry | 해당 인물 라운드 보상 누적 발급 5장, 등급·스타일 무관·카드 미소모 |
 | priority_weights | 보유 배지 기반 ownScore 0.6 + qualityScore 0.4 |
-| own_score | Buddy30·Eagle60·Albatross90, 보유 스타일 추가 1종당 +5(최대+10). 점수 규칙은 홍주P 계획 §5.5 |
+| own_score | Buddy30·Eagle60·Albatross90, 보유 스타일 추가 1종당 +5(최대+10), 배지 없어도 스타일 가산. 점수 규칙은 홍주P 계획 §5.5 |
 | gauge | 입장·재입장 시50, 월 기준3회에서 라운드 1회당 ±12.5, 최대100, 0이면 퇴장 |
 
-확률·비용·입장 수·게이지 수치는 PRD 시연 기본값이다. 라운드 완료로 지급된 draws는 강화 뒤에도 누적 입장 자격과 배지 집계에 남는다. 보유 배지는 Buddy(누적10장 또는 Epic 이상), Eagle(누적15장 또는 Special), Albatross(누적15장 그리고 Special)이며 가장 높은 조건을 적용한다. 배지 없음은 ownScore 0점이다. qualityScore는 검증한 AI 결과다. 메시지 저장 시 ownScore와 priority를 snapshot으로 보존한다.
+확률·비용·입장 수·게이지 수치는 PRD 시연 기본값이다. 라운드 완료로 지급된 draws는 강화 뒤에도 누적 입장 자격과 배지 집계에 남는다. 보유 배지는 Buddy(누적10장 또는 Epic 이상), Eagle(누적15장 또는 Special), Albatross(누적15장 그리고 Special)이며 가장 높은 조건을 적용한다. badge base 점수는 없음0/Buddy30/Eagle60/Albatross90이고, 보유 스타일 2종은 +5, 3종은 +10으로 배지와 무관하게 적용한다. qualityScore는 검증한 AI 결과다. 질문 저장 시 ownScore와 priority를 snapshot으로 보존하며 priority 동점은 최근 메시지를 먼저 둔다.
 
-추첨은 등급을 먼저 뽑고 30개 template 중 균등 추첨한다. `isNew`는 추첨 직전 해당 template을 등급 무관하게 현재 0장 보유했는지다. 시연용 `demoForceGrade`는 capability가 있는 계정의 `completeRound` 입력으로만 허용하고 draws에 `is_forced`로 기록한다. 강제 발급도 누적 획득·입장·배지 계산에는 포함하고 확률 검증에서는 제외한다. 카드 지급은 DB에서 애니메이션보다 먼저 확정되므로 화면을 나가도 보유 기록은 유지된다. 프로토타입의 `requestId`는 전송 재시도만 막는다. 같은 실제 골프존 라운드의 중복 발급 방지와 미개봉 카드팩은 실서비스 연동 과제다.
+추첨은 등급을 먼저 뽑고 30개 template 중 균등 추첨한다. `isNew`는 추첨 직전 해당 template을 등급 무관하게 현재 0장 보유했는지다. 시연용 `demoForceGrade`는 capability가 있는 계정의 `completeRound` 입력으로만 허용하고 draws.forced로 기록한다. 강제 발급도 누적 획득·입장·배지 계산에는 포함하고 확률 검증에서는 제외한다. 카드 지급은 DB에서 애니메이션보다 먼저 확정되므로 화면을 나가도 보유 기록은 유지된다. 프로토타입의 `requestId`는 전송 재시도만 막는다. 같은 실제 골프존 라운드의 중복 발급 방지와 미개봉 카드팩은 실서비스 연동 과제다.
 
-월 라운드 수는 모든 채팅방에서 공통으로 인정한다. 게이지는 기준 3회에서 초과·부족 각 1회당12.5를 더하거나 빼고 0~100으로 제한한다. 입장·재입장한 달에는 부족분을 빼지 않는다. 퇴장 뒤 라운드를 1회 완료하면 재입장할 수 있고 gauge는 50으로 재시작한다. 데모 월 마감은 논리 월을 사용하고 실제 일반 사용자 월 자동화와 구분한다. 자세한 계산·잠금·점수 공식은 홍주P 계획 §§5·7을 따른다.
+월 라운드 수는 모든 채팅방에서 공통으로 인정한다. 게이지는 기준 3회에서 초과·부족 각 1회당12.5를 더하거나 빼고 0~100으로 제한한다. 입장·재입장한 달은 오르거나 내리지 않고 월 정산 전체를 건너뛴다. 퇴장한 사용자가 한 달력 월에 라운드 3회를 완료하면 그 달에 left인 방 모두 재입장할 수 있고 gauge는 50으로 재시작한다. 휴면·활동 랭킹 정책은 후속 실서비스 범위라 프로토타입 월 정산에는 적용하지 않는다. 데모 월 마감은 논리 월을 사용하고 실제 일반 사용자 월 자동화와 구분한다. 자세한 계산·잠금·점수 공식은 홍주P 계획 §§5·7을 따른다.
 
 ## 4. 화면이 사용하는 서비스 계약
 
@@ -205,22 +208,24 @@ lib/api는 브라우저 SDK이며 서버 구현 위치가 아니다. 클라이�
 | 로그인·데모 세션 전환 | Auth 로그인/로그아웃 | B-01·B-02 기반 | 전원 |
 | completeRound | complete_round RPC; 누적 입장 기준을 넘는 발급에 `entryUnlocked: true` 반환 | B-03 | 현호P |
 | getCollection / getOwnedCards / upgradeCard | collection_view / inventory_view / upgrade_card RPC | B-04 | 현호P |
-| getRooms / getMyMembership / joinRoom | room_catalog / room_members / join_room RPC; 누적 발급 5장 기준 | B-05 | 자성P |
+| getRooms / getMyMembership / joinRoom | room_catalog / room_members / join_room RPC; 누적 발급 5장, 퇴장 후 월 3회 재입장, 템플릿 미준비는 카드 준비 중 | B-05 | 자성P |
 | getMyRoundGaugeSummary | get_my_round_gauge_summary RPC; 현재 월·전체 월 라운드 수·목표·남은 라운드 | B-07 | 자성P 게임 시작·방 입장 |
-| getMessages / subscribeRoomMessages | messages Data API / Realtime; 팬별 본인 질문과 답변만 | B-06 | 자성P |
-| submitMessage | submit-message Edge → service-only 저장 RPC | B-06 + 문환P A-02·A-03 | 자성P |
+| getMessages / getMessageChanges / subscribeRoomMessages | messages Data API / Realtime; 팬별 본인 질문과 입장 기간의 답변·전체 메시지·첫 인사말, deleted update cursor | B-06 | 자성P |
+| submitMessage | submit-message Edge → service-only 저장 RPC; passesAllFilters와 10분 1회 제안 token 반환 | B-06 + 문환P A-02·A-03 | 자성P |
 | advanceDemoMonth | advance_demo_month RPC | B-07 | 자성P 데모 관리 |
-| getRoomInbox / replyToMessage | get_room_inbox / reply_to_message RPC | B-08 | 자성P |
+| getRoomInbox / replyToMessage | get_room_inbox RPC / send-influencer-message Edge; 답변은 필수 차단 필터 적용 | B-08 | 자성P |
+| sendBroadcast / deleteInfluencerMessage | send-influencer-message Edge / delete_influencer_message RPC; active 팬 수신·삭제 UPDATE | B-16·B-17 | 자성P |
+| getRoomGreeting / updateRoomGreeting | get_room_greeting RPC / update-room-greeting Edge; 200자·필수 필터·최초 입장 snapshot | B-15 | 자성P |
 | requestVerification / getMyVerifications | request_verification RPC / verifications | B-09 | 자성P |
 | getPendingVerifications / approveVerification | verifications / approve_verification RPC; 11번째 승인 시 방 생성 | B-09 | 자성P 관리자 화면 |
 | getMyInfluencerProfile / uploadInfluencerProfilePhoto | 본인 전용 get_my_influencer_profile RPC / influencer-profiles Storage + set_influencer_profile_photo RPC | B-14 | 자성P 인박스 설정 |
 | getRoomFilters / updateRoomFilters | get_room_filters / update_room_filters RPC | B-10 | 자성P |
 | getGameConfig / updateGameConfig | game_config / update_game_config RPC | B-03·B-10 | 현호P·자성P, 변경은 관리자 |
-| summarizeRoom / clusterQuestions | summarize-room / cluster-questions Edge | B-12 + 문환P 요약·묶기 | 자성P |
+| summarizeRoom / clusterQuestions | summarize-room / cluster-questions Edge; 미답변 질문만 묶고 답변 시 묶음 폐쇄 | B-12 + 문환P 요약·묶기 | 자성P |
 
 B-11은 환경·관리 연결·배포·복구 절차, B-13은 역할별·동시성·SDK/Edge 통합 검증을 맡는다. 단순 조회 권한과 변경 권한을 같은 것으로 취급하지 않는다.
 
-프로필 이미지 업로드는 JPG/PNG/WebP 입력을 WebP로 변환해 요청별 새 Storage 객체로 저장한다. `profile_image_path`만 현재 포인터로 바꾸며 메시지에 사진을 복제하지 않아 기존 답변 말풍선에도 변경이 반영된다. `getMyInfluencerProfile`은 ID 입력 없이 `auth.uid()`로 본인 정보를 읽는다. `RoomCatalogItem.profileImageUrl`은 프로필 사진이 있으면 그 URL, 없으면 illust 카드 URL을 반환하고 둘 다 없으면 null이라 화면이 이름 첫 글자를 쓴다.
+프로필 이미지 업로드는 JPG/PNG/WebP 입력을 WebP로 변환해 요청별 새 Storage 객체로 저장한다. `profile_image_path`만 현재 포인터로 바꾸며 메시지에 사진을 복제하지 않아 기존 답변·전체 메시지·인사말 말풍선에도 변경이 반영된다. `getMyInfluencerProfile`은 ID 입력 없이 `auth.uid()`로 본인 정보를 읽는다. `RoomCatalogItem.profileImageUrl`은 프로필 사진이 있으면 그 URL, 없으면 illust 카드 URL을 반환하고 둘 다 없으면 null이라 화면이 이름 첫 글자를 쓴다.
 
 ## 5. AI 구현 경계
 
@@ -228,13 +233,13 @@ B-11은 환경·관리 연결·배포·복구 절차, B-13은 역할별·동시�
 
 | adapter 함수 | 역할 | 홍주P 검증·저장 경계 |
 | --- | --- | --- |
-| moderateAndScore | 본문·disabledFilters → pass/suggest/block·category·rewrite·quality | JWT·active·필터 version 재검사. pass만 저장, reason은 category별 고정 안내문 |
+| moderateAndScore | 본문·disabledFilters → pass/suggest/block·category·rewrite·quality·rewriteQuality·passesAllFilters | JWT·active·필터 version 재검사. pass만 저장하고 모든 필터 통과 여부로 질문 인용을 제한 |
 | clusterQuestions | 허용된 같은 방 질문 ID/본문 → 대표문장·ID 묶음 | source·중복·미답변 재확인, 같은 방 트랜잭션 반영 |
 | summarize | 허용된 같은 방 대화 → 요약문 | 소유권·입력/출력 길이·source 검증 |
 
 AiAdapter 타입의 유일한 상세 기준은 홍주P 계획 §8.1이다. 여기서 다른 함수 시그니처를 중복 정의하지 않는다. ownScore·priority는 AI 모듈이 아니라 DB helper/저장 RPC에서 계산한다.
 
-실제 AI가 아직 없으면 로컬 fixture로 전송·권한·판정·장애 계약을 검증한다. fixture를 원격 실서비스에 활성화하거나 실제 LLM 검증으로 보고하지 않는다. AI 장애를 무조건 pass로 바꿔 저장하지 않는다. 핵심 정책 해제·원문 보관·캐시·재시도 규칙은 홍주P 계획 §§7~8을 따른다.
+개발자가 주입하는 로컬 fixture는 전송·권한·응답 형식 검증에만 쓴다. Jev/AI 키 누락 또는 공급자 timeout·5xx는 문환P adapter의 keyword fallback으로 처리한다. fallback을 통과한 질문은 quality=50으로 저장하고, fallback 차단은 위반 횟수에 넣지 않는다. 이는 실제 LLM 성공으로 보고하지 않는다. Adapter 예외·응답 형식 불량·점수 오류는 FILTER_UNAVAILABLE이며 저장하지 않는다. 답변·전체 메시지·인사말은 선택 필터 설정을 적용하지 않고 필수 차단 7개(threat, stalking, sexual_harassment, privacy, hate, illegal_ad, spam)를 적용한다. 상세 token·멱등성·저장 규칙은 홍주P 계획 §§7~8을 따른다.
 
 ## 6. 초기화·환경·배포
 
@@ -257,7 +262,7 @@ Node 스크립트는 로컬 준비·테스트 도구이며 새로운 런타임 �
 | 담당 | 역할 | 주요 산출물·책임 | 티켓 | 계획 |
 | --- | --- | --- | --- | --- |
 | 자성P | 채팅 중심 프론트 | 프로젝트 셋업·방/채팅·인박스·관리자 화면·SDK 구독 연결 | F-01~F-11 | [자성P_plan.md](./자성P_plan.md) |
-| 홍주P | Supabase 백엔드·SDK | schema/RLS/RPC·시드·채팅/게임/인증·프로필 사진·Edge 전송 계층·검증·배포 절차 | B-01~B-14 | [홍주P_plan.md](./홍주P_plan.md) |
+| 홍주P | Supabase 백엔드·SDK | schema/RLS/RPC·시드·채팅/게임/인증·인사말·전체 메시지·삭제·프로필 사진·Edge 전송 계층·검증·배포 절차 | B-01~B-17 | [홍주P_plan.md](./홍주P_plan.md) |
 | 문환P | AI 활용 | 의사결정 모델(jev)·필터/품질·묶기/요약·금칙어 fallback·테스트 세트·이미지 생성 | A-01~A-08 | [문환P_plan.md](./문환P_plan.md) |
 | 현호P | 카드 UI·디자인 | 뽑기/컬렉션/강화·전체 디자인·프레임·배지 | D-01~D-09 | [현호P_plan.md](./현호P_plan.md) |
 | 미정 | 시연·발표 | 대본·발표 자료 | U-01 | [anonymous-plan.md](./anonymous-plan.md) |
@@ -276,7 +281,7 @@ Node 스크립트는 로컬 준비·테스트 도구이며 새로운 런타임 �
 | --- | --- | --- |
 | P0 | 라운드 완료·카드 지급/뽑기·컬렉션·별도 강화 화면과 기본 강화 연출, 환경·검증 기반 | 1일차 저녁 T-03 |
 | P1 | 채팅방 입장·메시지 안전 필터/안내·우선순위 인박스·답변·게이지 및 월 잔여 라운드/소진 경고, 강화 등급별 연출/건너뛰기, 별도 보유 카드 화면 | 2일차 점심 T-04 |
-| P2 | 인플루언서 인증/관리자 승인/인증 배지, 유사 질문 묶기·요약, 선택 필터 해제, 프로필 사진 변경(마지막 순서) | 2일차 기능 동결 전 |
+| P2 | PRD 순서대로 인증 → 유사 질문 묶기 → 대화 요약 → 선택 필터 설정 → 인사말 → 전체 메시지 → 답변/전체 메시지 삭제 → 프로필 사진(마지막) | 2일차 기능 동결 전 |
 
 P0/P1/P2는 순서이며 전체 구현 요청에서 P2를 자동 제외하는 기준이 아니다.
 
