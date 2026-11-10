@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>필터 비교 시험</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: light-dark(#f6f6f3, #17181a);
+    --panel: light-dark(#ffffff, #212326);
+    --line: light-dark(#dedfd9, #383b40);
+    --text: light-dark(#1d1e20, #ececea);
+    --muted: light-dark(#6a6d72, #a0a3a8);
+    --pass: light-dark(#17693f, #63d197);
+    --warn: light-dark(#8a5a00, #eebb5c);
+    --block: light-dark(#b3261e, #ff8a80);
+    --accent: light-dark(#17693f, #63d197);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
+  main { max-width: 1120px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  nav.tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--line); }
+  nav.tabs a { padding: 8px 12px; margin-bottom: -1px; color: var(--muted); text-decoration: none; border-bottom: 2px solid transparent; }
+  nav.tabs a:hover { color: var(--text); }
+  nav.tabs a[aria-current] { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  .hint { margin: 0 0 20px; color: var(--muted); }
+  form { display: flex; gap: 8px; margin-bottom: 20px; }
+  input { flex: 1; min-width: 0; padding: 12px 14px; font: inherit; color: inherit; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+  input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  button { padding: 0 18px; font: inherit; font-weight: 600; color: var(--bg); background: var(--text); border: 0; border-radius: 8px; cursor: pointer; }
+  .panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  @media (max-width: 720px) { .panels { grid-template-columns: minmax(0, 1fr); } }
+  .panel { padding: 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+  .head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .head h2 { margin: 0; font-size: 16px; }
+  .model { color: var(--muted); font-size: 13px; }
+  .ms { margin: 12px 0 2px; font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .ms small { font-size: 15px; font-weight: 500; color: var(--muted); }
+  .verdict { font-size: 18px; font-weight: 700; }
+  .pass { color: var(--pass); } .suggest_edit { color: var(--warn); } .block { color: var(--block); }
+  .muted { color: var(--muted); }
+  .error { color: var(--block); white-space: pre-wrap; overflow-wrap: anywhere; }
+  ul { margin: 8px 0; padding: 0; list-style: none; }
+  li { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--line); }
+  dl { margin: 10px 0; } dt { font-size: 13px; color: var(--muted); } dd { margin: 0 0 8px; }
+  details { margin-top: 10px; } summary { cursor: pointer; font-weight: 600; font-size: 13px; }
+  pre { margin: 8px 0 0; padding: 10px; max-height: 320px; overflow: auto; font-size: 12px; line-height: 1.45; background: var(--bg); border-radius: 6px; }
+  h3 { margin: 28px 0 8px; font-size: 15px; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td.message { max-width: 360px; overflow: hidden; text-overflow: ellipsis; }
+</style>
+</head>
+<body>
+<main>
+  <nav class="tabs" aria-label="시험 페이지">
+    <a href="/" aria-current="page">메시지 필터</a>
+    <a href="/summary">대화 요약</a>
+    <a href="/grouping">유사 질문 묶기</a>
+  </nav>
+  <h1>메시지 필터 비교 시험</h1>
+  <p class="hint">메시지를 입력하고 Enter를 누르면 두 모델에 동시에 보내고, 끝나는 대로 결과를 보여 줍니다.</p>
+  <form id="form">
+    <input id="message" autocomplete="off" autofocus placeholder="검사할 메시지" aria-label="검사할 메시지">
+    <button>검사</button>
+  </form>
+  <div class="panels">
+    <section class="panel" id="jev"></section>
+    <section class="panel" id="claude"></section>
+  </div>
+  <h3>이번 세션 기록</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>메시지</th><th>Jev 시간</th><th>Jev 판정</th><th>Claude 시간</th><th>Claude 판정</th></tr></thead>
+      <tbody id="log"></tbody>
+    </table>
+  </div>
+</main>
+<script>
+  const PROVIDERS = { jev: "TypeSafe Jev", claude: "Claude API" };
+  const ACTION_LABELS = { pass: "통과", suggest_edit: "수정 제안", block: "차단" };
+  const form = document.querySelector("#form");
+  const input = document.querySelector("#message");
+  const log = document.querySelector("#log");
+  let latestRun = 0;
+
+  function el(tag, props = {}, ...children) {
+    const node = Object.assign(document.createElement(tag), props);
+    node.append(...children);
+    return node;
+  }
+
+  function panelHead(provider, model) {
+    return el("div", { className: "head" },
+      el("h2", { textContent: PROVIDERS[provider] }),
+      el("span", { className: "model", textContent: model ?? "" }));
+  }
+
+  function fill(provider, ...children) {
+    document.getElementById(provider).replaceChildren(...children);
+  }
+
+  function json(title, value, open) {
+    return el("details", { open },
+      el("summary", { textContent: title }),
+      el("pre", { textContent: JSON.stringify(value, null, 2) }));
+  }
+
+  function field(term, value) {
+    return value ? [el("dt", { textContent: term }), el("dd", { textContent: value })] : [];
+  }
+
+  function renderResult(provider, r) {
+    if (r.error) {
+      fill(provider, panelHead(provider), el("p", { className: "error", textContent: r.error }));
+      return;
+    }
+    const verdict = r.action
+      ? el("div", { className: `verdict ${r.action}`, textContent: ACTION_LABELS[r.action] })
+      : el("div", { className: "verdict muted", textContent: r.note });
+    const flagged = r.flagged.length
+      ? el("ul", {}, ...r.flagged.map((f) => el("li", {},
+          el("span", { textContent: `${f.label} (${f.scope})` }),
+          el("span", { className: "muted", textContent: f.score === undefined ? "" : f.score.toFixed(3) }))))
+      : el("p", { className: "muted", textContent: "걸린 항목 없음" });
+    fill(provider,
+      panelHead(provider, r.model),
+      el("div", { className: "ms" }, Math.round(r.ms).toLocaleString(), el("small", { textContent: " ms" })),
+      verdict,
+      flagged,
+      el("dl", {},
+        ...field("차단 사유", r.reason),
+        ...field("수정 안내", r.guide),
+        ...field("수정 제안", r.suggestion)),
+      el("p", { className: "muted", textContent: `입력 ${r.usage.input_tokens} 토큰 · 출력 ${r.usage.output_tokens} 토큰` }),
+      json("응답 원본", r.raw, true),
+      json("보낸 요청", r.request, false));
+  }
+
+  async function check(provider, message, run, cells) {
+    fill(provider, panelHead(provider), el("p", { className: "muted", textContent: "처리 중…" }));
+    let result;
+    try {
+      const response = await fetch(`/api/check/${provider}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+      result = await response.json();
+    } catch {
+      result = { error: "로컬 서버에 연결하지 못했습니다." };
+    }
+    cells.ms.textContent = result.error ? "오류" : `${Math.round(result.ms).toLocaleString()} ms`;
+    cells.action.textContent = ACTION_LABELS[result.action] ?? "-";
+    cells.action.className = result.action ?? "";
+    if (run === latestRun) {
+      renderResult(provider, result);
+      if (provider === "jev" && result.action === "suggest_edit") addRewrite(message, result.flagged.map((f) => f.key));
+    }
+  }
+
+  // 새 검사가 패널을 다시 그리면 이 노드는 화면에서 떨어지므로, 늦게 온 결과가 새 결과를 덮지 않는다.
+  async function addRewrite(message, flagged) {
+    const term = el("dt", { textContent: "AI 수정 문장" });
+    const value = el("dd", { className: "muted", textContent: "작성 중…" });
+    document.querySelector("#jev dl").append(term, value);
+    let result;
+    try {
+      const response = await fetch("/api/rewrite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, flagged }),
+      });
+      result = await response.json();
+    } catch {
+      result = {};
+    }
+    if (result.rewritten) {
+      term.textContent = `AI 수정 문장 · ${Math.round(result.ms).toLocaleString()} ms`;
+      value.className = "";
+      value.textContent = result.rewritten;
+    } else {
+      value.textContent = result.note ?? "수정 문장을 만들지 못했어요.";
+    }
+  }
+
+  function addLogRow(message) {
+    const cell = () => el("td", { textContent: "…" });
+    const cells = { jev: { ms: cell(), action: cell() }, claude: { ms: cell(), action: cell() } };
+    log.prepend(el("tr", {},
+      el("td", { className: "message", textContent: message, title: message }),
+      cells.jev.ms, cells.jev.action, cells.claude.ms, cells.claude.action));
+    return cells;
+  }
+
+  for (const provider of Object.keys(PROVIDERS)) {
+    fill(provider, panelHead(provider), el("p", { className: "muted", textContent: "메시지를 입력하면 결과가 여기에 표시됩니다." }));
+  }
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const message = input.value.trim();
+    if (!message) return;
+    const run = ++latestRun;
+    const cells = addLogRow(message);
+    for (const provider of Object.keys(PROVIDERS)) check(provider, message, run, cells[provider]);
+    input.select();
+  });
+</script>
+</body>
+</html>

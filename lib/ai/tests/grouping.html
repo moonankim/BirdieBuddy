@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>질문 묶기 시험</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: light-dark(#f6f6f3, #17181a);
+    --panel: light-dark(#ffffff, #212326);
+    --line: light-dark(#dedfd9, #383b40);
+    --text: light-dark(#1d1e20, #ececea);
+    --muted: light-dark(#6a6d72, #a0a3a8);
+    --block: light-dark(#b3261e, #ff8a80);
+    --accent: light-dark(#17693f, #63d197);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
+  main { max-width: 880px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  nav.tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--line); }
+  nav.tabs a { padding: 8px 12px; margin-bottom: -1px; color: var(--muted); text-decoration: none; border-bottom: 2px solid transparent; }
+  nav.tabs a:hover { color: var(--text); }
+  nav.tabs a[aria-current] { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  a { color: var(--accent); }
+  .hint { margin: 0 0 20px; color: var(--muted); }
+  form { display: flex; gap: 8px; margin-bottom: 16px; }
+  select { flex: 1; min-width: 0; padding: 12px 14px; font: inherit; color: inherit; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+  button { padding: 0 18px; font: inherit; font-weight: 600; color: var(--bg); background: var(--text); border: 0; border-radius: 8px; cursor: pointer; }
+  .panel { padding: 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+  .head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .head h2 { margin: 0; font-size: 16px; }
+  .model { color: var(--muted); font-size: 13px; }
+  .ms { margin: 12px 0 2px; font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .ms small { font-size: 15px; font-weight: 500; color: var(--muted); }
+  .muted { color: var(--muted); }
+  .error { color: var(--block); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .group { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .group summary { display: flex; justify-content: space-between; gap: 16px; font-size: 15px; font-weight: 600; }
+  .count { flex: none; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .members { margin: 8px 0 0; padding: 0; max-height: 240px; overflow: auto; list-style: none; font-size: 13px; }
+  .members li { padding: 3px 0; color: var(--muted); }
+  details.raw { margin-top: 10px; } details.raw summary { cursor: pointer; font-weight: 600; font-size: 13px; }
+  pre { margin: 8px 0 0; padding: 10px; max-height: 320px; overflow: auto; font-size: 12px; line-height: 1.45; background: var(--bg); border-radius: 6px; }
+  h3 { margin: 28px 0 8px; font-size: 15px; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+</style>
+</head>
+<body>
+<main>
+  <nav class="tabs" aria-label="시험 페이지">
+    <a href="/">메시지 필터</a>
+    <a href="/summary">대화 요약</a>
+    <a href="/grouping" aria-current="page">유사 질문 묶기</a>
+  </nav>
+  <h1>유사 질문 묶기 시험</h1>
+  <p class="hint">채팅방의 가상 메시지 300개에서 비슷한 질문을 묶습니다.</p>
+  <form id="form">
+    <select id="room" aria-label="채팅방"></select>
+    <button>묶기</button>
+  </form>
+  <section class="panel" id="result"></section>
+  <h3>이번 세션 기록</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>채팅방</th><th>시간</th><th>그룹 수</th><th>묶인 메시지</th><th>입력/출력 토큰</th></tr></thead>
+      <tbody id="log"></tbody>
+    </table>
+  </div>
+</main>
+<script>
+  const form = document.querySelector("#form");
+  const select = document.querySelector("#room");
+  const panel = document.querySelector("#result");
+  const log = document.querySelector("#log");
+  let latestRun = 0;
+
+  function el(tag, props = {}, ...children) {
+    const node = Object.assign(document.createElement(tag), props);
+    node.append(...children);
+    return node;
+  }
+
+  function head(model) {
+    return el("div", { className: "head" },
+      el("h2", { textContent: "Claude Haiku 5.5" }),
+      el("span", { className: "model", textContent: model ?? "" }));
+  }
+
+  function json(title, value) {
+    return el("details", { className: "raw" },
+      el("summary", { textContent: title }),
+      el("pre", { textContent: JSON.stringify(value, null, 2) }));
+  }
+
+  function renderGroup(group) {
+    return el("details", { className: "group" },
+      el("summary", {},
+        el("span", { textContent: group.question }),
+        el("span", { className: "count", textContent: `${group.askerCount}명 · ${group.messageCount}건` })),
+      el("ul", { className: "members" }, ...group.members.map((member) =>
+        el("li", { textContent: `${member.nickname}: ${member.text}` }))));
+  }
+
+  function renderBody(r) {
+    if (r.note) return [el("p", { className: "muted", textContent: r.note })];
+    const notes = `메시지 ${r.totalMessages}개 중 ${r.groupedMessages}개를 ${r.groups.length}개 그룹으로 묶음`
+      + (r.invalidIds ? ` · 잘못되거나 중복된 번호 ${r.invalidIds}개 제외` : "");
+    return [
+      el("p", { className: "muted", textContent: notes }),
+      ...(r.groups.length
+        ? r.groups.map(renderGroup)
+        : [el("p", { className: "muted", textContent: "2건 이상 모인 비슷한 질문이 없습니다." })]),
+    ];
+  }
+
+  function render(r) {
+    if (r.error) {
+      panel.replaceChildren(head(), el("p", { className: "error", textContent: r.error }));
+      return;
+    }
+    panel.replaceChildren(
+      head(r.model),
+      el("div", { className: "ms" }, Math.round(r.ms).toLocaleString(), el("small", { textContent: " ms" })),
+      ...renderBody(r),
+      el("p", { className: "muted", textContent: `입력 ${r.usage.input_tokens} 토큰 · 출력 ${r.usage.output_tokens} 토큰` }),
+      json("응답 원본", r.raw),
+      json("보낸 요청", r.request));
+  }
+
+  function showEmpty() {
+    panel.replaceChildren(head(), el("p", { className: "muted", textContent: "묶기 버튼을 누르면 결과가 여기에 표시됩니다." }));
+  }
+
+  select.addEventListener("change", () => {
+    latestRun++;
+    showEmpty();
+  });
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!select.value) return;
+    const run = ++latestRun;
+    const cells = [0, 1, 2, 3].map(() => el("td", { textContent: "…" }));
+    log.prepend(el("tr", {}, el("td", { textContent: select.selectedOptions[0].textContent }), ...cells));
+    panel.replaceChildren(head(), el("p", { className: "muted", textContent: "처리 중…" }));
+
+    let result;
+    try {
+      const response = await fetch("/api/grouping", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomId: select.value }),
+      });
+      result = await response.json();
+    } catch {
+      result = { error: "로컬 서버에 연결하지 못했습니다." };
+    }
+
+    cells[0].textContent = result.error ? "오류" : `${Math.round(result.ms).toLocaleString()} ms`;
+    cells[1].textContent = result.groups?.length ?? "-";
+    cells[2].textContent = result.groups ? `${result.groupedMessages} / ${result.totalMessages}` : "-";
+    cells[3].textContent = result.error ? "-" : `${result.usage.input_tokens} / ${result.usage.output_tokens}`;
+    if (run === latestRun) render(result);
+  });
+
+  showEmpty();
+  fetch("/api/rooms")
+    .then((response) => response.json())
+    .then((rooms) => {
+      select.append(...rooms.map((room) => el("option", { value: room.id, textContent: `${room.influencer} (${room.type})` })));
+    })
+    .catch(() => {
+      panel.replaceChildren(head(), el("p", { className: "error", textContent: "채팅방 데이터를 불러오지 못했습니다." }));
+    });
+</script>
+</body>
+</html>
