@@ -76,7 +76,8 @@ lib/api/rooms.ts                    getRooms / joinRoom / getMyMembership / getM
 lib/api/chat.ts                     getMessages / submitMessage / subscribeRoomMessages
                                    getMessageChanges / reconcileRoomMessages
                                    getRoomInbox / replyToMessage / sendBroadcast / deleteInfluencerMessage
-                                   getRoomGreeting / updateRoomGreeting / summarizeRoom / clusterQuestions
+                                   getRoomGreeting / updateRoomGreeting / getRoomDailyBlockCount
+                                   summarizeRoom / clusterQuestions
 lib/api/verifications.ts            requestVerification / getMyVerifications
                                    getPendingVerifications / approveVerification
 lib/api/influencer-profiles.ts      getMyInfluencerProfile / uploadInfluencerProfilePhoto
@@ -142,7 +143,9 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_QuSwvsbS0CYx6aah9Y69XA_62e7n
 
 ### 2.3 개발 초기화 및 로컬 설정 절차
 
-2026-11-09 확인한 `supabase@3.0.0`을 devDependency와 lockfile에 고정한다. 기존 package manager를 사용하고 package.json이 없으면 B-01에서 최소 SDK·TypeScript·검증용 package를 만든다. 런타임 의존성은 @supabase/supabase-js와 로컬 관리용 pg, 개발 의존성은 supabase·typescript·@types/node·@types/pg·tsx를 기본으로 한다. 기존 버전이 있으면 호환성을 우선하고 신규 설치는 정확한 버전으로 고정한다. Node SDK용 tsconfig.backend.json과 Edge용 deno.json/deno.lock을 분리한다. SDK의 생성 타입이 준비되기 전에 setup script가 이를 import하지 않도록 한다.
+**F-01 전 root bootstrap:** B-01 첫 deliverable에서 `package.json`·`package-lock.json`, backend toolchain·scripts와 `lib/`·`supabase/` 뼈대를 만들어 `main`에 올린다. 목표 시점은 1일차 오전 첫 1시간이다. 이 단계에는 backend 의존성·공통 검사 설정, `lib/supabase/`·`lib/api/` 경로, `supabase/config.toml` 및 빈 migrations/functions/tests 구조만 포함한다. schema·migration·Auth·RLS·기능 SDK·계정·비밀 env 값은 포함하지 않는다. F-01은 이 manifest와 lockfile에 Next.js·Tailwind 의존성 및 화면 scripts를 추가하고 `app/`·레이아웃·라우트를 만든다. 이어지는 B-01 schema/Auth/RLS 작업은 F-01과 병행할 수 있고 F-01의 선행조건이 아니다. 루트 package 파일은 이 순서로 차례로 갱신한다.
+
+2026-11-09 확인한 `supabase@3.0.0`을 devDependency와 lockfile에 고정한다. 런타임 의존성은 @supabase/supabase-js와 로컬 관리용 pg, 개발 의존성은 supabase·typescript·@types/node·@types/pg·tsx를 기본으로 한다. Node SDK용 tsconfig.backend.json과 Edge용 deno.json/deno.lock을 분리한다. SDK의 생성 타입이 준비되기 전에 setup script가 이를 import하지 않도록 한다.
 
 **빈 준비 상태에서의 B-01 초기화:** `supabase/`가 없으면 아래 명령으로 생성한다. 기존 config가 있으면 init을 재실행하거나 덮어쓰지 않고 이 계획과 비교한다.
 
@@ -475,7 +478,8 @@ SQL 업무 오류는 SQLSTATE P0001, MESSAGE=고정code, DETAIL=비기밀JSON. E
 | getMyMembership(roomId) | room_members의 본인/방 1행 | Membership 또는 null |
 | getMyRoundGaugeSummary() | auth.uid()의 유효 현재 월·전체 라운드 집계 | `RoundGaugeSummary` |
 | getMessages({roomId,beforeId?,afterId?,limit?}) | messages room_id + id keyset | Page<Message> |
-| getMessageChanges({roomId,updatedAfter?,afterId?,limit?}) | messages room_id + (updated_at,id) keyset; 기존 행 삭제를 포함한 최근 변경 | Page<Message> |
+| getMessageChanges({roomId,updatedAfter?,afterId?,cursor?,limit?}) | messages room_id + (updated_at,id) keyset; 기존 행 삭제를 포함한 최근 변경 | Page<Message> |
+| getRoomDailyBlockCount({roomId}) | private moderation_events를 직접 노출하지 않는 소유자 전용 집계 RPC | `{roomId,day,count}` / verified 방 소유 influencer |
 | getMyVerifications({cursor?,limit?}) | 본인 influencer 신청 | Page<Verification> |
 | getPendingVerifications({cursor?,limit?}) | admin, pending | Page<Verification> |
 | getGameConfig() | game_config 공개값만 | §5.1 key/value/version 목록 |
@@ -498,7 +502,8 @@ type RoomCatalogItem = {
   currentMonthRoundCount: number; requiredRoundsToRejoin: number;
   membership: Membership | null;
 };
-type RoomGreeting = { roomId: UUID; text: string; isDefault: boolean; maxLength: 200 };
+type RoomGreeting = { roomId: UUID; text: string; isDefault: boolean; maxLength: 200; version: number };
+type RoomDailyBlockCount = { roomId: UUID; day: string; count: number };
 type MyInfluencerProfile = {
   influencerId: UUID; influencerName: string; verifiedAt: string;
   profileImageUrl: string | null; fallbackImageUrl: string | null;
@@ -527,6 +532,44 @@ collection_view는 카드 템플릿30행·grade별0을 채운다. 별도 보유 
 - operations 예약/잠금 뒤 도메인 잠금. 같은 키 경합은 대기 후 결과 반환, 다른 키는 도메인 잠금으로 제어.
 - 성공 operations는7일 유지. 7일 이후 미확정 요청을 SDK가 자동 재전송하지 않음. AI 비저장 결과 예외는 §7.3.
 
+### 6.5 인플루언서 화면 SDK 입력
+
+SDK 입력은 SQL의 `p_` 접두어를 제거한 camelCase다. 모든 mutation은 `requestId`를 받으며 화면은 다음 시그니처를 사용한다.
+
+```ts
+type SubscribeRoomMessagesStatus = 'SUBSCRIBED' | 'TIMED_OUT' | 'CHANNEL_ERROR' | 'CLOSED';
+type SubscribeRoomMessagesInput = {
+  roomId: UUID;
+  onMessage: (message: Message) => void;
+  onStatus: (status: SubscribeRoomMessagesStatus, error?: Error) => void;
+};
+type ReconcileRoomMessagesInput = {
+  roomId: UUID; currentMessages: readonly Message[];
+  updatedAfter?: string; afterId?: MessageId;
+};
+type ReconcileRoomMessagesData = {
+  messages: Message[]; updatedAfter: string | null; afterId: MessageId | null;
+};
+type InfluencerScreenSdk = {
+  updateRoomGreeting(input: { requestId: UUID; roomId: UUID; expectedVersion: number; text: string }): Promise<Result<RoomGreeting>>;
+  uploadInfluencerProfilePhoto(input: { requestId: UUID; file: File }): Promise<Result<MyInfluencerProfile>>;
+  sendBroadcast(input: { requestId: UUID; roomId: UUID; body: string }): Promise<Result<Message>>;
+  deleteInfluencerMessage(input: { requestId: UUID; roomId: UUID; messageId: MessageId }): Promise<Result<{ message: Message }>>;
+  replyToMessage(input: { requestId: UUID; roomId: UUID; replyTo: MessageId; body: string }): Promise<Result<Message>>;
+  getRoomDailyBlockCount(input: { roomId: UUID }): Promise<Result<RoomDailyBlockCount>>;
+  subscribeRoomMessages(input: SubscribeRoomMessagesInput): () => void;
+  reconcileRoomMessages(input: ReconcileRoomMessagesInput): Promise<Result<ReconcileRoomMessagesData>>;
+};
+```
+
+`getMessageChanges`는 최초 조회에서 `updatedAfter`와 `afterId`를 함께 받거나, 후속 page에서 직전 `nextCursor`를 `cursor`로 받는다. 두 입력 방식은 함께 쓰지 않는다. `reconcileRoomMessages`의 입력 cursor도 한 쌍이며, 입력이 없으면 helper가 `currentMessages`의 마지막 `(updatedAt,id)`를 시작점으로 쓴다. `currentMessages`가 비어 있으면 변경 행을 처음부터 조회한다. helper는 `getMessageChanges`의 `nextCursor`를 따라 마지막 페이지까지 읽고, 모든 page 처리에 성공한 뒤 최신 `(updatedAt,id)` cursor를 반환한다. 변경 행이 없으면 입력/유도한 cursor를 그대로 돌려준다.
+
+`updateRoomGreeting`의 빈 `text`는 기본 문구 복원이며 200 Unicode code point까지 허용한다. `expectedVersion`은 `getRoomGreeting`의 `version`을 보낸다. `sendBroadcast`의 body는 trim 후 1~2000 Unicode code point다. 사진 SDK의 `file`은 브라우저 `File`이며 JPEG/PNG/WebP, 5 MiB 이하만 받고 내부에서 512×512 WebP로 변환한 뒤 업로드·RPC 갱신까지 수행한다. 업로드 경로와 Storage object path는 SDK 내부 값이며 화면 입력으로 받지 않는다.
+
+`replyToMessage`와 `sendBroadcast`는 `send-influencer-message` Edge의 discriminated input을 SDK 안에서 만든다. 각각 `{requestId,roomId,kind:'answer',replyTo,body}`와 `{requestId,roomId,kind:'broadcast',body}`로 호출한다. 삭제는 `deleteInfluencerMessage`가 내부에서 `delete_influencer_message` RPC의 `p_request_id`, `p_room_id`, `p_message_id`로 변환한다. 인사말 Edge는 `{requestId,roomId,expectedVersion,text}`를 받는다.
+
+`getRoomDailyBlockCount({roomId})`는 `{roomId,day,count}`를 반환한다. `day`는 서버가 계산한 Asia/Seoul 달력 날짜다. `count`는 오늘 해당 방에서 팬이 보낸 질문 중 고유 `(actor_id,request_id)`의 `verdict='block'` 수(키워드 fallback block 포함)다. suggest는 제외한다. 차단 원문·suggest 결과는 저장하거나 반환하지 않는다. RPC는 비공개 `moderation_events`에서 count만 조회하고, `auth.uid()` 기준 verified 방 소유자만 실행할 수 있다. 노출된 `public.get_room_daily_block_count`는 `SECURITY INVOKER` wrapper만 두고, 비노출 `private` helper가 `SECURITY DEFINER`·빈 고정 `search_path`·schema-qualified 이름으로 count를 수행한다. private helper도 `auth.uid()`와 방 소유권을 검증한다. 양쪽 RPC 모두 `PUBLIC`/`anon` 실행 권한은 회수하고 필요한 schema usage와 `authenticated` 실행 권한만 준다. `authenticated`에 private 테이블 SELECT를 주지 않는다.
+
 ## 7. RPC·메시지 전송 계약
 
 ### 7.1 브라우저 직접 호출 RPC
@@ -553,6 +596,7 @@ ownedCount/upgradedCount는 해당 template/grade의 갱신 직후 count. `entry
 | getRoomInbox → get_room_inbox | p_room_id uuid, p_include_answered bool default false, p_cursor jsonb default null, p_limit int default50 | Page<InboxItem> / 방 소유 influencer |
 | getRoomFilters → get_room_filters | p_room_id uuid | `{roomId,disabledFilters,mandatoryFilters,version}` / 방 소유 influencer |
 | getRoomGreeting → get_room_greeting | p_room_id uuid | `RoomGreeting` / 방 소유 verified influencer |
+| getRoomDailyBlockCount → get_room_daily_block_count | p_room_id uuid | `RoomDailyBlockCount` / verified 방 소유 influencer, 오늘 count만 |
 | getMyInfluencerProfile → get_my_influencer_profile | 없음. `auth.uid()`만 사용 | `MyInfluencerProfile` / verified 본인 influencer |
 | getMyRoundGaugeSummary → get_my_round_gauge_summary | 없음. `auth.uid()`만 사용 | `RoundGaugeSummary` / user |
 
@@ -705,11 +749,13 @@ cluster 최종 반영 시 source 질문이 여전히 같은 방의 미답변 pas
 ### 9.1 메시지 구독
 
 - publication에는 public.messages만. moderation·operations·비공개설정 포함 금지.
-- subscribeRoomMessages({roomId,onMessage,onStatus})는 room_id 필터로 INSERT·UPDATE를 구독, unsubscribe 함수 반환. 필터가 아닌 SELECT RLS가 권한 경계. UPDATE는 삭제된 답변/전체 메시지를 body=null, deletedAt과 함께 전달한다.
-- SUBSCRIBED→초기조회→버퍼병합→id 중복 제거→id ASC. 재연결은 updated_at,id cursor의 getMessageChanges로 중단 중 생성/수정된 행을 복구한다. UPDATE는 기존 id를 갱신하며 신규 행을 중복 추가하지 않는다.
+- `subscribeRoomMessages({roomId,onMessage,onStatus})`는 room_id 필터로 INSERT·UPDATE를 구독하고 `unsubscribe():void`를 반환한다. `onStatus(status,error?)`의 status는 Supabase Realtime 공식 `REALTIME_SUBSCRIBE_STATES` union인 `SUBSCRIBED | TIMED_OUT | CHANNEL_ERROR | CLOSED`다. 필터가 아닌 SELECT RLS가 권한 경계다. UPDATE는 삭제된 답변/전체 메시지를 `body=null`, `deletedAt`과 함께 전달한다.
+- `SUBSCRIBED`에서는 3초 폴링을 멈추고 복구를 수행한다. 현재 화면이 구독을 유지하는 동안 `TIMED_OUT`, `CHANNEL_ERROR`, `CLOSED`를 받으면 `reconcileRoomMessages`를 3초 간격으로 호출해 폴링한다. 명시적 unsubscribe·화면 정리 뒤 전달된 `CLOSED` callback은 무시한다. 로그아웃·방 전환·퇴장 시 timer와 구독을 정리한다.
+- `reconcileRoomMessages({roomId,currentMessages,updatedAfter?,afterId?})`는 SDK helper다. 내부에서 `getMessageChanges`를 호출해 이어지는 모든 page를 읽고, `id` 기준 upsert·중복 제거·`id ASC` 정렬을 수행한 전체 화면 목록과 새 `(updatedAt,id)` cursor를 반환한다. 화면은 Realtime 재구독 복구 또는 3초 폴링 시 이 helper를 호출해 결과 목록을 교체한다. `getMessageChanges` 직접 호출은 SDK의 저수준 페이지 API이며 화면 복구 경로로 쓰지 않는다. UPDATE는 기존 id를 갱신하며 신규 행을 중복 추가하지 않는다.
+- 초기 연결은 Realtime 구독과 초기 history 조회를 겹쳐 시작하고, `SUBSCRIBED` 뒤 reconcile하여 초기 조회 중 발생한 이벤트도 보정한다. 첫 history가 끝나기 전에 받은 이벤트는 buffer에 두고 병합한다.
 - 계정/방 전환·로그아웃은 이전채널·캐시 정리. 데모전환은 실제 signOut/signInWithPassword, 임의userId 교체 아님.
 - 월마감 뒤 membership 갱신, left면 구독해제. 재입장 시 새로 구독하고 과거 입장 구간 메시지를 조회한다. 클라이언트가 해제하지 않아도 RLS로 신규 이벤트가 막혀야 함.
-- 연결장애만3초 폴링 fallback, 복구시중단. 권한거부/left/로그아웃은 폴링도 중단.
+- 연결장애만3초 폴링 fallback, 복구 시 중단. 권한거부/left/로그아웃은 폴링도 중단.
 
 ### 9.2 Storage
 
@@ -814,14 +860,14 @@ P0/P1/P2는 PRD 순서이며 전체완료 요청에서 P2를 임의 제외하는
 
 | ID | 산출물 | 티어·선행 | 완료 기준 |
 | --- | --- | --- | --- |
-| B-01 | toolchain·CLI고정·schema/Auth/RLS/grants | P0/없음 | 가입user·metadata무시·reset·역할검증 |
+| B-01 | root bootstrap → toolchain·CLI고정·schema/Auth/RLS/grants | P0/없음 | 첫 1시간 안에 package/lockfile·lib·supabase 뼈대를 main에 올려 F-01 시작 가능. 이후 schema/Auth/RLS·가입user·metadata무시·reset·역할검증 진행 |
 | B-02 | seed·placeholder·계정script | P0/B-01 | 10인/30template/10방+11번째 pending·5계정·반복안전·비밀없음 |
 | B-03 | complete_round·config·멱등·cards SDK + private.issue_card 연동 | P0/B-01,02,A-09 계약 | issue_card를 같은 transaction에서 호출·강제등급권한·재시도·오류 rollback·4→5회 entryUnlocked·5→6회 false. 추첨 경계/1,000회 분포는 A-09 |
 | B-04 | collection/inventory_view·upgrade_card·SDK | P0/B-03 | 9/10장·special·동시차감·템플릿 30종/보유 등급별 수량 |
 | B-05 | room_catalog·join_room·입장 기간·SDK | P1/B-04 | 누적 4/5회 입장·카드 준비 중·월 0/2/3회 재입장·입장 기간 시작/종료·재입장 시 과거 기간 재개 |
 | B-06 | 내부저장RPC·submit-message·SDK·Realtime | P1/B-05 | JWT·3판정·passesAllFilters·직접우회 거부·멱등·토큰 제안·입장 기간 RLS·전송 중 권한 변경 |
 | B-07 | demo_clock·월마감·getMyRoundGaugeSummary·SDK | P1/B-05 | 2/3/4회 게이지 변화·입장/재입장 월 증가·감소 모두 제외·중복 1회 마감·퇴장/구독 해제 |
-| B-08 | 점수·inbox·filtered reply·SDK | P1/B-06 | 배지/스타일 공식·snapshot·동점 최신순·퇴장 팬 숨김·필터 통과 인용·답변 권한 |
+| B-08 | 점수·inbox·filtered reply·SDK | P1/B-06 | 배지/스타일 공식·snapshot·동점 최신순·퇴장 팬 숨김·필터 통과 인용·답변 권한·KST 오늘 차단 수 집계와 방 소유권 |
 | B-09 | 신청·심사·이력·SDK | P2/B-01,02 | pending UQ·동시검토·배지일관·승인 시 11번째 방 생성 |
 | B-10 | filters/config·version·cleanup | P2/B-06 | 필터 선택/항상차단 분리·도배제한·소유권·version·7일정리 |
 | B-11 | 연결·환경·배포·복구runbook | P0/B-01 | 로그인·권한 구분·고정 ref·migration/seed/Functions/Secrets/Auth/Storage/Realtime·스모크·복구 절차 |
@@ -836,7 +882,7 @@ P0/P1/P2는 PRD 순서이며 전체완료 요청에서 P2를 임의 제외하는
 
 점수 계산 SQL helper는 메시지 저장에 필요하므로 B-06에서 먼저 구현한다. B-08은 그 helper의 공식·정렬 검증과 inbox/reply 기능을 완성한다. B-06이 아직 없는 B-08 함수를 기다리거나 임의 점수로 저장하지 않는다.
 
-1. B-01→B-02, B-11 연결/환경 안내 병행.
+1. B-01 root bootstrap을 1일차 오전 첫 1시간 안에 main에 올린 뒤 F-01을 시작한다. B-01 schema/Auth/RLS는 F-01과 병행하고 완료를 기다리게 하지 않는다. B-02 계정/setup은 필요한 schema 뒤에 진행하며 B-11 연결·환경 안내는 병행한다.
 2. B-03→B-04→P0 SDK 통합(Auth→draw→collection→upgrade).
 3. B-05→B-06→B-08→P1 SDK 통합(join→판정→Realtime→inbox→reply).
 4. B-07 연결→퇴장·신규이벤트거부·다음월재입장.
@@ -854,6 +900,7 @@ migration 순서: core/config→private/Auth→RLS/helpers→cards/views→rooms
 | 재현 | 빈 로컬 DB에서 migration+seed+setup 및 재실행 성공. 타입 검사·DB lint 통과 |
 | 초기화·env | supabase/·예제 env 없는 상태에서 절차로 생성 가능. stack 시작 후 로컬 키 수집, Node/브라우저와 Edge URL 분리, 원격 host 쓰기 거부, 비밀값 비출력 확인 |
 | 역할 | anon/userA/userB/방 소유자/다른 influencer/admin 각각 허용·거부 확인. 가입 metadata의 admin/demo 값 무시 |
+| 오늘 차단 집계 | KST 날짜 경계·해당 방의 고유 block request만 계산, suggest 제외, keyword fallback block 포함, 차단 원문 미저장, verified 소유자만 조회·타 방 거부 |
 | 지급 | 같은 requestId 20회 병렬 호출 시 round/draw 각 1개·카드 +1. 다른 payload 재사용 거부. 누적 4→5회 발급만 entryUnlocked=true, 5→6회는 false. 같은 template 최초 동시 지급의 isNew=true는 정확히 1개 |
 | 강화 | 9장 거부·10장 성공·special 거부. 10장에 서로 다른 요청 2개 병렬 호출 시 1개 성공·1개 부족. 음수·부분 지급 없음 |
 | 발급 연동 | complete_round가 A-09 private.issue_card를 같은 transaction으로 한 번 호출하고 재시도 시 최초 결과 반환. 일반 user·꺼진 force 설정·권한 없음은 FORBIDDEN과 draw 없음. 4→5회 entryUnlocked true·5→6회 false. 확률 경계와 1,000회 분포는 A-09 증거를 검토하고 중복 구현하지 않음 |
@@ -1041,6 +1088,10 @@ cards는 현호P, rooms/chat/filters/verifications는 자성P가 사용한다. �
 
 2026-11-10 main 병합 후 PRD·커밋 변경분 재검토: `e9e6757`로 `origin/main`을 병합했다. 병합분에는 `GLOSSARY.md`, `docs/prd.md`, 자성P·문환P·현호P 계획이 포함됐고, PRD 변경 이력의 월 재입장·혐오 필수 차단·AI 폴백 및 전체 메시지·인사말·삭제·열람 기간 규칙을 근거로 담당 계약을 다시 대조했다. 이 문서에는 퇴장 후 월 3회 달성 시 모든 left 방 재입장 및 gauge 50, 입장/재입장 월 게이지 증감 전체 제외, 멤버십 기간별 메시지 RLS와 재입장 복원, 첫 입장 인사말 snapshot, 전체 메시지 수신 범위, 삭제와 답변 재개방, 모든 필터 통과 여부에 따른 질문 인용, 수정 제안 10분·1회 token과 재시도, 필수 필터 및 keyword fallback을 반영했다. 문환P A-09 소유 `private.issue_card(p_force_grade)`와 `draws.forced` 위임 계약도 유지했다. B-15~B-17을 P2 순서·체크리스트·배포 함수·완료 기준에 추가했고, 아키텍처의 SDK 복구·프로필 사진 반영 범위를 함께 맞췄다. PRD에서 확정되지 않은 게이지 잔여 기간/알림 채널은 프로토타입 해석으로 구분했다. 최종 정적 검토에서 담당 계획·공통 아키텍처에 남은 PRD 규칙 충돌을 찾지 못했고 `git diff --check`를 통과했다. 제품 코드·DB·Edge·브라우저·실제 AI·원격 환경 검증은 수행하지 않았다.
 
+2026-11-10 착수 전 확인 회신(후속 요청으로 root 순서는 아래 기록에서 변경): F-01이 최초 `package.json`을 만들어 main에 올리고 B-01은 그 위에 backend scripts/toolchain을 더하는 순서로 검토했다. 보유 카드·강화 경로를 `/collection/owned`·`/collection/upgrade`로 맞추고 architecture의 역할 표를 F-01~F-16으로 고쳤다. `getRoomDailyBlockCount`는 원문을 보관하지 않고 비공개 moderation metadata에서 KST 오늘의 block 수만 읽는 소유자 전용 SDK/RPC로 추가했다. Realtime 상태 union, 3초 fallback 조건, `reconcileRoomMessages`의 내부 pagination·병합, 인플루언서 SDK 입력/반환 계약을 §6·§9에 반영했다. 로컬 demo setup·계정 암호 발급은 실행하지 않았다.
+
+2026-11-10 착수 순서 재조정: 새 요청에 따라 B-01 root bootstrap(package·lockfile·backend toolchain/scripts·lib/supabase skeleton)을 F-01보다 먼저 main에 올리고, F-01은 그 위에 Next.js/Tailwind/app을 추가하도록 변경했다. bootstrap은 첫 1시간 목표이며 B-01의 schema/Auth/RLS는 후속 작업으로 F-01과 병행하고 선행조건으로 두지 않는다. `docs/자성P_plan.md`는 사용자 요청에 따라 수정하지 않았다. 실제 root bootstrap, main 반영, local setup은 실행하지 않았다.
+
 ### 14.4 기술 근거
 
 2026-11-10 확인한 공식 자료다. 제품 요구사항을 찾기 위해 추가로 읽어야 하는 기획 문서는 아니다.
@@ -1052,6 +1103,7 @@ cards는 현호P, rooms/chat/filters/verifications는 자성P가 사용한다. �
 - [CLI local/hosted targets](https://supabase.com/docs/guides/local-development/local-and-hosted-projects): 로컬·원격대상. 실제flag는 고정CLI --help 확인.
 - [RLS](https://supabase.com/docs/guides/database/postgres/row-level-security), [Database views](https://supabase.com/docs/guides/database/views): RLS·security_invoker 경계.
 - [Edge authentication](https://supabase.com/docs/guides/functions/auth), [JWT verification](https://supabase.com/docs/guides/auth/jwts): 사용자인증을 키존재로 대체하지 않는 검증.
+- [RealtimeChannel subscribe states](https://github.com/supabase/supabase-js/blob/master/packages/core/realtime-js/src/RealtimeChannel.ts): 현재 `REALTIME_SUBSCRIBE_STATES`와 subscribe callback의 status/error. B-01에서 고정할 SDK 버전 타입도 다시 확인한다.
 
 ---
 

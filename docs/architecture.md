@@ -79,7 +79,8 @@ BirdieBuddy/
 │  ├─ (user)/
 │  │  ├─ draw/                         # 뽑기 연출·결과 — 현호P
 │  │  ├─ collection/                   # 컬렉션·강화 — 현호P
-│  │  ├─ owned-cards/                  # 보유 카드·강화 진입 — 현호P (P1)
+│  │  │  ├─ owned/                     # 보유 카드 — 현호P (P1), /collection/owned
+│  │  │  └─ upgrade/                   # 보유 카드 강화 — 현호P (P1), /collection/upgrade
 │  │  └─ chat/                         # 방 목록·입장·대화 — 자성P
 │  ├─ inbox/                           # 인플루언서 인박스 — 자성P
 │  └─ admin/                           # 인증 심사·관리 화면 — 자성P
@@ -97,7 +98,7 @@ BirdieBuddy/
 │     ├─ types.ts                      # 도메인 타입·Result·ApiError·Page
 │     ├─ cards.ts                      # 뽑기·컬렉션·강화
 │     ├─ rooms.ts                      # 목록·입장·멤버십·월 라운드 요약·데모 월 경과
-│     ├─ chat.ts                       # 팬/인플루언서 메시지·재연결 복구·인박스·답변·AI 기능
+│     ├─ chat.ts                       # 팬/인플루언서 메시지·재연결 복구·인박스·답변·방별 차단 집계·AI 기능
 │     ├─ verifications.ts              # 신청·목록·관리자 심사
 │     ├─ game-config.ts                # 설정 읽기·관리자 변경
 │     ├─ room-filters.ts               # 방 필터 읽기·변경
@@ -121,7 +122,7 @@ BirdieBuddy/
 │  ├─ setup-demo-accounts.mjs          # 로컬 Auth Admin + pg 프로비저닝
 │  └─ verify-backend.mjs               # P0/P1/P2·역할·Realtime 스모크
 ├─ tests/backend/                      # 홍주P: SDK·Edge 경계·동시성 검증
-├─ package.json                        # 기존 프론트 셋업 보존·백엔드 scripts 통합
+├─ package.json                        # B-01이 backend 바탕을 생성, F-01이 Next.js 의존성·scripts를 추가
 ├─ tsconfig.backend.json               # Node/SDK 검사, Edge는 Deno로 별도 검사
 └─ .env.example                        # 비밀 없는 프론트 연결 예제, 착수 시 생성
 ```
@@ -210,12 +211,14 @@ lib/api는 브라우저 SDK이며 서버 구현 위치가 아니다. 클라이�
 | getCollection / getOwnedCards / upgradeCard | collection_view / inventory_view / upgrade_card RPC | B-04 | 현호P |
 | getRooms / getMyMembership / joinRoom | room_catalog / room_members / join_room RPC; 누적 발급 5장, 퇴장 후 월 3회 재입장, 템플릿 미준비는 카드 준비 중 | B-05 | 자성P |
 | getMyRoundGaugeSummary | get_my_round_gauge_summary RPC; 현재 월·전체 월 라운드 수·목표·남은 라운드 | B-07 | 자성P 게임 시작·방 입장 |
-| getMessages / getMessageChanges / subscribeRoomMessages | messages Data API / Realtime; 팬별 본인 질문과 입장 기간의 답변·전체 메시지·첫 인사말, deleted update cursor | B-06 | 자성P |
+| getMessages / getMessageChanges / subscribeRoomMessages | messages Data API / Realtime; 팬별 본인 질문과 입장 기간의 답변·전체 메시지·첫 인사말, deleted update cursor. Status: SUBSCRIBED/TIMED_OUT/CHANNEL_ERROR/CLOSED | B-06 | 자성P |
+| reconcileRoomMessages | SDK가 getMessageChanges 페이지를 모두 읽어 ID 기준 upsert와 cursor 복구 결과 반환 | B-06 | 자성P use-room-messages.ts |
 | submitMessage | submit-message Edge → service-only 저장 RPC; passesAllFilters와 10분 1회 제안 token 반환 | B-06 + 문환P A-02·A-03 | 자성P |
 | advanceDemoMonth | advance_demo_month RPC | B-07 | 자성P 데모 관리 |
 | getRoomInbox / replyToMessage | get_room_inbox RPC / send-influencer-message Edge; 답변은 필수 차단 필터 적용 | B-08 | 자성P |
 | sendBroadcast / deleteInfluencerMessage | send-influencer-message Edge / delete_influencer_message RPC; active 팬 수신·삭제 UPDATE | B-16·B-17 | 자성P |
 | getRoomGreeting / updateRoomGreeting | get_room_greeting RPC / update-room-greeting Edge; 200자·필수 필터·최초 입장 snapshot | B-15 | 자성P |
+| getRoomDailyBlockCount | get_room_daily_block_count RPC; 비공개 moderation_events에서 KST 오늘의 방별 block request 수만 집계 | B-06·B-08 | 자성P 인박스 설정 |
 | requestVerification / getMyVerifications | request_verification RPC / verifications | B-09 | 자성P |
 | getPendingVerifications / approveVerification | verifications / approve_verification RPC; 11번째 승인 시 방 생성 | B-09 | 자성P 관리자 화면 |
 | getMyInfluencerProfile / uploadInfluencerProfilePhoto | 본인 전용 get_my_influencer_profile RPC / influencer-profiles Storage + set_influencer_profile_photo RPC | B-14 | 자성P 인박스 설정 |
@@ -224,6 +227,10 @@ lib/api는 브라우저 SDK이며 서버 구현 위치가 아니다. 클라이�
 | summarizeRoom / clusterQuestions | summarize-room / cluster-questions Edge; 미답변 질문만 묶고 답변 시 묶음 폐쇄 | B-12 + 문환P 요약·묶기 | 자성P |
 
 B-11은 환경·관리 연결·배포·복구 절차, B-13은 역할별·동시성·SDK/Edge 통합 검증을 맡는다. 단순 조회 권한과 변경 권한을 같은 것으로 취급하지 않는다.
+
+### 루트 bootstrap과 F-01 순서
+
+B-01은 첫 단계에서 `package.json`·`package-lock.json`, backend toolchain·scripts, `lib/`·`supabase/` 뼈대만 준비해 `main`에 올린다. 범위는 backend 의존성과 공통 검사 설정, 빈 폴더 구조와 Supabase 로컬 config까지다. migrations·schema·Auth·RLS·기능 SDK는 이 bootstrap에 포함하지 않는다. F-01은 그 manifest에 Next.js·Tailwind 의존성과 화면 scripts를 추가해 `app/`·레이아웃·라우트를 만든다. B-01의 schema/Auth/RLS 작업은 F-01 이후 계속 진행하며 F-01의 선행조건으로 삼지 않는다. 루트 파일은 이 순서로 한 번에 하나의 작업이 편집한다.
 
 프로필 이미지 업로드는 JPG/PNG/WebP 입력을 WebP로 변환해 요청별 새 Storage 객체로 저장한다. `profile_image_path`만 현재 포인터로 바꾸며 메시지에 사진을 복제하지 않아 기존 답변·전체 메시지·인사말 말풍선에도 변경이 반영된다. `getMyInfluencerProfile`은 ID 입력 없이 `auth.uid()`로 본인 정보를 읽는다. `RoomCatalogItem.profileImageUrl`은 프로필 사진이 있으면 그 URL, 없으면 illust 카드 URL을 반환하고 둘 다 없으면 null이라 화면이 이름 첫 글자를 쓴다.
 
@@ -261,7 +268,7 @@ Node 스크립트는 로컬 준비·테스트 도구이며 새로운 런타임 �
 
 | 담당 | 역할 | 주요 산출물·책임 | 티켓 | 계획 |
 | --- | --- | --- | --- | --- |
-| 자성P | 채팅 중심 프론트 | 프로젝트 셋업·방/채팅·인박스·관리자 화면·SDK 구독 연결 | F-01~F-11 | [자성P_plan.md](./자성P_plan.md) |
+| 자성P | 채팅 중심 프론트 | 프로젝트 셋업·방/채팅·인박스·관리자 화면·SDK 구독 연결 | F-01~F-16 | [자성P_plan.md](./자성P_plan.md) |
 | 홍주P | Supabase 백엔드·SDK | schema/RLS/RPC·시드·채팅/게임/인증·인사말·전체 메시지·삭제·프로필 사진·Edge 전송 계층·검증·배포 절차 | B-01~B-17 | [홍주P_plan.md](./홍주P_plan.md) |
 | 문환P | AI 활용 | 의사결정 모델(jev)·필터/품질·묶기/요약·금칙어 fallback·테스트 세트·이미지 생성 | A-01~A-08 | [문환P_plan.md](./문환P_plan.md) |
 | 현호P | 카드 UI·디자인 | 뽑기/컬렉션/강화·전체 디자인·프레임·배지 | D-01~D-09 | [현호P_plan.md](./현호P_plan.md) |
