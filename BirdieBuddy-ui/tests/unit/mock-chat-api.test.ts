@@ -151,7 +151,7 @@ describe('mock visibility and recovery', () => {
     expect(userAMessages.filter((item) => item.messageKind === 'user_question').map((item) => item.body)).toEqual(['팬 A 질문']);
     expect(userAMessages.some((item) => item.messageKind === 'greeting')).toBe(true);
     api.setActor(accounts.influencer);
-    expect(unwrap(await api.getRoomInbox({ roomId: 'room-1' })).items.map((item) => item.body))
+    expect(unwrap(await api.getRoomInbox({ roomId: 'room-1' })).items.map((item) => item.kind === 'question' ? item.question.body : item.representative))
       .toEqual(expect.arrayContaining(['팬 A 질문', '팬 B 질문']));
     api.setActor(accounts.admin);
     expect(await api.getMessages({ roomId: 'room-1' })).toMatchObject({ ok: false, error: { code: 'FORBIDDEN' } });
