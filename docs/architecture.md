@@ -1,6 +1,6 @@
 # BirdieBuddy — 전체 시스템 아키텍처
 
-**최종 갱신:** 2026-11-10
+**최종 갱신:** 2026-11-11 — 홍주P 계약 1.6
 
 > 제품 규칙은 [prd.md](./prd.md)를 기준으로 한다. 이 문서는 공통 아키텍처와 담당 경계를 설명하고, Supabase 백엔드의 상세 데이터·권한·SDK/RPC/Edge 계약과 구현 순서는 [홍주P_plan.md](./홍주P_plan.md)를 따른다.
 >
@@ -168,18 +168,20 @@ lib/api는 브라우저 SDK이며 서버 구현 위치가 아니다. 클라이�
 | verifications | 본인 인증 신청·관리자 심사 상태 |
 | game_config | 검증 가능한 게임 설정·version. 인증 사용자 읽기·관리자 RPC 변경 |
 
-비공개 보조 모델은 private schema의 influencer_accounts, demo_accounts, demo_clock, demo_month_runs, room_settings, room_member_periods, moderation_suggestions, operations, moderation_events, verification_reviews, rate_windows, demo_fixture_runs다. Data API 노출 schema에 포함하지 않는다. 공개 테이블 12개가 전체 DB 테이블 수의 상한이라는 뜻은 아니다.
+비공개 보조 모델은 private schema의 influencer_accounts, demo_accounts, demo_clock, demo_month_runs, room_settings, room_member_periods, moderation_suggestions, operations, moderation_events, verification_reviews, answer_question_links, rate_windows, demo_fixture_runs다. answer_question_links는 단일/묶음 답변의 원 질문 관계를 고정해 soft delete·재묶기 후에도 본인 답변 판별과 퇴장 기간 예외를 유지한다. Data API 노출 schema에 포함하지 않는다. 공개 테이블 12개가 전체 DB 테이블 수의 상한이라는 뜻은 아니다.
 
 권한의 공통 기준:
 
 - 모든 public 테이블에 RLS와 명시적 grants. security_invoker view는 기초 테이블의 RLS를 유지한다.
 - anon은 DB 데이터·RPC 접근 없이 공개 카드·프로필 이미지 읽기만 가능하다. 가입은 항상 user이며 역할·데모 capability는 서버 관리 경계에서만 부여한다.
-- user는 본인 카드·라운드와 자기 질문, 본인의 입장 구간에 게시된 influencer 답변/전체 메시지/인사말만 읽는다. 입장 전·퇴장 기간 메시지는 숨기고 퇴장 중에는 방을 열 수 없다. 재입장 시 과거 입장 구간 대화는 복구하며, 퇴장 기간에 달린 본인 질문의 답변은 예외로 읽는다. greeting은 수신자 본인만 읽는다. 다른 팬 질문 행은 Data API와 Realtime에서 모두 숨기며 `message_clusters`는 방 소유자만 읽는다. 팬 화면은 본인 메시지의 `cluster_id`와 답변의 `reply_context`를 이용한다. influencer는 본인 인증 신청과 매핑된 본인 방의 전체 대화·인박스·필터·인사말 설정·AI 기능을 사용한다. admin은 인증 심사·설정·카드 자산·허용된 데모를 관리한다. admin이라는 이유로 타인 카드·대화·인박스를 읽거나 influencer 명의로 답변하지 못한다.
-- submit_moderated_message·submit_influencer_message 등 내부 저장 RPC는 Edge의 service-only 호출만 허용한다. 인증·멤버십 기간·필터 version은 최종 저장 시 DB에서 재검사하고 점수를 계산한다.
+- user는 본인 카드·라운드와 자기 질문, 본인의 입장 구간에 게시된 influencer 답변/전체 메시지/인사말만 읽는다. 입장 전·퇴장 기간 메시지는 숨기고 퇴장 중에는 방을 열 수 없다. 재입장 시 과거 입장 구간 대화는 복구하며, 퇴장 기간에 달린 본인 질문의 답변은 예외로 읽는다. greeting은 수신자 본인만 읽는다. 다른 팬 질문 행은 Data API와 Realtime에서 모두 숨기며 `message_clusters`는 방 소유자만 읽는다. 팬 화면은 답변의 `reply_context`와 SDK가 보강한 `isReplyToMe`를 이용한다. influencer는 본인 인증 신청과 매핑된 본인 방의 전체 대화·인박스·필터·인사말 설정·AI 기능을 사용한다. admin은 인증 심사·설정·카드 자산·허용된 데모를 관리한다. admin이라는 이유로 타인 카드·대화·인박스를 읽거나 influencer 명의로 답변하지 못한다.
+- submit_moderated_message·submit_influencer_message 등 내부 저장 RPC는 Edge의 service-only 호출만 허용한다. 인증·멤버십 기간·필터 version은 최종 저장 시 DB에서 재검사하고 점수를 계산한다. 유효한 수정 제안 token의 검증·소비·메시지·operations 성공은 최종 저장 RPC의 한 트랜잭션으로 처리한다.
 - messages에는 block/suggest 원문을 저장하지 않는다. private moderation_events에는 판정 metadata만 7일 보관하며 rewrite·원문·JWT·키를 DB 감사 기록이나 로그에 복사하지 않는다.
-- Realtime에는 messages INSERT와 influencer 답변/전체 메시지의 삭제 UPDATE를 전달한다. 방 필터 조건이 아니라 SELECT RLS가 이벤트 권한 경계다. 팬은 본인 질문과 현재 수신 자격이 있는 influencer 메시지만 받고 방 주인은 방 전체를 받는다. SDK는 updated_at,id cursor로 reconnect 뒤 오래된 행의 soft delete도 복구한다. 로그아웃·퇴장·계정/방 변경 시 구독·캐시·폴링을 정리한다.
-- influencer 답변은 원 질문의 passesAllFilters가 참일 때만 원문을 닉네임 없이 reply context로 보존한다. 거짓이면 reply_to 관계만 유지하고 팬 화면은 본인의 질문 행을 사용한다. 묶음 답변은 모든 필터를 통과한 대표 질문을 전달하며 “내 질문에 대한 답변” 표시는 질문자 본인 화면에만 붙인다.
+- Realtime에는 messages INSERT와 influencer 답변/전체 메시지의 삭제 UPDATE를 전달한다. 방 필터 조건이 아니라 SELECT RLS가 이벤트 권한 경계다. 팬은 본인 질문과 현재 수신 자격이 있는 influencer 메시지만 받고 방 주인은 방 전체를 받는다. SDK는 live cache와 분리한 조회 완료 checkpoint와 고정 through로 오래된 행의 soft delete도 복구한다. 최초 checkpoint는 history보다 먼저 읽고 실패한 page는 checkpoint를 전진시키지 않는다. 답변의 Message.isReplyToMe는 get_my_answer_links로 본인 여부만 보강하며 private 링크/다른 팬 질문 ID를 내보내지 않는다. 보강 실패는 pending buffer·직렬 재시도로 복구한다.
+- influencer 답변은 원 질문의 passesAllFilters가 참일 때만 원문을 닉네임 없이 reply context로 보존한다. 거짓이면 질문 관계만 유지하고 팬 화면은 본인의 질문 행을 사용한다. 묶음 답변은 모든 필터를 통과한 대표 질문을 전달하며 “내 질문에 대한 답변” 표시는 불변 답변 링크로 보강된 isReplyToMe를 사용한다. 현재 cluster_id 일치만으로 본인 여부를 추론하지 않는다.
 - 답변·전체 메시지를 삭제하면 body를 null로 지우고 삭제 시각을 기록한다. 팬 화면에는 "삭제된 메시지"를 보이며 답변 삭제는 해당 질문 또는 묶음을 다시 미답변으로 연다. 팬 질문·인사말은 삭제할 수 없다.
+
+messages 생성/변경과 membership 입장 구간 변경은 같은 방 잠금으로 순서를 정하고 잠금 후 서버 시각을 사용한다. 트랜잭션 시작 시각을 메시지 수신 범위로 쓰지 않는다. 상태 재조회는 메시지 구독과 독립적으로 3초 간격 실행해 다른 세션의 월 마감·퇴장·사진 변경을 반영한다. 로그아웃·계정/방 전환 시 구독·cache·timer와 늦은 응답을 정리한다. 세부 순서·검증은 홍주P 계획 §§7.4·9.1을 따른다.
 
 ### 게임 설정과 규칙 요약
 
@@ -211,11 +213,11 @@ lib/api는 브라우저 SDK이며 서버 구현 위치가 아니다. 클라이�
 | getCollection / getOwnedCards / upgradeCard | collection_view / inventory_view / upgrade_card RPC | B-04 | 현호P |
 | getRooms / getMyMembership / joinRoom | room_catalog / room_members / join_room RPC; 누적 발급 5장, 퇴장 후 월 3회 재입장, 템플릿 미준비는 카드 준비 중 | B-05 | 자성P |
 | getMyRoundGaugeSummary | get_my_round_gauge_summary RPC; 현재 월·전체 월 라운드 수·목표·남은 라운드 | B-07 | 자성P 게임 시작·방 입장 |
-| getMessages / getMessageChanges / subscribeRoomMessages | messages Data API / Realtime; 팬별 본인 질문과 입장 기간의 답변·전체 메시지·첫 인사말, deleted update cursor. Status: SUBSCRIBED/TIMED_OUT/CHANNEL_ERROR/CLOSED | B-06 | 자성P |
-| reconcileRoomMessages | SDK가 getMessageChanges 페이지를 모두 읽어 ID 기준 upsert와 cursor 복구 결과 반환 | B-06 | 자성P use-room-messages.ts |
+| getMessages / getRoomMessageCheckpoint / getMessageChanges / subscribeRoomMessages | messages Data API / Realtime; 본인 질문·입장 기간 메시지, 문자열 ID·조회 완료 checkpoint. 답변은 SDK 내부 get_my_answer_links 보강. Status: SUBSCRIBED/TIMED_OUT/CHANNEL_ERROR/CLOSED | B-06 | 자성P |
+| reconcileRoomMessages | 명시적 checkpoint부터 고정 through까지 모든 page 성공 후 checkpoint 갱신. 최신 updatedAt 기준 병합·live buffer·pending 보강 재시도 | B-06 | 자성P use-room-messages.ts |
 | submitMessage | submit-message Edge → service-only 저장 RPC; passesAllFilters와 10분 1회 제안 token 반환 | B-06 + 문환P A-02·A-03 | 자성P |
 | advanceDemoMonth | advance_demo_month RPC | B-07 | 자성P 데모 관리 |
-| getRoomInbox / replyToMessage | get_room_inbox RPC / send-influencer-message Edge; 답변은 필수 차단 필터 적용 | B-08 | 자성P |
+| getRoomInbox / replyToMessage | get_room_inbox의 question/cluster 구분형 InboxPage·revision / send-influencer-message의 예상 묶음 ID/version 검사·필수 차단·MESSAGE_BLOCKED | B-08·B-12 | 자성P |
 | sendBroadcast / deleteInfluencerMessage | send-influencer-message Edge / delete_influencer_message RPC; active 팬 수신·삭제 UPDATE | B-16·B-17 | 자성P |
 | getRoomGreeting / updateRoomGreeting | get_room_greeting RPC / update-room-greeting Edge; 200자·필수 필터·최초 입장 snapshot | B-15 | 자성P |
 | getRoomDailyBlockCount | get_room_daily_block_count RPC; 비공개 moderation_events에서 KST 오늘의 방별 block request 수만 집계 | B-06·B-08 | 자성P 인박스 설정 |
@@ -232,7 +234,9 @@ B-11은 환경·관리 연결·배포·복구 절차, B-13은 역할별·동시�
 
 B-01은 첫 단계에서 `package.json`·`package-lock.json`, backend toolchain·scripts, `lib/`·`supabase/` 뼈대만 준비해 `main`에 올린다. 범위는 backend 의존성과 공통 검사 설정, 빈 폴더 구조와 Supabase 로컬 config까지다. migrations·schema·Auth·RLS·기능 SDK는 이 bootstrap에 포함하지 않는다. F-01은 그 manifest에 Next.js·Tailwind 의존성과 화면 scripts를 추가해 `app/`·레이아웃·라우트를 만든다. B-01의 schema/Auth/RLS 작업은 F-01 이후 계속 진행하며 F-01의 선행조건으로 삼지 않는다. 루트 파일은 이 순서로 한 번에 하나의 작업이 편집한다.
 
-프로필 이미지 업로드는 JPG/PNG/WebP 입력을 WebP로 변환해 요청별 새 Storage 객체로 저장한다. `profile_image_path`만 현재 포인터로 바꾸며 메시지에 사진을 복제하지 않아 기존 답변·전체 메시지·인사말 말풍선에도 변경이 반영된다. `getMyInfluencerProfile`은 ID 입력 없이 `auth.uid()`로 본인 정보를 읽는다. `RoomCatalogItem.profileImageUrl`은 프로필 사진이 있으면 그 URL, 없으면 illust 카드 URL을 반환하고 둘 다 없으면 null이라 화면이 이름 첫 글자를 쓴다.
+프로필 SDK는 JPG/PNG/WebP 입력을 WebP로 변환해 요청별 새 Storage 객체로 저장한다. 같은 요청은 변환 bytes/digest를 유지하고 기존 객체가 있으면 SDK가 다운로드 SHA-256을 비교한 뒤 포인터 RPC부터 이어간다. RPC는 경로·소유권·객체 존재와 digest를 포함한 멱등 payload를 검증하며 파일 내용을 독립 검증하는 경계는 아니다. `profile_image_path`만 현재 포인터로 바꾸며 사진을 메시지에 복제하지 않는다. 본인 성공 응답은 즉시 적용하고 다른 열린 화면은 다음 3초 상태 재조회 성공 시 과거 말풍선까지 갱신한다. `getMyInfluencerProfile`은 ID 입력 없이 auth.uid()로 본인 정보를 읽는다. `RoomCatalogItem.profileImageUrl`은 프로필 사진→illust 카드→null 순서이며 화면은 null일 때 이름 첫 글자를 쓴다.
+
+묶음 인박스는 활성 질문의 최고 priority와 최신 ID로 정렬하고 활성 고유 질문자 수를 표시한다. 활성 0명은 숨기고 1명은 유지하며 영속 질문/답변 이력은 보존한다. revision이 바뀐 후속 page와 구성/version이 바뀐 답변은 SOURCE_CHANGED로 재조회한다. 상세 타입·멱등성·오류는 홍주P 계획 §§6~8, 담당별 에이전트 확인·보완 목록은 [§15](./홍주P_plan.md#15-전체-검수-반영과-다른-담당자-에이전트-인계)를 따른다.
 
 ## 5. AI 구현 경계
 
