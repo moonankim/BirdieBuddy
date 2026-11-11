@@ -7,7 +7,7 @@ import { decide, toQuality } from "../../../supabase/functions/_shared/ai/decide
 import { type AiDeps, envDeps } from "../../../supabase/functions/_shared/ai/deps.ts";
 import { callJev, JevError } from "../../../supabase/functions/_shared/ai/jev.ts";
 import { fallbackModerate } from "../../../supabase/functions/_shared/ai/fallback.ts";
-import { KEYWORDS } from "../../../supabase/functions/_shared/ai/keywords.ts";
+import { evasionHits, KEYWORDS } from "../../../supabase/functions/_shared/ai/keywords.ts";
 import { moderateAndScore } from "../../../supabase/functions/_shared/ai/moderate.ts";
 import { buildSummaryRequest, summarize } from "../../../supabase/functions/_shared/ai/summarize.ts";
 
@@ -189,6 +189,15 @@ async function runFallback() {
     return { verdict: m.verdict, category: m.category, detail: "" };
   });
   reportObfuscation("우회 세트 (폴백 키워드, 정보용: 종료 코드에 반영하지 않는다)", obfRows, obfActual);
+  // 본경로가 Jev 점수 위에 올리는 것은 evasionHits의 illegal_ad뿐이다(moderate.ts).
+  out(`\n## 우회 세트 본경로 반영 수 (evasionHits의 illegal_ad)`);
+  for (const split of ["tune", "validate"] as const) {
+    const reflected = (expected: Verdict) =>
+      obfRows.filter((r) => r.split === split && r.expected_verdict === expected && evasionHits(r.text).includes("illegal_ad"));
+    const blockRows = obfRows.filter((r) => r.split === split && r.expected_verdict === "block");
+    const passRows = obfRows.filter((r) => r.split === split && r.expected_verdict === "pass");
+    out(`- ${split}: block 기대 ${reflected("block").length}/${blockRows.length}, pass 기대(정상 행) ${reflected("pass").length}/${passRows.length}`);
+  }
 
   await writeResults("fallback", { fp, keywordResults, allFixed, logLines: logs.length, calls, badLogs: badLogs.length });
   if (!allFixed || badLogs.length > 0 || logs.length !== calls || fp["quality"].length > 0 || keywordMismatch > 0) Deno.exit(1);

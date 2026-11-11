@@ -78,6 +78,49 @@ function assertFallbackLog(logs: string[], reason: string) {
   assertNoBodyLeak(logs);
 }
 
+// 우회 표기 본경로 반영: Jev가 모두 0점이어도 정규화본에서만 드러나는 illegal_ad는 block
+Deno.test("우회 표기 illegal_ad는 Jev 0점이어도 block", async () => {
+  const s = setup({ jev: [out()] });
+  const r = await moderateAndScore(input({ body: "ㅂr카라 첫충" }), s.deps);
+  assertEquals([r.verdict, r.category, r.passesAllFilters], ["block", "illegal_ad", false]);
+  assertEquals(s.claudeCalls.length, 0);
+  for (const line of s.logs) {
+    assert(!line.includes("ㅂr카라") && !line.includes("바카라"), `log leaked: ${line}`);
+  }
+});
+
+Deno.test("influencer·disabledFilters에도 우회 illegal_ad는 block", async () => {
+  const s = setup({ jev: [out()] });
+  const r = await moderateAndScore(
+    input({ body: "ⓣⓞⓣⓞ 놀이터", senderType: "influencer", disabledFilters: ["profanity", "belittling", "appearance"] }),
+    s.deps,
+  );
+  assertEquals([r.verdict, r.category], ["block", "illegal_ad"]);
+});
+
+Deno.test("원문 적중·예외·다른 항목의 우회 적중은 본경로에서 올리지 않음", async () => {
+  const bodies = [
+    "카지노 로얄 영화 보셨어요?",
+    "홀 덤으로 하나 더 치고 갈게요",
+    "TOTO 비데처럼 깔끔한 스윙",
+    "ㅋㅋㅋㅋ R 샤프트 바꿨어요",
+    "ㅈㅗㄴㄴㅏ 잘 치네",
+    "시바 ㄹㅇ 귀엽다",
+    "한나 ㅁㅊ 잘 치네",
+  ];
+  for (const body of bodies) {
+    const s = setup({ jev: [out()] });
+    const r = await moderateAndScore(input({ body }), s.deps);
+    assertEquals(r.verdict, "pass", body);
+  }
+});
+
+Deno.test("Jev privacy 0.9 + 우회 illegal_ad → block, category는 점수 높은 illegal_ad", async () => {
+  const s = setup({ jev: [out({ privacy: 0.9 })] });
+  const r = await moderateAndScore(input({ body: "ㅂr카라" }), s.deps);
+  assertEquals([r.verdict, r.category], ["block", "illegal_ad"]);
+});
+
 // 판정
 Deno.test("pass·block은 Claude 없이 반환, quality = toQuality(score)", async () => {
   const pass = setup({ jev: [out({}, 3.24)] });

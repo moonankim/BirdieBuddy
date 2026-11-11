@@ -63,3 +63,10 @@ Deno.test("예외 복합어를 가려도 앞뒤 글자가 이어져 금칙어가
   assertEquals(fallbackModerate("시발점 토 토", []).category, "illegal_ad");
   assertEquals(fallbackModerate("씨 시발점 발", []).verdict, "pass");
 });
+
+Deno.test("우회 표기 금칙어는 정규화본으로 적중, 예외 단어는 통과", () => {
+  const r = fallbackModerate("ㅂr카라 첫충", []);
+  assertEquals([r.verdict, r.category], ["block", "illegal_ad"]);
+  assertEquals(fallbackModerate("토토로 보면서 쉬었어요", []).verdict, "pass");
+  assertEquals(fallbackModerate("홀 덤으로 하나 더", []).verdict, "pass");
+});
