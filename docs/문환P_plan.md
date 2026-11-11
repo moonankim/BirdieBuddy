@@ -18,17 +18,17 @@
 
 1. `git status`와 실제 파일을 확인한다. 기존 수정사항을 보존하고, 체크 표시만 보고 완료를 가정하지 않는다.
 2. 0.3의 준비물을 확인한다(`deno --version`, `docker info`, `nvm ls 24`). 없는 도구는 설치하지 않고 사용자에게 알린 뒤, 그 도구 없이 할 수 있는 작업만 진행한다.
-3. `main`에 `supabase/`가 있는지 확인한다. 없으면 0.4의 레포 밖 샌드박스에서 개발한다. 루트 파일과 `supabase/`를 직접 만들지 않는다(`architecture.md` §2 규칙 5, 홍주P B-01 소유).
+3. `main`에 `supabase/`가 있는지 확인한다. 없으면 0.4의 레포 밖 샌드박스에서 개발한다(2026-11-11 기준 `supabase/`가 `main`에 있으므로 레포에서 작업하고 샌드박스는 쓰지 않는다). 루트 파일과 `supabase/`를 직접 만들지 않는다(`architecture.md` §2 규칙 5, 홍주P B-01 소유).
 4. 요청된 티켓을 4절의 완료 기준과 6절의 명세대로 구현한다. 담당 경로(2절) 밖의 파일은 고치지 않고, 필요한 변경은 1절의 요청 표에 적는다.
 5. 7절의 검증을 실행하고 결과를 7.2에 기록한다. 실행하지 못한 검증은 이유를 남긴다.
 6. 보고할 때 단위 시험 통과, 실호출 검증, 홍주P Edge Function 통합을 구분한다. 폴백 결과를 실제 AI 판정 성공으로 적지 않는다.
 
 커밋, push, 원격 Secrets 변경, 원격 배포는 사용자 요청이 있을 때만 한다. 커밋 메시지는 `CONTRIBUTING.md` 형식을 따르고, 다른 담당자가 알아야 할 변경은 담당자와 티켓별로 본문에 적는다.
 
-### 0.2 현재 상태 (`main` f14c5dc)
+### 0.2 현재 상태 (`main` 4108bea, 이관 브랜치 `feature/moonhwan-ai-migrate`)
 
-- 저장소에는 문서, `GLOSSARY.md`, `CONTRIBUTING.md`, `lib/ai` 스텁과 시험 도구만 있다. 루트 `package.json`, `supabase/`, `lib/api`, `app/`은 아직 없다. 홍주P B-01 root bootstrap은 `main`에 올라오지 않았다.
-- A-01~A-05, A-07, A-08, A-09는 샌드박스에서 확인했고, B-01 뒤 레포로 옮기는 일을 기다린다. A-08은 수정 문장 통과율(79.3%)과 시연 문장(5/7)이 기준에 못 미치고, 고정 안내문 사람 검수와 시연 문장 확정이 대기(사용자 검수)다. A-06은 현호P로 옮겼다.
+- `main` 4108bea에는 홍주P B-01(루트 `package.json`, `supabase/` migration 9개, Edge Function 골격)이 올라와 있다. 문환P의 이관 작업은 `main`에 병합되지 않은 브랜치 `feature/moonhwan-ai-migrate`에 있다.
+- A-01~A-05, A-07, A-08, A-09 코드는 브랜치 `feature/moonhwan-ai-migrate`에서 레포로 이관했다(`main`에는 아직 병합하지 않음): AI 모듈 ee2130b, 회귀·smoke 스크립트 a85c3e0, `issue_card` migration과 pgTAP f206bae, 분포 스크립트 1663334, `_shared/ai_adapter.ts` 연결 88c77b7. 레포 로컬 검증은 마쳤고(7.2), 홍주P 확인(1절 R9·R10)과 T-04 통합은 대기한다. 유료 실호출은 레포에서 하지 않았다. A-08의 수정 문장 통과율·시연 문장 결과와 고정 안내문 검수는 4절과 7.2를 따른다. A-06은 현호P로 옮겼다.
 - 원격 Supabase에는 Edge Function Secrets 두 개의 이름만 저장돼 있다(`홍주P_plan.md` §14.2). 값의 유효성과 실제 호출은 확인되지 않았다.
 - `lib/ai/tests/.env`에 두 키 이름이 있다. 값이 유효한지는 A-01의 실호출로 확인한다.
 
@@ -45,13 +45,15 @@
 
 ### 0.4 B-01 전 작업 위치
 
+> **이관 완료 (2026-11-11):** 아래 절차를 실행했다. 기준선 migration 9개가 이미 원격에 적용돼 있어 `issue_card` migration의 타임스탬프는 "`complete_round` 앞"이 아니라 기준선 뒤의 값(`20261111073313`, `supabase/migrations/20261111073313_issue_card.sql`)으로 정했다. `complete_round`는 함수를 런타임에 이름으로 찾으므로 migration 순서는 영향이 없다. 다만 그 동적 호출 자체가 현재 구문 오류로 실패한다(1절 R11). 이 migration은 `create or replace`가 아니라 `CREATE FUNCTION`을 쓴다. 원격에서는 같은 함수가 이미 있으면 원자적으로 실패해 더 안전하다. 홍주P의 로컬 fixture가 이미 들어 있는 로컬 DB(`demo:setup` 실행 뒤)는 `supabase db reset`이 필요하고 `migration up`은 42723으로 실패한다. reset 뒤에는 fixture의 주석 표시 때문에 `demo:setup`이 fixture를 건너뛴다. 샌드박스(`../BirdieBuddy-ai/`)는 더 이상 기준이 아니며 레포가 기준이다. 아래는 이관 전 방식의 기록이다.
+
 홍주P B-01 root bootstrap이 `main`에 올라오기 전에는 레포의 형제 폴더 `../BirdieBuddy-ai/`에서 개발한다(`자성P_develop_document.md` 15절과 같은 방식). git 저장소로 만들지 않는다.
 
 - 폴더 구조는 6.1의 레포 경로를 그대로 쓴다. 샌드박스 안에서 `npx --yes supabase@3.0.0 init`으로 로컬 구성을 만든다.
 - A-09용 임시 스키마는 샌드박스의 `supabase/migrations/00000000000000_sandbox_schema.sql` 한 파일에 둔다. `홍주P_plan.md` §4.2·§5.1의 enum(`card_grade`, `card_style`, `influencer_type`)과 `influencers`, `card_templates`, `user_cards`, `rounds`, `draws`, `game_config` 테이블, `private` 스키마만 적힌 컬럼과 제약대로 만든다. 이 파일은 레포로 옮기지 않는다.
 - `lib/ai/tests/`의 스크립트(`smoke.ts`, `regress.ts`)는 adapter를 상대 경로로 import하므로 샌드박스의 같은 경로(`../BirdieBuddy-ai/lib/ai/tests/`)에 만들고 adapter와 함께 옮긴다. 시험 데이터는 복사하지 않고 레포의 `lib/ai/tests/data/`를 읽는다.
 - 키는 샌드박스로 복사하지 않는다. 실호출 명령의 `--env-file`은 레포의 `lib/ai/tests/.env`를 가리킨다.
-- **레포로 옮기는 절차:** 샌드박스의 로컬 stack을 내린다(레포의 stack과 기본 포트가 같다) → `main`을 pull해 bootstrap을 확인한다 → `supabase/functions/_shared/ai.ts`, `supabase/functions/_shared/ai/`, `issue_card` migration, `supabase/tests/issue_card.test.sql`, `lib/ai/tests/`의 스크립트를 복사한다 → migration 타임스탬프는 홍주P의 private/Auth/RLS migration 뒤, `complete_round` migration 앞이 되게 다시 매긴다 → 7.1의 검증을 레포에서 다시 실행한다.
+- **레포로 옮기는 절차:** 샌드박스의 로컬 stack을 내린다(레포의 stack과 기본 포트가 같다) → `main`을 pull해 bootstrap을 확인한다 → `supabase/functions/_shared/ai.ts`, `supabase/functions/_shared/ai/`, `issue_card` migration, `supabase/tests/issue_card.test.sql`, `lib/ai/tests/`의 스크립트를 복사한다 → migration 타임스탬프는 홍주P의 private/Auth/RLS migration 뒤, `complete_round` migration 앞이 되게 다시 매긴다(실제 적용: 기준선 뒤 `20261111073313`, 1절 R4) → 7.1의 검증을 레포에서 다시 실행한다.
 
 ## 1. 동료와 동료 에이전트 전달 사항
 
@@ -68,11 +70,14 @@
 | R1 | §1.1·§3·§8.1 `_shared/ai.ts` | 이 파일을 누가 만들고 무엇을 내보내는지, 키를 어떻게 주입하는지, fixture adapter를 어디에 두는지 | 문환P가 `ai.ts`에 `AiAdapter` 타입(§8.1 그대로)과 `createAiAdapter(): AiAdapter`를 둔다. 키는 adapter가 `Deno.env.get`으로 읽는다(§2.7). 홍주P fixture는 같은 타입을 구현해 시험에서 주입한다 |
 | R2 | §8.1·§8.3 `summarize`의 `sender` | 값의 의미(닉네임인지, `user`·`influencer`인지, 표시명인지) | adapter는 화자 표시 문자열로만 쓰므로 어떤 값이 와도 동작한다. 다만 요약에서 인플루언서 발언을 구분하려면 방 소유자의 메시지에는 일정한 값이 와야 한다 |
 | R3 | §2.3 Edge용 `deno.json`·`deno.lock` | 파일 위치와 `@anthropic-ai/sdk` 의존성 추가 방법 | 코드에 버전을 고정한 `npm:` 지정자를 직접 쓴다. lock 파일 갱신이 필요하면 커밋 메시지로 알린다 |
-| R4 | §1.1·§11 migration·시험 파일 | `supabase/migrations/<timestamp>_issue_card.sql`과 `supabase/tests/issue_card.test.sql`을 문환P가 추가 | 이 이름으로 추가한다. 타임스탬프는 B-01의 migration이 병합된 뒤 private/Auth/RLS migration 뒤이고 `complete_round` migration 앞이 되는 값으로 직접 매긴다(0.4) |
-| R5 | §5.2 `complete_round` | `private.issue_card`의 EXECUTE를 `PUBLIC`·`anon`·`authenticated`에서 회수해도 `complete_round`가 호출할 수 있는지(migration 소유 역할의 `SECURITY DEFINER`인지), `gen_random_bytes`가 설치된 스키마 | `SECURITY DEFINER`와 `extensions` 스키마로 가정한다. 확인함(A-09, 샌드박스 로컬 DB): `gen_random_bytes`는 `extensions` 스키마에 있다(`pg_proc`·`pg_namespace` 조회). `SECURITY DEFINER` 여부는 `complete_round`가 홍주P 쪽 구현이라 미확인 |
+| R4 | §1.1·§11 migration·시험 파일 | (해결) `supabase/migrations/<timestamp>_issue_card.sql`과 `supabase/tests/issue_card.test.sql`을 문환P가 추가 | **해결.** 기준선 migration 9개가 이미 원격에 적용돼 있어 타임스탬프를 기준선 뒤의 값 `20261111073313`으로 정했다(0.4) |
+| R5 | §5.2 `complete_round` | (해결) `private.issue_card`의 EXECUTE를 `PUBLIC`·`anon`·`authenticated`에서 회수해도 `complete_round`가 호출할 수 있는지(migration 소유 역할의 `SECURITY DEFINER`인지), `gen_random_bytes`가 설치된 스키마 | **해결(권한).** `complete_round`는 `SECURITY DEFINER`(소유자 postgres)이고 `gen_random_bytes`는 `extensions` 스키마에 있다. 다만 `complete_round`에서 `issue_card`까지 이어진 호출은 동적 호출 구문 오류(R11)로 실패한다 |
 | R6 | §8.2 고정 안내문 | 2절 표의 문구를 어디에 복사해 두는지(A-08 검수로 문구가 바뀌면 함께 고칠 위치) | 2절 표가 기준이고, 문구가 바뀌면 커밋 메시지로 알린다 |
 | R7 | §3·§9.2·B-02 카드 이미지 | A-06의 최종 이미지 30장을 받아 `card-assets`에 올리는 단계가 티켓에 명시돼 있지 않다(`현호P_plan.md`는 홍주P B-02가 한다고 적음) | 문환P 작업에는 영향이 없다 |
-| R8 | §4.2 `draws`의 round 소유자 일치 강제 | `draws`의 round 소유자 일치("round 소유자와 일치 강제")를 어떤 방식으로 강제하는지. `private.issue_card`는 §3대로 권한을 다루지 않고 이 제약에 기댄다 | `draws (round_id, user_id) → rounds (id, user_id)` 복합 FK와 `rounds`의 `UNIQUE (id, user_id)`로 가정한다. 홍주P 답이 올 때까지 이 가정을 쓴다. A-09 pgTAP은 SQLSTATE 23503을 확인한다. B-01이 트리거로 구현하면 이관할 때 이 확인을 바꾼다 |
+| R8 | §4.2 `draws`의 round 소유자 일치 강제 | (해결) `draws`의 round 소유자 일치("round 소유자와 일치 강제")를 어떤 방식으로 강제하는지. `private.issue_card`는 §3대로 권한을 다루지 않고 이 제약에 기댄다 | **해결.** 복합 FK `(user_id, round_id) → rounds(user_id, id)`가 있다. A-09 pgTAP이 SQLSTATE 23503을 확인한다 |
+| R9 | `_shared/ai_adapter.ts`·`_shared/index_test.ts` (88c77b7) | 문환P가 `_shared/ai_adapter.ts`를 로컬 fixture 밖에서는 실제 adapter로 연결하고 `failClosedAdapter`를 지웠다. 홍주P 소유 파일이므로 확인과 T-04(Edge `suggest` 경로, 인플루언서 경로, 실제 키) 실행을 요청한다 `[요청]` | 실제 adapter의 오류는 모두 `ApiFailure('FILTER_UNAVAILABLE')`로 바뀌므로 `clusterQuestions`·`summarize`의 취소·시한 초과도 503이 된다. `moderateAndScore`에 한해 제공자 키가 없으면 fail-closed 대신 금칙어 폴백으로 판정한다(3절, 홍주P §8.1). `clusterQuestions`·`summarize`는 키가 없으면 여전히 FILTER_UNAVAILABLE이다. `index_test.ts`의 fail-closed 시험을 3건으로 바꿨고 그중 1건은 `--allow-env` 없이 실행해야 성립한다 |
+| R10 | `package.json` `test:backend` | `test:backend`에 `deno test --config deno.json supabase/functions/_shared/ai/`를 포함해 달라(`package.json`은 홍주P 파일) `[요청]` | 문환P는 `package.json`을 고치지 않는다. 지금은 위 명령을 따로 실행한다(106건, 권한 플래그 없음) |
+| R11 | `20261111063056_game_rooms_rpc.sql:327` `complete_round`, `scripts/verify-backend.mjs:213-214` | `complete_round`가 `execute format('select %s($1,$2,$3)', v_issue_card)`로 `issue_card`를 부른다. `regprocedure`를 `%s`로 포맷하면 인자 타입이 붙어 `select private.issue_card(uuid,uuid,public.card_grade)($1,$2,$3)`가 되고 `syntax error at or near "("`로 실패한다. 최종 리뷰에서 로컬 DB로 재현했고 실제 함수와 홍주P fixture 모두 같은 오류다. P0 `completeRound`가 막힌다. 원격 상태는 미확인이다. forward migration으로 고쳐 달라 `[요청]`. 방법 1: `v_issue_card::oid::regproc`(2026-11-11 레포 로컬에서 확인: 현재 식은 42601, 이 식은 `select private.issue_card($1,$2,$3)`로 정상 반환)로 포맷한다. 방법 2: `to_regprocedure` 확인 뒤 `private.issue_card(v_actor, v_round, p_force_grade)`를 정적으로 호출한다. 아울러 `verify-backend.mjs:213-214`가 `grade==='common'`을 단언하는데 이는 fixture를 전제로 한 값이므로, 실제 추첨에서는 등급 enum 소속 확인으로 바꿔 달라 | 답이 오기 전까지 A-09 E2E(`complete_round` 경유 추첨)는 막힌 상태로 둔다. 문환P는 홍주P 소유 migration·스크립트를 고치지 않는다 |
 
 **계약 1.6 §15.2 문환P 행 확인 (2026-11-11):** 대표 질문 전 항목 재검사와 위반 묶음 제외, 재검사 실패 시 예외, source 밖·중복 ID 제거(6.6), 시한(3절·6.4·6.6·6.7)이 유지돼 있다. 시한 초과 단위 시험이 묶기·요약에 빠져 있어 6.6·6.7에 추가했다. adapter는 대표 질문과 메시지 ID만 돌려주며 DB `clusterId`·version·권한·점수 정렬은 홍주P DB 책임으로 남는다. 계약과 충돌하는 항목은 없어 해결 요청은 없다.
 
@@ -115,14 +120,14 @@
 | 3 | 결과 반환, 이미지 경로의 공개 URL 변환 | 홍주P `complete_round`·SDK |
 
 - **B-03:** 5.2절의 추첨·지급 부분을 `private.issue_card` 호출로 바꾼다. 원자 지급, 강제 등급 권한, `isNew` 경합 시험은 B-03에 남고, 추첨 경계값과 확률 분포 시험은 A-09로 옮긴다. 강화(`upgrade_card`)는 B-04에 그대로 둔다.
-- **migration 순서:** `issue_card` migration은 private/Auth 다음, cards/views의 `complete_round` 앞에 온다. B-01 전에 만든 파일은 B-01 머지 후 타임스탬프를 다시 매긴다.
+- **migration 순서:** `issue_card` migration은 private/Auth 다음, cards/views의 `complete_round` 앞에 오도록 정했으나, 기준선 migration 9개가 이미 원격에 적용돼 실제로는 기준선 뒤 `20261111073313`에 뒀다. `complete_round`가 함수를 런타임에 이름으로 찾으므로 순서는 영향이 없다. 다만 그 동적 호출 자체가 현재 실패한다(1절 R4 해결, R11, 0.4).
 - **`draws.forced`:** `boolean NOT NULL DEFAULT false`를 추가한다. 강제 발급 표시이며 확률 검증에서 제외하는 근거다. 데모 시드 계정의 발급 기록도 확률 검증에서 뺀다.
 - **`completeRound` 응답:** `entryUnlocked: boolean`을 추가한다.
 - **카드 식별:** 장별 고유 ID는 두지 않는다. 수량은 `user_cards.count`, 발급 1건의 식별은 `draws.id`다.
 
 **문환P에게 제공할 데이터 정보**
 
-`홍주P_plan.md` §4.2(테이블·컬럼·제약)와 §5.1(`game_config` 값 형식)로 받았다. 남은 것은 위 R5(`gen_random_bytes` 스키마)와 B-01의 실제 migration이다.
+`홍주P_plan.md` §4.2(테이블·컬럼·제약)와 §5.1(`game_config` 값 형식)로 받았다. 위 R5(`gen_random_bytes` 스키마)는 해결했고 B-01의 실제 migration은 레포에 있다. 남은 확인은 없다.
 
 | 용도 | 데이터 |
 | --- | --- |
@@ -251,7 +256,7 @@ A-08이 U-01에 넘기는 것은 6.8의 `demo-messages.json`과 그 실제 판�
 
 ### AI 인터페이스
 
-`홍주P_plan.md` §8.1(계약 1.6, 1.5에서 변경 없음)의 `AiAdapter`와 같은 타입이다. 골격은 끝났고(A-01) 세 함수는 샌드박스에서 구현했으며 레포 이관을 기다린다(A-02~A-05).
+`홍주P_plan.md` §8.1(계약 1.6, 1.5에서 변경 없음)의 `AiAdapter`와 같은 타입이다. 골격은 끝났고(A-01) 세 함수는 샌드박스에서 구현해 브랜치 `feature/moonhwan-ai-migrate`로 레포에 이관하고 레포 로컬에서 검증했다. 홍주P 확인과 T-04 통합은 대기한다(A-02~A-05).
 
 ```ts
 type Verdict = 'pass' | 'suggest' | 'block';
@@ -304,7 +309,7 @@ interface AiAdapter {
 
 ### 카드 발급 함수
 
-샌드박스에서 구현하고 확인했다(A-09). 레포 이관을 기다린다.
+샌드박스에서 구현하고 확인한 뒤 브랜치 `feature/moonhwan-ai-migrate`로 레포에 이관해 레포 로컬에서 검증했다(A-09). 홍주P 확인과 T-04 통합은 대기한다.
 
 ```sql
 private.issue_card(
@@ -317,7 +322,7 @@ private.issue_card(
 ```
 
 - **호출 조건:** `complete_round`가 같은 트랜잭션 안에서 사용자 잠금과 강제 등급 권한 검사를 마친 뒤에만 호출한다. 이 함수는 잠금, 멱등, 권한을 처리하지 않는다. 임의의 `p_user_id`를 받으므로 `SECURITY INVOKER`로 만들고 `search_path=''`를 적용하며, `REVOKE ALL ... FROM PUBLIC, anon, authenticated`로 실행 권한을 회수한다.
-- **추첨:** `grade_rates`로 등급을 뽑고 발급 대상 카드 템플릿 중 하나를 균등하게 뽑는다. 선택 로직은 난수를 인자로 받는 함수로 분리해 경계값을 결정적으로 시험하고, 실제 난수는 스키마까지 적은 `extensions.gen_random_bytes`로 만든다(설치 스키마는 B-01에서 확인).
+- **추첨:** `grade_rates`로 등급을 뽑고 발급 대상 카드 템플릿 중 하나를 균등하게 뽑는다. 선택 로직은 난수를 인자로 받는 함수로 분리해 경계값을 결정적으로 시험하고, 실제 난수는 스키마까지 적은 `extensions.gen_random_bytes`로 만든다(설치 스키마는 `extensions`로 확인함, 1절 R5).
 - **강제 발급:** `p_force_grade`가 있으면 그 등급으로 발급하고 `draws.forced`를 `true`로 저장한다. 템플릿은 강제하지 않는다.
 - **`isNew`:** 추첨 후 지급 직전에 해당 템플릿의 전체 등급 수량 합계가 0이면 `true`다. 같은 값을 `draws.is_new`에 저장한다.
 - **`ownedCount`:** `홍주P_plan.md` §7.1의 기존 의미를 따른다(해당 템플릿·등급의 지급 직후 수량).
@@ -335,7 +340,7 @@ private.issue_card(
 | A-05 | 대화 요약 `summarize` | P2 | A-01 | 최대 100건·20,000자 입력을 20초 안에 2,000자 이내 문자열로 요약하고, 넘으면 문장 경계에서 자름. 100건 소요 시간과 사고 단계를 끈 효과 측정. 실패 시 예외 |
 | A-07 | LLM 실패·지연 시 금칙어 폴백 (adapter 내부) | P1 | A-02 | API 키를 빼도 필터가 금칙어로 동작하고 예외를 던지지 않음. 금칙어 5개 항목의 적중 문장이 기대 판정(선택 항목 `suggest`·`rewrite: null`, 항상 차단 `block`)과 `quality` 50을 돌려주고, 꺼 둔 선택 항목은 `pass`. Jev 지연·5xx 모의에서 사유 코드 확인. 키 제거 시험은 로컬에서만 하고 Supabase Secrets는 지우지 않음. `moderation-test-set.json`의 `quality` 그룹 100문장 오탐 0건, `trap` 그룹 `pass` 기대 25문장은 결과 기록. `passesAllFilters`는 항상 `false`, 서버 로그에는 사유 코드만 남음 |
 | A-08 | 필터 검증용 테스트 문장 세트 + Deno 회귀 스크립트 + 시연 메시지 판정 사전 확인 + 고정 안내문 사람 검수 | P1 | A-02 | 혐오 기대값을 `block`으로 고치고(`moderation-test-set.json`의 17문장) `server.ts`의 혐오 구분은 `prd.md`, `filter-templates.json`은 2절 표에 맞춤. Deno 스크립트로 `moderation-test-set.json` 판정 300문장 전량과 `expected_verdict=suggest`에서 뽑은 수정 문장 30건 표본을 실행(`ai_fallback`이 1건이라도 나오면 그 실행은 무효). 기대 판정 일치율 90% 이상(불일치는 읽어 보고 필터 오류와 기대값 오류를 구분, 항상 차단 항목의 `block→pass` 건수는 따로 기록), 실제 판정이 `suggest`인 표본 중 수정 문장 재검사 통과 80% 이상, 시연용 문장(`demo-messages.json`)은 전부 기대대로, 안내문 10개 확정. `influencer-message-set.json`(정상 홍보·공지 20문장, 필수 항목 위반 10문장)의 정상 문장 오탐 0건, 위반 문장은 결과 기록. 선택 필터를 끈 상태에서 `pass`가 되는 욕설 문장의 `passesAllFilters`가 `false`인지 확인 |
-| A-09 | 카드 확률 계산과 발급 `private.issue_card` | P0 | B-01 (전에는 로컬 테이블로 진행) | 등급·템플릿 선택 경계값 시험 통과, 1,000회 분포 기록과 등급별 3σ 범위 확인(벗어나면 다시 돌리기 전에 원인 확인), 강제 발급 시 `forced` 저장, 누적 4→5장 `entryUnlocked` true·5→6장 false, `min_earned_draws` 변경 시 경계 이동, `user_cards`만 있고 `draws`가 없으면 누적 0, 설정 누락·음수·합계 오류는 `CONFIG_INVALID`이고 소수 확률은 허용, 저장 실패 시 `draws`·`user_cards` 변경 없음, `has_function_privilege`로 `anon`·`authenticated`의 EXECUTE가 false임을 확인 |
+| A-09 | 카드 확률 계산과 발급 `private.issue_card` | P0 | B-01 (레포 이관 완료) | 등급·템플릿 선택 경계값 시험 통과, 1,000회 분포 기록과 등급별 3σ 범위 확인(벗어나면 다시 돌리기 전에 원인 확인), 강제 발급 시 `forced` 저장, 누적 4→5장 `entryUnlocked` true·5→6장 false, `min_earned_draws` 변경 시 경계 이동, `user_cards`만 있고 `draws`가 없으면 누적 0, 설정 누락·음수·합계 오류는 `CONFIG_INVALID`이고 소수 확률은 허용, 저장 실패 시 `draws`·`user_cards` 변경 없음, `has_function_privilege`로 `anon`·`authenticated`의 EXECUTE가 false임을 확인 |
 
 > **이관:** A-06(카드 이미지 30장 생성, P0)은 현호P가 AI 툴로 생성하는 것으로 옮겼다. 내용은 1절의 현호P 항목을 따른다.
 
@@ -343,14 +348,14 @@ private.issue_card(
 
 완료 표시에는 7.2의 검증 기록이 필요하다. 단위 시험만 통과한 상태와 실호출까지 확인한 상태를 구분해 적는다.
 
-- [ ] **A-01** Jev·Claude 호출의 Deno 동작 확인, `AiAdapter` 구현 골격 제공 (P0) — 단위 시험·샌드박스 실호출 확인, 레포 이관·홍주P 통합 대기, 명세 6.1~6.3
-- [ ] **A-02** 메시지 안전 필터 — 판정, 코드 규칙, 수정 문장과 재검사 (P1) — 단위 시험·샌드박스 실호출·Edge 경로 확인. 후속 조정 2회차에서 수정 문장 재검사 통과율 96.6%로 기준 충족(7.2 단서 참고). 레포 이관·홍주P 통합 대기, 명세 6.2~6.4
-- [ ] **A-03** 메시지 품질 점수 (P1) — 완료 기준 충족(7.2), 레포 이관·홍주P 통합 대기, 명세 6.2
-- [ ] **A-04** 유사 질문 묶기 `clusterQuestions` (P2) — 단위 시험·샌드박스 실호출 확인. 묶음 품질 관찰 사항은 7.2, 홍주P 통합 대기, 명세 6.6
-- [ ] **A-05** 대화 요약 `summarize` (P2) — 단위 시험·샌드박스 실호출 확인. 요약 품질 관찰 사항은 7.2, 홍주P 통합 대기, 명세 6.7
-- [ ] **A-07** 금칙어 폴백 (P1) — 완료 기준 충족(폴백 모드 실행 결과 7.2), 레포 이관 후 재실행 대기, 명세 6.5
-- [ ] **A-08** 테스트 세트, 시연 메시지 확인, 고정 안내문 검수 (P1) — 회귀 2회와 후속 조정 회귀 2회 실행(7.2). 후속 2회차에서 일치율 94.7%, 수정 문장 96.6%, 시연 7/7, 검증 65/65로 기준 충족(7.2 단서 참고). 고정 안내문은 2026-11-11 사용자 검수로 확정. 레포 이관 대기, 명세 6.8
-- [ ] **A-09** 카드 확률 계산과 발급 `private.issue_card` (P0) — 단위 시험(pgTAP)·1,000회 분포 확인, 레포 이관·홍주P 통합 대기, 명세 6.9
+- [ ] **A-01** Jev·Claude 호출의 Deno 동작 확인, `AiAdapter` 구현 골격 제공 (P0) — 단위 시험·샌드박스 실호출 확인, 레포 이관·레포 로컬 검증 완료(`feature/moonhwan-ai-migrate`), 홍주P 확인·T-04 통합 대기, 명세 6.1~6.3
+- [ ] **A-02** 메시지 안전 필터 — 판정, 코드 규칙, 수정 문장과 재검사 (P1) — 단위 시험·샌드박스 실호출·Edge 경로 확인. 후속 조정 2회차에서 수정 문장 재검사 통과율 96.6%로 기준 충족(7.2 단서 참고). 레포 이관·레포 로컬 검증 완료(`feature/moonhwan-ai-migrate`), 홍주P 확인·T-04 통합 대기, 명세 6.2~6.4
+- [ ] **A-03** 메시지 품질 점수 (P1) — 완료 기준 충족(7.2), 레포 이관·레포 로컬 검증 완료(`feature/moonhwan-ai-migrate`), 홍주P 확인·T-04 통합 대기, 명세 6.2
+- [ ] **A-04** 유사 질문 묶기 `clusterQuestions` (P2) — 단위 시험·샌드박스 실호출 확인. 묶음 품질 관찰 사항은 7.2, 레포 이관·레포 로컬 검증 완료(`feature/moonhwan-ai-migrate`), 홍주P 확인·T-04 통합 대기, 명세 6.6
+- [ ] **A-05** 대화 요약 `summarize` (P2) — 단위 시험·샌드박스 실호출 확인. 요약 품질 관찰 사항은 7.2, 레포 이관·레포 로컬 검증 완료(`feature/moonhwan-ai-migrate`), 홍주P 확인·T-04 통합 대기, 명세 6.7
+- [ ] **A-07** 금칙어 폴백 (P1) — 완료 기준 충족(폴백 모드 실행 결과 7.2, 레포 로컬 재실행 포함), 레포 이관·레포 로컬 검증 완료(`feature/moonhwan-ai-migrate`), 홍주P 확인·T-04 통합 대기, 명세 6.5
+- [ ] **A-08** 테스트 세트, 시연 메시지 확인, 고정 안내문 검수 (P1) — 회귀 2회와 후속 조정 회귀 2회 실행(7.2). 후속 2회차에서 일치율 94.7%, 수정 문장 96.6%, 시연 7/7, 검증 65/65로 기준 충족(7.2 단서 참고). 고정 안내문은 2026-11-11 사용자 검수로 확정. 레포 이관·레포 로컬 검증 완료(`feature/moonhwan-ai-migrate`), 홍주P 확인·T-04 통합 대기, 명세 6.8
+- [ ] **A-09** 카드 확률 계산과 발급 `private.issue_card` (P0) — 단위 시험(pgTAP)·1,000회 분포 확인(레포 로컬 재실행 포함), 레포 이관·레포 로컬 검증 완료(`feature/moonhwan-ai-migrate`), 홍주P R11 수정 대기, 홍주P 확인·T-04 통합 대기, 명세 6.9
 
 ## 5. 문환P 타임라인
 
@@ -435,7 +440,7 @@ lib/ai/tests/data/                           기존 4개 + influencer-message-se
 | illegal_ad | 불법 광고·도박 | 항상 차단 | 불법 광고나 도박 홍보. 은어로 표현한 불법 약물 판매나 비밀 거래 유도도 포함한다 |
 | spam | 스팸·도배 | 항상 차단 | 광고성 권유, 무의미한 내용을 복사해 붙인 도배, 같은 글자나 문구를 기계적으로 길게 반복하는 도배. 경기를 응원하는 짧은 구호나 감탄사를 몇 번 반복하는 것은 포함하지 않는다 |
 
-`[결정]` (2026-11-11 후속 조정) spam 설명 끝에 붙이는 문장 "채팅방의 인플루언서가 자기 레슨, 굿즈, 이벤트, 방송 일정을 알리는 공지는 포함하지 않는다"는 `senderType: "influencer"`일 때만 붙인다(코드 상수 `SPAM_INFLUENCER_NOTE`). 팬의 자기 홍보는 그대로 spam이다. hate·stalking 설명의 마지막 문장은 선택 필터를 끈 설정에서 항상 차단 대상이 비하·외모로만 잡혀 통과한 문장(#132·#139·#140·#142, #183·#186)의 유형을 일반화해 더했다. threat에도 #170 유형 문장을 더했으나 후속 1회차에서 검증 세트의 직접 협박 2건과 인플루언서 세트 1건이 새로 통과해 되돌렸다. 조정 근거 문장의 개선은 독립 검증이 아니다. stalking 보강 문구의 "방송 밖에서"는 승인한 계획의 "공개되지 않은 시간·장소에서"보다 넓어 대회장·팬미팅·사인회 같은 공개 장소에서 직접 봤다는 정상 문장도 걸릴 수 있다. 이 유형의 정상 문장은 시험 세트에 없어 오탐률은 미확인이다(문구 확정은 사용자 확인 대기).
+`[결정]` (2026-11-11 후속 조정) spam 설명 끝에 붙이는 문장 "채팅방의 인플루언서가 자기 레슨, 굿즈, 이벤트, 방송 일정을 알리는 공지는 포함하지 않는다"는 `senderType: "influencer"`일 때만 붙인다(코드 상수 `SPAM_INFLUENCER_NOTE`). 팬의 자기 홍보는 그대로 spam이다. hate·stalking 설명의 마지막 문장은 선택 필터를 끈 설정에서 항상 차단 대상이 비하·외모로만 잡혀 통과한 문장(#132·#139·#140·#142, #183·#186)의 유형을 일반화해 더했다. threat에도 #170 유형 문장을 더했으나 후속 1회차에서 검증 세트의 직접 협박 2건과 인플루언서 세트 1건이 새로 통과해 되돌렸다. 조정 근거 문장의 개선은 독립 검증이 아니다. stalking 보강 문구의 "방송 밖에서"는 승인한 계획의 "공개되지 않은 시간·장소에서"보다 넓어 대회장·팬미팅·사인회 같은 공개 장소에서 직접 봤다는 정상 문장도 걸릴 수 있다. 이 유형의 정상 문장은 시험 세트에 없어 오탐률은 미확인이다(문구 확정은 사용자 확인 대기). 2026-11-11 사용자 결정: stalking 문구를 "공개되지 않은 시간·장소에서"로 좁히는 것은 다음 유료 실행에 반영하도록 예정했다(아직 코드에 반영하지 않음).
 
 **품질 질문**
 
@@ -555,7 +560,7 @@ lib/ai/tests/data/                           기존 4개 + influencer-message-se
 
 ### 6.9 `private.issue_card` 처리 순서
 
-**보조 함수** (모두 `private`, `IMMUTABLE`, 같은 권한 회수 적용)
+**보조 함수** (모두 `private`, 같은 권한 회수 적용. `pick_index`는 `IMMUTABLE`, `pick_grade`는 안에서 쓰는 `enum_range`가 `STABLE`이라 `STABLE`이다. 2026-11-11 사용자 결정, 원격 적용 전 변경)
 
 - `private.pick_grade(p_rates jsonb, p_roll numeric) returns card_grade`: `p_roll`은 0 이상 100 미만이다. `common → rare → epic → special` 순서로 확률을 누적해 `p_roll`이 처음으로 누적값보다 작아지는 등급을 고른다. 기본 설정에서 구간은 일반 [0, 70), 레어 [70, 90), 에픽 [90, 97.5), 스페셜 [97.5, 100)이다. 확률이 0인 등급은 뽑히지 않는다.
 - `private.pick_index(p_count int, p_roll numeric) returns int`: `p_roll`은 0 이상 1 미만이고 `floor(p_roll × p_count)`를 돌려준다(0부터 `p_count - 1`).
@@ -608,7 +613,7 @@ lib/ai/tests/data/                           기존 4개 + influencer-message-se
 | 종류 | 명령 | 기준 |
 | --- | --- | --- |
 | 타입 | `deno check supabase/functions/_shared/ai.ts` | 오류 0 |
-| 단위 | `deno test supabase/functions/_shared/ai/` (권한 없이 실행해 네트워크 호출이 섞이면 실패하게 한다) | 6.4~6.7의 단위 시험 통과 |
+| 단위 | `deno test --config deno.json supabase/functions/_shared/ai/` (권한 없이 실행해 네트워크 호출이 섞이면 실패하게 한다) | 6.4~6.7의 단위 시험 통과 |
 | 실호출 확인 (A-01) | `deno run --allow-net=api.typesafe.ai,api.anthropic.com --allow-env --allow-read --env-file=lib/ai/tests/.env lib/ai/tests/smoke.ts` | Jev·Claude 각 1회 성공. 첫 호출 지연은 프로세스를 새로 띄워 5회 측정 |
 | 회귀 (A-08) | 같은 권한으로 `lib/ai/tests/regress.ts` | 4절 A-08 완료 기준 |
 | 폴백 (A-07) | 키 없이 `regress.ts`의 폴백 모드 실행 | 4절 A-07 완료 기준. Supabase Secrets는 건드리지 않는다 |
@@ -626,6 +631,7 @@ lib/ai/tests/data/                           기존 4개 + influencer-message-se
 | --- | --- | --- | --- | --- | --- |
 | 2026-11-11 | A-01 | 샌드박스 Deno | `deno run --allow-net=api.typesafe.ai,api.anthropic.com --allow-env --allow-read --env-file=lib/ai/tests/.env lib/ai/tests/smoke.ts` 5회(프로세스마다 새로 실행) | 5회 모두 Jev 200·`parsed: true`·`claude.ok: true`. `jev.ms` 398, 299, 253, 562, 290. Claude ms 1746, 1499, 1354, 1451, 1460. 품질 질문 응답은 `answers.quality.score` 형식. 단위 시험: `deno check` 오류 0건, `deno test` 18건 통과. 샌드박스(`../BirdieBuddy-ai/`)에서 돌릴 때는 `--env-file=../BirdieBuddy/lib/ai/tests/.env`처럼 레포의 `.env`를 가리킨다(0.4). Edge 런타임(샌드박스 `supabase functions serve`, `ai-smoke` 함수로 `callJev`·`callClaudeJson` 각 1회): HTTP 200, `jevOk: true`(jevMs 337), `claudeOk: true`(claudeMs 1635). `npm:` 지정자와 SDK가 Edge 런타임(supabase-edge-runtime-1.77.9)에서 동작 | 홍주P fixture 교체 |
 | 2026-11-11 | A-09 | 샌드박스 로컬 Supabase | `supabase test db`, `docker exec -i <supabase_db_ 컨테이너> psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f - < lib/ai/tests/sql/issue_card_distribution.sql` (1회 실행, 롤백) | pgTAP 77건 모두 통과. 템플릿 30종은 레포 seed가 아니라 분포 스크립트가 만들었으므로 seed에 돌리면 결과가 다를 수 있다. 1,000회 분포: 일반 698(657~743), 레어 203(163~237), 에픽 72(51~99), 스페셜 27(11~39)로 4등급 모두 PASS. 템플릿 30종, 종류별 최소 23·최대 49(합계 1,000). `forced=true` 0건. 롤백 뒤 `draws` 0건 | 레포 이관 후 재실행, 홍주P `complete_round` 통합 |
+| 2026-11-11 | A-01~A-05, A-07~A-09 (레포 이관) | 레포 로컬(worktree) | `deno test --config deno.json supabase/functions/_shared/ai/`, `npm run typecheck`, `npm run test:backend`, `deno task check`, `supabase db reset && supabase test db`, `supabase db lint`, 분포 스크립트(레포 DB, seed 템플릿 30종, 1회), 폴백 `regress.ts` | 무료 검사만 실행(레포에서 유료 호출 없음). AI 단위 시험 106건 통과(권한 플래그 없음). `typecheck` 통과. `test:backend` 통과(tsx 3건 + deno `index_test` 6건). `deno task check` 통과. pgTAP 96건 통과(backend_contract 19 + issue_card 77). `db lint` 오류 0건, 경고 2건(`pick_grade`가 IMMUTABLE인데 STABLE인 `enum_range`를 호출. 이후 사용자 결정으로 `pick_grade`를 STABLE로 바꿔 경고 해소). 분포: 693/198/77/32로 4등급 모두 3σ 안, 템플릿 30종, forced 0건, 롤백 뒤 draws 0건. 폴백 회귀 모드: 종료 코드 0, 품질 오탐 0건, 키워드 17/17 | 레포에서의 유료 실호출, Edge 실제 키 경로(`suggest`·인플루언서 포함), 원격 적용. `complete_round`와 이어진 end-to-end 추첨은 동적 호출 구문 오류(R11)로 실패해 확인하지 못했고 홍주P 수정 대기. (이 행 작성 뒤 `index_test`에 폴백 출력 계약 시험 1건을 더해 deno 7건) `pick_grade`는 2026-11-11 사용자 결정으로 원격 적용 전에 STABLE로 바꿨다 |
 | 2026-11-11 | A-07 | 샌드박스 Deno, 키 없음 | `deno run --allow-read --allow-write=lib/ai/tests/results lib/ai/tests/regress.ts fallback --data=<레포>/lib/ai/tests/data` (`--allow-env`·`--allow-net` 없이 실행, `deno test` 101건 통과, `deno check` 오류 0건) | 폴백 `moderateAndScore`만 실행(AI 판정 아님). `quality` 그룹 100문장 오탐 0건(예외 복합어 목록은 초기값 그대로). `trap` 그룹 `pass` 기대 25문장 중 `block/threat` 1건: #258 "홀컵을 죽여버리겠다는 마음으로"(결과 기록만, 기준 아님). 금칙어 17개로 만든 문장은 전부 기대 판정(선택 항목 `suggest`, 항상 차단 `block`·항목 일치). 142회 호출 전부 `passesAllFilters: false`·`quality: 50`·`rewrite: null`, 로그 142줄 전부 `{"event":"ai_fallback","reason":"no_key"}` | Jev 지연·5xx 모의의 사유 코드는 단위 시험(`moderate_test.ts`)만 확인, 실호출 미확인. 레포 이관 후 재실행 |
 | 2026-11-11 | A-04 | 샌드박스 Deno 실호출 | `deno run --allow-net=api.typesafe.ai,api.anthropic.com --allow-env --allow-read --allow-write=lib/ai/tests/results --env-file=<레포>/lib/ai/tests/.env lib/ai/tests/regress.ts rooms --data=<레포>/lib/ai/tests/data` (1회 실행, 종료 코드 0) | `clusterQuestions` 1회 성공, 입력 100건·2,834자, 6,213ms로 20초 안. 8묶음: 인원 5·2·2·2·2·2·2·2명, 대표 질문 길이 39·35·31·33·30·32·22·20자(모두 200자 이내). 품질 재실행(같은 날, 대표 질문·묶음 ID·요약 원문을 결과 `.json`에만 남기도록 `rooms` 모드를 고친 뒤 같은 명령 1회, 종료 코드 0): 10묶음(인원 5·5·2·2·3·2·3·2·8·3명, 대표 질문 32~64자), 5,413ms. 대표 질문 10개에 이름·닉네임 0건. 질문이 아닌 메시지(기대·응원·후기)가 든 묶음 2개(3건), 하위 질문 여러 개를 한 문장에 몰아 쓴 대표 질문 여러 개, 묶은 메시지 일부(선정 기준)를 대표 질문에 반영하지 않은 묶음 1개 | 홍주P Edge 통합(B-12) 미확인. 입력이 2,834자뿐이라 20,000자 상한 입력은 미확인. 묶음 품질은 재실행 1회 표본으로만 확인. 묶음 수가 8개와 10개로 실행마다 달라 편차가 있고 크기는 미확인 |
 | 2026-11-11 | A-05 | 샌드박스 Deno 실호출 | 위 A-04와 같은 실행 | `summarize` 6회 모두 성공. 사고 끔: 3,842ms/666자, 4,422ms/881자, 4,230ms/782자, 중앙값 4,230ms·782자. 사고 켬: 4,888ms/713자, 5,861ms/783자, 4,418ms/833자, 중앙값 4,888ms·783자. 6회 모두 2,000자 이하, 20초 안. 품질 재실행(A-04와 같은 재실행): 사고 끔 중앙값 3,771ms·677자, 켬 중앙값 4,072ms·803자, 6회 모두 성공. 6건 모두 6.7 구조(흐름 2~3문장, 화제 5개, 질문 5개)를 지킴. 마크다운 기호 2건(사고 끔 2건: 하이픈 목록, 번호 목록). 인원수·건수 0건, 숫자 표기 3건(번호 목록, 대화에 있던 빈도·기간 인용). 명백히 지어낸 사실 0건, 원문에 없는 해석 3종(카드 질문을 게임 내 카드로 단정, 원문의 마감일을 신청 기간으로 씀, 신청서 기재 항목을 참가 자격으로 분류). 6.7 `[측정]` 줄은 첫 실행 값을 유지 | 홍주P Edge 통합(B-12) 미확인. 입력이 2,834자뿐이라 20,000자 상한 입력은 미확인. 요약 품질은 재실행 1회(6건) 표본으로만 확인. 마크다운 금지 지시를 어긴 2건에 대해 프롬프트는 고치지 않았음(재발 빈도 미확인) |
