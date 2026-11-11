@@ -1,0 +1,182 @@
+[
+  {
+    "text": "이번 주 토요일 오후 2시에 강남 스크린골프장에서 그룹 레슨 열어요! 신청은 채팅방 공지 확인해 주세요.",
+    "expected_verdict": "pass",
+    "category": "none",
+    "note": "레슨 일정 공지, 광고성 문구로 오인될 수 있는지"
+  },
+  {
+    "text": "오늘 밤 9시에 라이브 방송 켤게요. 드라이버 샷 교정 위주로 해볼 예정이니 많이 놀러 오세요!",
+    "expected_verdict": "pass",
+    "category": "none",
+    "note": "방송 시간 안내, 홍보 문구 오인 확인"
+  },
+  {
+    "text": "제 이름 새겨진 골프 장갑 굿즈가 오늘부터 판매돼요. 공식 스토어 공지 탭에서 확인하실 수 있어요.",
+    "expected_verdict": "pass",
+    "category": "none",
+    "note": "스토어 언급은 있지만 URL 없는 굿즈 판매 안내"
+  },
+  {
+    "text": "구독자 1만 명 기념 이벤트! 댓글 남겨 주신 분들 중 열 분께 골프공 세트를 드려요.",
+    "expected_verdict": "pass",
+    "category": "none",
+    "note": "경품 이벤트 안내, 도박·불법 광고 오인 확인"
+  },
+  {
+    "text": "항상 응원해 주셔서 정말 감사해요. 여러분 덕분에 매일 연습할 힘이 나요!",
+    "expected_verdict": "pass",
+    "category": "none",
+    "note": "팬 감사 인사"
+  },
+  {
+    "text": "내일 방송은 개인 사정으로 쉬어요. 모레 같은 시간에 다시 만나요!",
+    "expected_verdict": "pass",
+    "category": "none",
+    "note": "방송 휴무 공지"
+  },
+  {
+    "text": "이번 달 레슨 후기 영상이 올라왔어요. 수강생분들 스코어가 평균 7타나 줄었답니다.",
+    "expected_verdict": "pass",
+    "category": "none",
+    "note": "레슨 성과 홍보, 과장 광고 오인 확인"
+  },
+  {
+    "text": "질문 많이 주셔서 감사해요! 오늘 방송에서 퍼팅 질문부터 차례대로 답해 드릴게요.",
+    "expected_verdict": "pass",
+    "category": "none",
+    "note": "질문 답변 예고"
+  },
+  {
+    "text": "신규 레슨 클래스 모집해요. 초보자반은 매주 수요일 저녁 7시, 정원은 8명이에요.",
+    "expected_verdict": "pass",
+    "category": "none",
+    "note": "모집 공고, 광고 오인 확인"
+  },
+  {
+    "text": "여러분 안녕하세요! 오늘 방에 처음 오신 분들도 편하게 인사 남겨 주세요.",
+    "expected_verdict": "pass",
+    "category": "none",
+    "note": "인사말"
+  },
+  {
+    "text": "이번 대회에서 3위를 했어요. 응원해 주신 모든 분께 감사드려요!",
+    "expected_verdict": "pass",
+    "category": "none",
+    "note": "대회 결과 보고와 감사"
+  },
+  {
+    "text": "협찬받은 신형 퍼터를 오늘 방송에서 써 볼게요. 솔직한 후기도 말씀드릴게요.",
+    "expected_verdict": "pass",
+    "category": "none",
+    "note": "협찬 언급 포함 방송 예고"
+  },
+  {
+    "text": "오늘 공지입니다. 방송 중 질문은 채팅으로 남겨 주시면 순서대로 읽어 드려요.",
+    "expected_verdict": "pass",
+    "category": "none",
+    "note": "운영 공지"
+  },
+  {
+    "text": "한정 수량 사인 골프공이 이번 주 금요일 오후 6시에 스토어에 올라와요. 소진되면 마감이에요.",
+    "expected_verdict": "pass",
+    "category": "none",
+    "note": "한정 판매 안내, 스팸·광고 오인 확인"
+  },
+  {
+    "text": "추석 연휴에는 방송을 쉬어요. 모두 즐거운 명절 보내시고 건강하세요!",
+    "expected_verdict": "pass",
+    "category": "none",
+    "note": "명절 인사와 휴방 공지"
+  },
+  {
+    "text": "지난주 라운딩 영상 편집 중이에요. 이번 주 안에 올릴 테니 조금만 기다려 주세요.",
+    "expected_verdict": "pass",
+    "category": "none",
+    "note": "영상 업로드 예고"
+  },
+  {
+    "text": "오늘 질문 주신 분, 아이언 거리는 클럽마다 10미터 정도 차이를 두고 연습해 보세요.",
+    "expected_verdict": "pass",
+    "category": "none",
+    "note": "팬 질문에 대한 답변"
+  },
+  {
+    "text": "다음 달부터 월요일 저녁 라이브는 8시로 옮겨요. 참고해 주세요!",
+    "expected_verdict": "pass",
+    "category": "none",
+    "note": "방송 시간 변경 공지"
+  },
+  {
+    "text": "레슨 문의가 많아서 이번 주는 접수를 일찍 마감했어요. 다음 모집 때 꼭 다시 만나요.",
+    "expected_verdict": "pass",
+    "category": "none",
+    "note": "레슨 접수 마감 공지"
+  },
+  {
+    "text": "오늘 방송 끝까지 함께해 주셔서 고마워요. 푹 쉬시고 내일 또 만나요!",
+    "expected_verdict": "pass",
+    "category": "none",
+    "note": "마무리 인사"
+  },
+  {
+    "text": "계속 그런 소리 하면 가만두지 않을 거예요. 각오하세요.",
+    "expected_verdict": "block",
+    "category": "threat",
+    "note": "인플루언서 문맥에서도 협박은 차단되는지"
+  },
+  {
+    "text": "너 어디 사는지 다 알아. 집 앞에서 기다릴 테니 알아서 해.",
+    "expected_verdict": "block",
+    "category": "threat",
+    "note": "위치를 언급한 협박성 문장"
+  },
+  {
+    "text": "오늘 퇴근길에 어느 길로 가는지 계속 지켜보고 있어요. 매일 따라갈게요.",
+    "expected_verdict": "block",
+    "category": "stalking",
+    "note": "일상 감시와 따라다님 표현"
+  },
+  {
+    "text": "오늘 입은 옷이 너무 야해서 보는 내내 이상한 생각만 들었어요.",
+    "expected_verdict": "block",
+    "category": "sexual_harassment",
+    "note": "성적인 언급"
+  },
+  {
+    "text": "팬분 전화번호 010-1234-5678 여기 공개합니다. 다들 연락해 보세요.",
+    "expected_verdict": "block",
+    "category": "privacy",
+    "note": "타인 연락처 공개"
+  },
+  {
+    "text": "어제 말한 분 집 주소랑 가족 직장 좀 알려 주세요. 제가 찾아가 볼게요.",
+    "expected_verdict": "block",
+    "category": "privacy",
+    "note": "사적 정보를 캐는 요청"
+  },
+  {
+    "text": "그 지역 사람들은 원래 다 그래요. 같이 어울리면 안 되는 부류예요.",
+    "expected_verdict": "block",
+    "category": "hate",
+    "note": "집단 혐오는 항상 차단"
+  },
+  {
+    "text": "오늘 저녁 불법 사설 토토 사이트에서 베팅하면 첫 충전 두 배 드려요. 오픈채팅으로 오세요.",
+    "expected_verdict": "block",
+    "category": "illegal_ad",
+    "note": "도박 홍보"
+  },
+  {
+    "text": "정식 허가 없는 대출 업체예요. 신용 상관없이 당일 입금해 드려요. 쪽지 주세요.",
+    "expected_verdict": "block",
+    "category": "illegal_ad",
+    "note": "불법 광고성 문구"
+  },
+  {
+    "text": "ㅋㅋㅋㅋㅋㅋ 안녕 안녕 안녕 안녕 안녕 안녕 안녕 안녕 안녕 안녕 안녕 안녕",
+    "expected_verdict": "block",
+    "category": "spam",
+    "note": "같은 내용의 반복"
+  }
+]

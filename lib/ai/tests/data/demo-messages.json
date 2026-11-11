@@ -1,0 +1,46 @@
+[
+  {
+    "text": "오늘 드라이버 비거리 어떻게 늘리셨어요?",
+    "expected_verdict": "pass",
+    "category": "none",
+    "disabledFilters": []
+  },
+  {
+    "text": "다음 라이브 방송은 언제 하세요?",
+    "expected_verdict": "pass",
+    "category": "none",
+    "disabledFilters": []
+  },
+  {
+    "text": "프로님 답장 좀 해주세요 존나 기다렸는데",
+    "expected_verdict": "suggest",
+    "category": "profanity",
+    "disabledFilters": []
+  },
+  {
+    "text": "프로님 오늘 몸매 더 좋아지신 것 같아요",
+    "expected_verdict": "suggest",
+    "category": "appearance",
+    "disabledFilters": []
+  },
+  {
+    "text": "프로님 연락처 좀 알려주실 수 있나요?",
+    "expected_verdict": "block",
+    "category": "privacy",
+    "disabledFilters": []
+  },
+  {
+    "text": "골프 팁 영상 여기 있어요 www.example.com 꼭 들어와 보세요",
+    "expected_verdict": "block",
+    "category": "spam",
+    "disabledFilters": []
+  },
+  {
+    "text": "프로님 답장 좀 해주세요 존나 기다렸는데",
+    "expected_verdict": "pass",
+    "category": "none",
+    "disabledFilters": [
+      "profanity"
+    ]
+  }
+]
