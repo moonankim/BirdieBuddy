@@ -1,7 +1,7 @@
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 import { decodeCursor, decodeVerificationCursor, encodeCursor } from './cursor.js';
 import type {
-  ApiError, BackendApi, CardTemplate, CollectionItem, Grade, InboxPage, Message, MessageChangeCursor,
+  AdvanceDemoMonthData, ApiError, BackendApi, CardTemplate, CollectionItem, Grade, InboxPage, Message, MessageChangeCursor,
   MessageChangesPage, OwnedCardItem, Page, Result, RoomCatalogItem, RoomGreeting, Style, SubmitMessageData,
   UUID, Verification,
 } from './types.js';
@@ -140,7 +140,7 @@ export function createBackendApi(client: AnyClient): BackendApi {
       return {roomId:data.room_id,status:data.status,gauge:Number(data.gauge),joinedAt:data.joined_at,joinedMonth:data.joined_month,leftAt:data.left_at,leftMonth:data.left_month} as any;
     }),
     getMyRoundGaugeSummary: ()=>run(()=>rpc(client,'get_my_round_gauge_summary')),
-    advanceDemoMonth: (input)=>run(()=>rpc(client,'advance_demo_month',{p_request_id:input.requestId,p_target_month:input.targetMonth})),
+    advanceDemoMonth: (input)=>run(()=>rpc<AdvanceDemoMonthData>(client,'advance_demo_month',{p_request_id:input.requestId,p_target_month:input.targetMonth})),
     getMessages: (input)=>run(async()=>{
       const result=await rpc<JsonRecord>(client,'get_messages',{p_room_id:input.roomId,p_before_id:input.beforeId??null,p_after_id:input.afterId??null,p_limit:input.limit??50});
       return {items:(result.items??[]).map(message),nextCursor:result.nextCursor??null};

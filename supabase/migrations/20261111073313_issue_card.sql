@@ -35,6 +35,23 @@ $$;
 REVOKE ALL ON FUNCTION private.pick_grade(jsonb, numeric) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION private.pick_index(int, numeric) FROM PUBLIC, anon, authenticated;
 
+-- 기존 local demo setup이 만든 결정적 fixture만 A-09 구현으로 교체한다.
+-- marker가 다른 동일 시그니처 함수는 임의로 덮어쓰지 않고 migration을 중단한다.
+DO $$
+DECLARE
+  v_issue_card oid := to_regprocedure('private.issue_card(uuid,uuid,public.card_grade)');
+  v_marker text;
+BEGIN
+  IF v_issue_card IS NOT NULL THEN
+    v_marker := obj_description(v_issue_card, 'pg_proc');
+    IF v_marker IS DISTINCT FROM 'LOCAL MOCK FIXTURE: deterministic sample award for isolated local development only. Replace with MoonhwanP A-09.' THEN
+      RAISE EXCEPTION 'ISSUE_CARD_ALREADY_EXISTS_WITHOUT_LOCAL_FIXTURE_MARKER';
+    END IF;
+    EXECUTE 'DROP FUNCTION private.issue_card(uuid, uuid, public.card_grade)';
+  END IF;
+END;
+$$;
+
 -- complete_round가 자기 트랜잭션 안에서 부른다. EXCEPTION 블록을 두지 않는 것이 불변 조건이다:
 -- draws INSERT 뒤의 어떤 실패도 그대로 올라가야 호출자 트랜잭션이 통째로 롤백된다.
 -- 같은 round_id 재호출은 draws.round_id UNIQUE(23505), 남의 round는 FK(23503)로 실패한다.

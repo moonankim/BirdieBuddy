@@ -8,7 +8,7 @@
     "local:env": "node scripts/prepare-local-env.mjs",
     "demo:setup": "node --env-file=.env.backend.local scripts/setup-demo-accounts.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.backend.json && deno check --config deno.json supabase/functions/*/index.ts",
-    "test:backend": "tsx --test tests/backend/*.test.ts && deno test --config deno.json supabase/functions/_shared/index_test.ts",
+    "test:backend": "tsx --test tests/backend/*.test.ts && deno test --config deno.json supabase/functions/",
     "verify:backend": "node --import tsx --env-file=.env.backend.local scripts/verify-backend.mjs",
     "db:reset": "supabase db reset",
     "db:types": "supabase gen types typescript --local > lib/supabase/database.types.ts",
