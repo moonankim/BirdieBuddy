@@ -1,0 +1,15 @@
+{
+  "lock": "deno.lock",
+  "nodeModulesDir": "auto",
+  "compilerOptions": {
+    "strict": true,
+    "lib": ["deno.window", "dom", "dom.iterable", "esnext"]
+  },
+  "imports": {
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2.119.0"
+  },
+  "tasks": {
+    "check": "deno check supabase/functions/*/index.ts",
+    "test": "deno test supabase/functions/**/index_test.ts"
+  }
+}
