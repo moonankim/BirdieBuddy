@@ -12,7 +12,7 @@ const DEOBFUSCATE_CASES: [string, string, string][] = [
   ["꽁ㅁㅓ니", "꽁머니", "자모 분해"],
   ["카ㅈ1노", "카지노", "ㅈ+1(ㅣ)"],
   ["꽁머ㄴl", "꽁머니", "ㄴ+l(ㅣ)"],
-  ["카​지​노", "카지노", "제로폭 문자"],
+  ["카\u200b지\u200b노", "카지노", "제로폭 문자"],
   ["ⓣⓞⓣⓞ", "toto", "원문자 영문"],
   ["ｃａｓｉｎｏ", "casino", "전각 영문"],
 ];
@@ -64,7 +64,7 @@ Deno.test("latinTokens(transform=false): NFKC·leet 없이 소문자와 [^a-z] �
 });
 
 Deno.test("견고성: 이모지·서로게이트 쌍이 섞인 2,000자 입력은 throw 없이 10ms 이하", () => {
-  const unit = "카😀지𝐀노​😀ㅂr";
+  const unit = "카😀지𝐀노\u200b😀ㅂr";
   const input = unit.repeat(Math.ceil(2000 / [...unit].length)).slice(0, 2000);
   let max = 0;
   for (let i = 0; i < 5; i++) {
