@@ -440,7 +440,7 @@ async function runFull() {
   }
 
   assertNoFallback("시연 세트", logs);
-  const validateResults: { expected: Verdict; verdict: Verdict }[] = [];
+  const validateResults: { text: string; expected: Verdict; expectedCategory: string; verdict: Verdict; category: FilterCategory | null; scores: Record<FilterCategory, number> }[] = [];
   if (validate) {
     const evalRows = await loadJson<EvalRow[]>("filter-eval-set.json");
     const ev = await pool(evalRows, 3, (r) => judge(r.text, deps));
@@ -448,9 +448,12 @@ async function runFull() {
     out(`\n## 검증 세트 filter-eval-set (${evalRows.length}문장)`);
     evalRows.forEach((r, i) => {
       const expected = evalExpected(r.category);
-      if (ev[i].verdict === expected) ok++;
-      else out(`- 기대 ${expected}/${r.category} 실제 ${ev[i].verdict}/${ev[i].category ?? "none"} (${violations(ev[i].scores)}) ${cut(r.text)}`);
-      validateResults.push({ expected, verdict: ev[i].verdict });
+      if (ev[i].verdict === expected) {
+        ok++;
+        // 판정이 맞아도 다른 항목으로 막혔으면 그 항목 설명이 대신 잡은 것이라 따로 보인다.
+        if (expected === "block" && ev[i].category !== r.category) out(`- 판정 일치·항목 다름: 기대 ${r.category} 실제 ${ev[i].category ?? "none"} (${violations(ev[i].scores)}) ${cut(r.text)}`);
+      } else out(`- 기대 ${expected}/${r.category} 실제 ${ev[i].verdict}/${ev[i].category ?? "none"} (${violations(ev[i].scores)}) ${cut(r.text)}`);
+      validateResults.push({ text: r.text, expected, expectedCategory: r.category, verdict: ev[i].verdict, category: ev[i].category, scores: ev[i].scores });
     });
     out(`- 일치 ${ok}/${evalRows.length}`);
   }
