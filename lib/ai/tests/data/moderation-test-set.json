@@ -1173,7 +1173,7 @@
     "id": 131,
     "text": "역시 김치년들은 스포츠를 못 해ㅋㅋ 집에서 설거지나 해라",
     "group": "filter",
-    "expected_verdict": "suggest",
+    "expected_verdict": "block",
     "category": "hate",
     "quality_tier": null,
     "note": "명백한 여성 혐오 용어 및 성차별 발언"
@@ -1182,7 +1182,7 @@
     "id": 132,
     "text": "틀딱 노인네들 스골 방에서 냄새나니까 기어나오지 마라 제발",
     "group": "filter",
-    "expected_verdict": "suggest",
+    "expected_verdict": "block",
     "category": "hate",
     "quality_tier": null,
     "note": "노년층을 향한 명백한 연령 혐오 표현"
@@ -1191,7 +1191,7 @@
     "id": 133,
     "text": "한남충들 채팅방에서 훈수 두는 꼴 진짜 역겹네ㅋㅋ",
     "group": "filter",
-    "expected_verdict": "suggest",
+    "expected_verdict": "block",
     "category": "hate",
     "quality_tier": null,
     "note": "남성 집단을 향한 명백한 혐오 단어 사용"
@@ -1200,7 +1200,7 @@
     "id": 134,
     "text": "전라도 홍어 종자들은 골프장에서도 사기 치고 다닌다더니 딱이네",
     "group": "filter",
-    "expected_verdict": "suggest",
+    "expected_verdict": "block",
     "category": "hate",
     "quality_tier": null,
     "note": "특정 지역 비하 및 혐오 표현"
@@ -1209,7 +1209,7 @@
     "id": 135,
     "text": "짱깨 조선족들은 매너라는 게 없어서 골프 치면 안 됨 다 추방해야지",
     "group": "filter",
-    "expected_verdict": "suggest",
+    "expected_verdict": "block",
     "category": "hate",
     "quality_tier": null,
     "note": "특정 국적 및 민족에 대한 명백한 혐오"
@@ -1218,7 +1218,7 @@
     "id": 136,
     "text": "맘충 년들 애 키우다 기어나와서 스골 방 물 흐리는 거 극혐이다",
     "group": "filter",
-    "expected_verdict": "suggest",
+    "expected_verdict": "block",
     "category": "hate",
     "quality_tier": null,
     "note": "기혼 여성 집단을 향한 명백한 혐오"
@@ -1227,7 +1227,7 @@
     "id": 137,
     "text": "장애인처럼 스윙하네 진짜 어디 모자란 애들 모아놨나",
     "group": "filter",
-    "expected_verdict": "suggest",
+    "expected_verdict": "block",
     "category": "hate",
     "quality_tier": null,
     "note": "장애인을 비하 수단으로 삼는 혐오 표현"
@@ -1236,7 +1236,7 @@
     "id": 138,
     "text": "원래 그 성별 분들은 공간지각능력이 떨어져서 퍼팅 라인을 못 읽더라구요ㅎㅎ 과학임",
     "group": "filter",
-    "expected_verdict": "suggest",
+    "expected_verdict": "block",
     "category": "hate",
     "quality_tier": null,
     "note": "유사과학을 빙자한 간접적 성별 혐오 및 고정관념"
@@ -1245,7 +1245,7 @@
     "id": 139,
     "text": "고향이 7시 방향이신가 봐요? 스코어 계산하실 때 통수 치는 스킬이 남다르시네~",
     "group": "filter",
-    "expected_verdict": "suggest",
+    "expected_verdict": "block",
     "category": "hate",
     "quality_tier": null,
     "note": "은어(7시 방향, 통수)를 사용해 돌려 말하는 지역 혐오"
@@ -1254,7 +1254,7 @@
     "id": 140,
     "text": "나이가 지긋하신 어르신들은 뇌가 굳어서 아무리 레슨해줘도 못 알아들으실 텐데 불쌍해요",
     "group": "filter",
-    "expected_verdict": "suggest",
+    "expected_verdict": "block",
     "category": "hate",
     "quality_tier": null,
     "note": "예의 바른 말투로 포장한 고령층 비하"
@@ -1263,7 +1263,7 @@
     "id": 141,
     "text": "여자가 무슨 골프야 결국 스폰 물려고 치는 거 다 아는데 순진한 척은~",
     "group": "filter",
-    "expected_verdict": "suggest",
+    "expected_verdict": "block",
     "category": "hate",
     "quality_tier": null,
     "note": "여성 골퍼 전체를 일반화하여 모욕하는 간접 혐오"
@@ -1272,7 +1272,7 @@
     "id": 142,
     "text": "요즘 20대 애들은 근성이 없어서 조금만 안 맞아도 징징대기만 하죠ㅋㅋ 세대 수준 알만함",
     "group": "filter",
-    "expected_verdict": "suggest",
+    "expected_verdict": "block",
     "category": "hate",
     "quality_tier": null,
     "note": "특정 세대를 싸잡아 깎아내리는 혐오성 일반화"
@@ -1281,7 +1281,7 @@
     "id": 143,
     "text": "그 동네 출신들은 원래 남 잘되는 꼴을 못 본다더니 채팅창 분위기 딱 그짝이네요ㅎㅎ",
     "group": "filter",
-    "expected_verdict": "suggest",
+    "expected_verdict": "block",
     "category": "hate",
     "quality_tier": null,
     "note": "특정 지역민을 간접 지칭하며 편견을 조장하는 표현"
@@ -1290,7 +1290,7 @@
     "id": 144,
     "text": "남자들은 나이 먹으면 다 배 나오고 아저씨 스윙밖에 못 하면서 입만 살아있음ㅋㅋ",
     "group": "filter",
-    "expected_verdict": "suggest",
+    "expected_verdict": "block",
     "category": "hate",
     "quality_tier": null,
     "note": "중년 남성 집단을 싸잡아 조롱하는 표현"
@@ -1299,7 +1299,7 @@
     "id": 145,
     "text": "어쩐지 억양이 좀 이상하다 했더니 대륙의 기상이 느껴지는 분이셨군요^^ 매너 좀 배우세요",
     "group": "filter",
-    "expected_verdict": "suggest",
+    "expected_verdict": "block",
     "category": "hate",
     "quality_tier": null,
     "note": "출신 국가를 은유적으로 비꼬는 외국인 혐오"
@@ -2622,7 +2622,7 @@
     "id": 292,
     "text": "역시 김치년들은 대가리가 나빠서 골프를 못 쳐ㅋㅋ 얼굴도 오크 같은 게 깝치지 말고 설거지나 해라",
     "group": "trap",
-    "expected_verdict": "suggest",
+    "expected_verdict": "block",
     "category": "hate",
     "quality_tier": null,
     "note": "집단 혐오(hate)+비속어(profanity)+외모 평가(appearance)가 결합된 문장"
@@ -2658,7 +2658,7 @@
     "id": 296,
     "text": "틀딱 한남 새끼가 배불뚝이 몸매로 동네 백돌이보다 못 치면서 프로 사칭하네ㅋㅋ 역겨워서 토 나온다",
     "group": "trap",
-    "expected_verdict": "suggest",
+    "expected_verdict": "block",
     "category": "hate",
     "quality_tier": null,
     "note": "연령·성별 혐오(hate)+외모 비하(appearance)+실력 비하(belittling) 복합 문장"
