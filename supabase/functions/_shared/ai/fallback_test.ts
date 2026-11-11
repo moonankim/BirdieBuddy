@@ -1,5 +1,6 @@
 import { assertEquals } from "jsr:@std/assert@1";
 import { fallbackModerate } from "./fallback.ts";
+import { evasionHits } from "./keywords.ts";
 
 Deno.test("항목별 적중", () => {
   const cases = [
@@ -69,4 +70,9 @@ Deno.test("우회 표기 금칙어는 정규화본으로 적중, 예외 단어�
   assertEquals([r.verdict, r.category], ["block", "illegal_ad"]);
   assertEquals(fallbackModerate("토토로 보면서 쉬었어요", []).verdict, "pass");
   assertEquals(fallbackModerate("홀 덤으로 하나 더", []).verdict, "pass");
+  assertEquals(fallbackModerate("토토로ㅋ", []).verdict, "pass");
+});
+
+Deno.test("예외 단어 뒤 낱자 초성은 우회 적중을 만들지 않음", () => {
+  for (const text of ["토토로ㅋ", "토토로ㅎ", "홀덤으로ㅋ"]) assertEquals(evasionHits(text), [], text);
 });

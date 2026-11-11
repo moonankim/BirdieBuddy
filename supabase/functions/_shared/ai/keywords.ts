@@ -39,7 +39,7 @@ function hits(matching: string, tokens: string[]): FilterCategory[] {
 
 /** 우회 표기를 되돌린 정규화본과 영문 토큰 기준 적중. 폴백이 쓴다. */
 export function keywordHits(text: string): FilterCategory[] {
-  return hits(deobfuscate(text), latinTokens(text));
+  return hits(deobfuscate(text, KEYWORD_EXCEPTIONS), latinTokens(text));
 }
 
 /** 기호·공백 제거와 소문자화만 한 기준 적중(우회 복원 없음). evasionHits의 비교 기준이다. */

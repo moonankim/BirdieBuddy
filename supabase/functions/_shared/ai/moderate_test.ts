@@ -95,7 +95,7 @@ Deno.test("influencer·disabledFilters에도 우회 illegal_ad는 block", async 
     input({ body: "ⓣⓞⓣⓞ 놀이터", senderType: "influencer", disabledFilters: ["profanity", "belittling", "appearance"] }),
     s.deps,
   );
-  assertEquals([r.verdict, r.category], ["block", "illegal_ad"]);
+  assertEquals([r.verdict, r.category, r.passesAllFilters], ["block", "illegal_ad", false]);
 });
 
 Deno.test("원문 적중·예외·다른 항목의 우회 적중은 본경로에서 올리지 않음", async () => {
@@ -107,6 +107,8 @@ Deno.test("원문 적중·예외·다른 항목의 우회 적중은 본경로에
     "ㅈㅗㄴㄴㅏ 잘 치네",
     "시바 ㄹㅇ 귀엽다",
     "한나 ㅁㅊ 잘 치네",
+    "토토로ㅋ",
+    "홀덤으로ㅎ",
   ];
   for (const body of bodies) {
     const s = setup({ jev: [out()] });
@@ -118,7 +120,7 @@ Deno.test("원문 적중·예외·다른 항목의 우회 적중은 본경로에
 Deno.test("Jev privacy 0.9 + 우회 illegal_ad → block, category는 점수 높은 illegal_ad", async () => {
   const s = setup({ jev: [out({ privacy: 0.9 })] });
   const r = await moderateAndScore(input({ body: "ㅂr카라" }), s.deps);
-  assertEquals([r.verdict, r.category], ["block", "illegal_ad"]);
+  assertEquals([r.verdict, r.category, r.passesAllFilters], ["block", "illegal_ad", false]);
 });
 
 // 판정

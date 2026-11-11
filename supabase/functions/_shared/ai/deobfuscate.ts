@@ -32,7 +32,7 @@ export function plainForm(text: string): string {
  * 대조용 문자열(소문자, 문자·숫자만). 단계 순서가 결과를 바꾸므로 바꾸지 않는다.
  * 닮은꼴 표 → NFKC → 기호 제거 → 초성 뒤 모음 닮은꼴 → NFC → 받침 붙이기 → 소문자화.
  */
-export function deobfuscate(text: string): string {
+export function deobfuscate(text: string, protect: readonly string[] = []): string {
   let s = [...text].map((c) => CHAR_MAP[c] ?? c).join("").normalize("NFKC");
   s = s.replace(/[^\p{L}\p{N}]/gu, "");
   const cs = [...s];
@@ -40,6 +40,9 @@ export function deobfuscate(text: string): string {
     if (VOWEL_LOOKALIKE[cs[i]] && isLead(cs[i - 1].codePointAt(0)!)) cs[i] = VOWEL_LOOKALIKE[cs[i]];
   }
   s = cs.join("").normalize("NFC");
+  // 보호 단어(금칙어 예외)는 받침 붙이기 전에 비문자 자리표시자로 바꾼다. 그렇지 않으면 "토토로ㅋ"가
+  // "토토롴"이 되어 예외가 깨진다. 결과에 "_"가 남는 것은 이 경우뿐이다.
+  for (const word of protect) s = s.replaceAll(word, "_");
 
   // 받침 없는 음절 뒤의 낱자 초성은 종성으로 붙인다. 단 뒤가 모음이면 다음 음절의 초성이고,
   // 뒤가 또 낱자 초성이면 ㄹㅇ·ㅁㅊ 같은 초성체이므로 붙이지 않는다(붙이면 시바 ㄹㅇ→시발, 한나 ㅁㅊ→한남).

@@ -1,6 +1,11 @@
 import { assert, assertEquals, assertFalse } from "jsr:@std/assert@1";
 import { deobfuscate, latinTokens, plainForm } from "./deobfuscate.ts";
 
+Deno.test("protect 단어는 뒤 낱자 초성이 받침으로 붙지 않게 가려진다", () => {
+  assertEquals(deobfuscate("토토로ㅋ"), "토토롴");
+  assertEquals(deobfuscate("토토로ㅋ", ["토토로"]), "_ᄏ");
+});
+
 const DEOBFUSCATE_CASES: [string, string, string][] = [
   ["ㅂr카라", "바카라", "초성+r(ㅏ)"],
   ["바ㅋr라", "바카라", "ㅋ+r(ㅏ)"],
