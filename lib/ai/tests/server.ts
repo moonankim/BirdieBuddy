@@ -12,7 +12,7 @@ const JEV_FLAG_THRESHOLD = 0.5;
 const CATEGORIES = {
   profanity: { label: "욕설", scope: "선택", description: "욕설이나 비속어" },
   belittling: { label: "가벼운 비하", scope: "선택", description: "상대를 깎아내리거나 조롱하는 표현" },
-  hate: { label: "혐오 표현", scope: "선택", description: "성별, 지역, 출신, 장애 등 집단에 대한 혐오" },
+  hate: { label: "혐오 표현", scope: "항상 차단", description: "성별, 지역, 출신, 장애 등 집단에 대한 혐오" },
   appearance: { label: "외모 평가", scope: "선택", description: "상대의 외모나 몸매를 평가하는 표현" },
   threat: { label: "협박", scope: "항상 차단", description: "해를 끼치겠다는 위협" },
   stalking: { label: "스토킹성", scope: "항상 차단", description: "집요하게 따라다니거나 위치와 일상을 감시하는 내용" },
