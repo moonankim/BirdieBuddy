@@ -1,3 +1,4 @@
+import { createAiAdapter as createProviderAdapter } from './ai.ts';
 import { ApiFailure } from './http.ts';
 
 export type AiVerdict = 'pass'|'suggest'|'block';
@@ -15,12 +16,6 @@ export type AiAdapter = {
   moderateAndScore(input:{body:string;disabledFilters:string[];senderType?:'user'|'influencer';signal:AbortSignal}):Promise<ModerationResult>;
   clusterQuestions(input:{messages:{id:string;body:string}[];signal:AbortSignal}):Promise<{representative:string;messageIds:string[]}[]>;
   summarize(input:{messages:{id:string;body:string;sender:string}[];signal:AbortSignal}):Promise<string>;
-};
-
-const failClosedAdapter: AiAdapter = {
-  async moderateAndScore(){throw new ApiFailure('FILTER_UNAVAILABLE');},
-  async clusterQuestions(){throw new ApiFailure('FILTER_UNAVAILABLE');},
-  async summarize(){throw new ApiFailure('FILTER_UNAVAILABLE');},
 };
 
 function isLocalSupabase(env: Record<string,string|undefined>): boolean {
@@ -70,16 +65,32 @@ const localFixtureAdapter: AiAdapter = {
   },
 };
 
+// Provider errors are mapped to FILTER_UNAVAILABLE without their message so provider
+// details never reach the response; http.ts would otherwise turn them into a 500.
+async function asFilterUnavailable<T>(work:()=>Promise<T>): Promise<T> {
+  try { return await work(); } catch { throw new ApiFailure('FILTER_UNAVAILABLE'); }
+}
+
+function createWrappedProviderAdapter(): AiAdapter {
+  const provider = createProviderAdapter();
+  return {
+    // ai.ts types reason as string|null (always null at runtime); validateModeration rejects non-null.
+    moderateAndScore:(input)=>asFilterUnavailable(()=>provider.moderateAndScore(input) as Promise<ModerationResult>),
+    clusterQuestions:(input)=>asFilterUnavailable(()=>provider.clusterQuestions(input)),
+    summarize:(input)=>asFilterUnavailable(()=>provider.summarize(input)),
+  };
+}
+
 export function createAiAdapter(env: Record<string,string|undefined>): AiAdapter {
-  return env.BB_USE_LOCAL_AI_FIXTURE==='true' && isLocalSupabase(env) ? localFixtureAdapter : failClosedAdapter;
+  return env.BB_USE_LOCAL_AI_FIXTURE==='true' && isLocalSupabase(env) ? localFixtureAdapter : createWrappedProviderAdapter();
 }
 
 function runtimeEnv(name:string): string|undefined {
   try { return Deno.env.get(name); } catch { return undefined; }
 }
 
-// This fixture is intentionally local-only. The real Jev/Claude adapter belongs to
-// MoonhwanP; replace this selection point when their reviewed implementation lands.
+// The local fixture is selected only for local Supabase with BB_USE_LOCAL_AI_FIXTURE=true;
+// everything else uses the real provider adapter from ai.ts.
 export const aiAdapter = createAiAdapter({
   BB_USE_LOCAL_AI_FIXTURE:runtimeEnv('BB_USE_LOCAL_AI_FIXTURE'),
   SUPABASE_URL:runtimeEnv('SUPABASE_URL'),

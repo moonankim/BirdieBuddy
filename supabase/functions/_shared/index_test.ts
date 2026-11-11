@@ -1,4 +1,4 @@
-import { aiAdapter, validateModeration } from './ai_adapter.ts';
+import { createAiAdapter, validateModeration } from './ai_adapter.ts';
 import { ApiFailure } from './http.ts';
 
 function assert(condition:unknown,message:string):asserts condition{if(!condition)throw new Error(message);}
@@ -20,9 +20,27 @@ Deno.test('mandatory categories cannot be suggestions and influencers cannot sug
   expectFilterUnavailable(()=>validateModeration({verdict:'suggest',category:'appearance',reason:null,rewrite:'다시 쓰기',quality:30,rewriteQuality:80,passesAllFilters:false},[],'influencer'));
 });
 
-Deno.test('unmerged provider adapter fails closed',async()=>{
-  let caught=false;
-  try{await aiAdapter.moderateAndScore({body:'테스트',disabledFilters:[],signal:new AbortController().signal});}
-  catch(error){caught=error instanceof ApiFailure&&error.code==='FILTER_UNAVAILABLE';}
-  assert(caught,'provider absence must not pass a message through');
+const noSignal=()=>new AbortController().signal;
+const localFixtureEnv={BB_USE_LOCAL_AI_FIXTURE:'true',SUPABASE_URL:'http://127.0.0.1:54321',SUPABASE_DB_URL:'postgresql://postgres:postgres@127.0.0.1:54322/postgres'};
+async function rejection(work:()=>Promise<unknown>):Promise<unknown>{try{await work();}catch(error){return error;}return undefined;}
+function isFilterUnavailable(error:unknown):boolean{return error instanceof ApiFailure&&error.code==='FILTER_UNAVAILABLE';}
+
+Deno.test('non-local env wraps provider failures as FILTER_UNAVAILABLE',async()=>{
+  // Without --allow-env the real adapter's Deno.env.get throws, so every method rejects.
+  const adapter=createAiAdapter({});
+  assert(isFilterUnavailable(await rejection(()=>adapter.moderateAndScore({body:'테스트',disabledFilters:[],signal:noSignal()}))),'moderateAndScore must fail closed');
+  assert(isFilterUnavailable(await rejection(()=>adapter.clusterQuestions({messages:[{id:'1',body:'질문'}],signal:noSignal()}))),'clusterQuestions must fail closed');
+  assert(isFilterUnavailable(await rejection(()=>adapter.summarize({messages:[{id:'1',body:'질문',sender:'a'}],signal:noSignal()}))),'summarize must fail closed');
+});
+
+Deno.test('local fixture env still selects the fixture adapter',async()=>{
+  const result=await createAiAdapter(localFixtureEnv).moderateAndScore({body:'[[fixture:block]]',disabledFilters:[],signal:noSignal()});
+  assert(result.verdict==='block'&&result.category==='threat','fixture adapter was not selected');
+});
+
+Deno.test('wrapped errors do not carry the provider message',async()=>{
+  const error=await rejection(()=>createAiAdapter({}).summarize({messages:[{id:'1',body:'질문',sender:'a'}],signal:noSignal()}));
+  assert(error instanceof ApiFailure,'expected ApiFailure');
+  assert(error.message===new ApiFailure('FILTER_UNAVAILABLE').message,'message must be the fixed ApiFailure message');
+  assert(!/summarize_failed|PermissionDenied|env/i.test(error.message),'provider message leaked');
 });
