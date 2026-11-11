@@ -9,7 +9,7 @@ FROM generate_series(1, 10) n
 WHERE NOT EXISTS (SELECT 1 FROM public.card_templates);
 
 INSERT INTO public.card_templates (influencer_id, style, image_path)
-SELECT i.id, s, 'dist/' || i.id || '/' || s
+SELECT i.id, s, i.id || '/' || s || '.webp'
 FROM public.influencers i
 CROSS JOIN unnest(enum_range(NULL::public.card_style)) s
 WHERE i.name LIKE 'dist\_inf\_%'
