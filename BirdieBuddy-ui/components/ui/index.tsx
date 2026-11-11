@@ -1,0 +1,13 @@
+'use client';
+import {useEffect,useRef,type ButtonHTMLAttributes,type ReactNode,type TextareaHTMLAttributes} from 'react';
+export {Avatar} from './avatar';
+export function Button({className='',...props}:ButtonHTMLAttributes<HTMLButtonElement>){return <button {...props} className={`button ${className}`} />;}
+export function IconButton({label,children,...props}:ButtonHTMLAttributes<HTMLButtonElement>&{label:string}){return <button className="icon-button" {...props} aria-label={label}>{children}</button>;}
+export function TextArea({label,maxLength,value,...props}:TextareaHTMLAttributes<HTMLTextAreaElement>&{label:string;value:string}){return <label className="field-label stack">{label}<textarea {...props} value={value} className="input"/><span className="footnote">{Array.from(value).length}{maxLength!==undefined?`/${maxLength}`:''}</span></label>;}
+export function Modal({open,title,children,onClose}:{open:boolean;title:string;children:ReactNode;onClose:()=>void}){const ref=useRef<HTMLDialogElement>(null);useEffect(()=>{const dialog=ref.current;if(!dialog)return;if(open&&!dialog.open){if(typeof dialog.showModal==='function')dialog.showModal();else dialog.setAttribute('open','');}else if(!open&&dialog.open){if(typeof dialog.close==='function')dialog.close();else dialog.removeAttribute('open');}},[open]);return <dialog ref={ref} aria-label={title} onCancel={e=>{e.preventDefault();onClose();}} className="m-auto w-[min(90vw,360px)] rounded-[var(--radius-md)] border-0 p-5 shadow-[var(--shadow)]"><h2 className="mb-2 text-[length:var(--type-heading)] font-bold">{title}</h2>{children}</dialog>;}
+export function Toast({children}:{children:ReactNode}){return <div role="status" aria-live="polite" className="notice">{children}</div>;}
+export function Badge({children}:{children:ReactNode}){return <span className="badge">{children}</span>;}
+export function Spinner(){return <span role="status" className="muted">불러오는 중...</span>;}
+export function EmptyState({children}:{children:ReactNode}){return <p className="muted py-6 text-center">{children}</p>;}
+export function ErrorState({message,onRetry}:{message:string;onRetry?:()=>void}){return <p role="alert" className="notice error">{message} {onRetry&&<button className="button small light" onClick={onRetry}>다시 시도</button>}</p>;}
+export function GaugeBar({value}:{value:number}){return <div className="gauge"><div className="gauge-head"><span>나의 유지 게이지</span><strong>{value} <small className="muted">/ 100</small></strong></div><progress aria-label="게이지" max={100} value={value}/><div className="gauge-foot"><span>꾸준한 라운드로 함께해요</span><strong>여유 라운드 {value/12.5}회</strong></div></div>;}

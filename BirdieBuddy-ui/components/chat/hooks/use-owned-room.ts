@@ -1,0 +1,7 @@
+'use client';
+import {useCallback,useEffect,useState} from 'react';
+import {useRouter} from 'next/navigation';
+import {useChatApi} from '../api/chat-api';
+import type {ApiError} from '../api/types';
+export type OwnedRoomState={status:'loading'}|{status:'ready';roomId:string}|{status:'empty'}|{status:'forbidden'}|{status:'auth'}|{status:'error';error:ApiError};
+export function useOwnedRoom(){const api=useChatApi();const router=useRouter();const [state,setState]=useState<OwnedRoomState>({status:'loading'});const [revision,setRevision]=useState(0);const retry=useCallback(()=>setRevision(v=>v+1),[]);useEffect(()=>{let active=true;setState({status:'loading'});const reset=()=>{active=false;setState({status:'loading'});};window.addEventListener('session-reset',reset);void Promise.all([api.getMyInfluencerProfile(),api.getRooms()]).then(([profile,rooms])=>{if(!active)return;const error=!profile.ok?profile.error:!rooms.ok?rooms.error:null;if(error){if(error.code==='UNAUTHENTICATED'){setState({status:'auth'});router.replace('/login');}else if(error.code==='FORBIDDEN')setState({status:'forbidden'});else setState({status:'error',error});return;}if(!profile.ok||!rooms.ok)return;const room=rooms.data.items.find(item=>item.influencerId===profile.data.influencerId);setState(room?{status:'ready',roomId:room.roomId}:{status:'empty'});}).catch(()=>{if(active)setState({status:'error',error:{code:'NETWORK_ERROR',message:'',retryable:true}});});return()=>{active=false;window.removeEventListener('session-reset',reset);};},[api,router,revision]);return {state,retry};}
