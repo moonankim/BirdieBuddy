@@ -18,7 +18,7 @@
 
 1. `git status`와 실제 파일을 확인한다. 기존 수정사항을 보존하고, 체크 표시만 보고 완료를 가정하지 않는다.
 2. 0.3의 준비물을 확인한다(`deno --version`, `docker info`, `nvm ls 24`). 없는 도구는 설치하지 않고 사용자에게 알린 뒤, 그 도구 없이 할 수 있는 작업만 진행한다.
-3. `main`에 `supabase/`가 있는지 확인한다. 없으면 0.4의 레포 밖 샌드박스에서 개발한다. 루트 파일과 `supabase/`를 직접 만들지 않는다(`architecture.md` §2 규칙 5, 홍주P B-01 소유).
+3. `main`에 `supabase/`가 있는지 확인한다. 없으면 0.4의 레포 밖 샌드박스에서 개발한다(2026-11-11 기준 `supabase/`가 `main`에 있으므로 레포에서 작업하고 샌드박스는 쓰지 않는다). 루트 파일과 `supabase/`를 직접 만들지 않는다(`architecture.md` §2 규칙 5, 홍주P B-01 소유).
 4. 요청된 티켓을 4절의 완료 기준과 6절의 명세대로 구현한다. 담당 경로(2절) 밖의 파일은 고치지 않고, 필요한 변경은 1절의 요청 표에 적는다.
 5. 7절의 검증을 실행하고 결과를 7.2에 기록한다. 실행하지 못한 검증은 이유를 남긴다.
 6. 보고할 때 단위 시험 통과, 실호출 검증, 홍주P Edge Function 통합을 구분한다. 폴백 결과를 실제 AI 판정 성공으로 적지 않는다.
@@ -53,7 +53,7 @@
 - A-09용 임시 스키마는 샌드박스의 `supabase/migrations/00000000000000_sandbox_schema.sql` 한 파일에 둔다. `홍주P_plan.md` §4.2·§5.1의 enum(`card_grade`, `card_style`, `influencer_type`)과 `influencers`, `card_templates`, `user_cards`, `rounds`, `draws`, `game_config` 테이블, `private` 스키마만 적힌 컬럼과 제약대로 만든다. 이 파일은 레포로 옮기지 않는다.
 - `lib/ai/tests/`의 스크립트(`smoke.ts`, `regress.ts`)는 adapter를 상대 경로로 import하므로 샌드박스의 같은 경로(`../BirdieBuddy-ai/lib/ai/tests/`)에 만들고 adapter와 함께 옮긴다. 시험 데이터는 복사하지 않고 레포의 `lib/ai/tests/data/`를 읽는다.
 - 키는 샌드박스로 복사하지 않는다. 실호출 명령의 `--env-file`은 레포의 `lib/ai/tests/.env`를 가리킨다.
-- **레포로 옮기는 절차:** 샌드박스의 로컬 stack을 내린다(레포의 stack과 기본 포트가 같다) → `main`을 pull해 bootstrap을 확인한다 → `supabase/functions/_shared/ai.ts`, `supabase/functions/_shared/ai/`, `issue_card` migration, `supabase/tests/issue_card.test.sql`, `lib/ai/tests/`의 스크립트를 복사한다 → migration 타임스탬프는 홍주P의 private/Auth/RLS migration 뒤, `complete_round` migration 앞이 되게 다시 매긴다 → 7.1의 검증을 레포에서 다시 실행한다.
+- **레포로 옮기는 절차:** 샌드박스의 로컬 stack을 내린다(레포의 stack과 기본 포트가 같다) → `main`을 pull해 bootstrap을 확인한다 → `supabase/functions/_shared/ai.ts`, `supabase/functions/_shared/ai/`, `issue_card` migration, `supabase/tests/issue_card.test.sql`, `lib/ai/tests/`의 스크립트를 복사한다 → migration 타임스탬프는 홍주P의 private/Auth/RLS migration 뒤, `complete_round` migration 앞이 되게 다시 매긴다(실제 적용: 기준선 뒤 `20261111073313`, 1절 R4) → 7.1의 검증을 레포에서 다시 실행한다.
 
 ## 1. 동료와 동료 에이전트 전달 사항
 
@@ -75,7 +75,7 @@
 | R6 | §8.2 고정 안내문 | 2절 표의 문구를 어디에 복사해 두는지(A-08 검수로 문구가 바뀌면 함께 고칠 위치) | 2절 표가 기준이고, 문구가 바뀌면 커밋 메시지로 알린다 |
 | R7 | §3·§9.2·B-02 카드 이미지 | A-06의 최종 이미지 30장을 받아 `card-assets`에 올리는 단계가 티켓에 명시돼 있지 않다(`현호P_plan.md`는 홍주P B-02가 한다고 적음) | 문환P 작업에는 영향이 없다 |
 | R8 | §4.2 `draws`의 round 소유자 일치 강제 | (해결) `draws`의 round 소유자 일치("round 소유자와 일치 강제")를 어떤 방식으로 강제하는지. `private.issue_card`는 §3대로 권한을 다루지 않고 이 제약에 기댄다 | **해결.** 복합 FK `(user_id, round_id) → rounds(user_id, id)`가 있다. A-09 pgTAP이 SQLSTATE 23503을 확인한다 |
-| R9 | `_shared/ai_adapter.ts`·`_shared/index_test.ts` (88c77b7) | 문환P가 `_shared/ai_adapter.ts`를 로컬 fixture 밖에서는 실제 adapter로 연결하고 `failClosedAdapter`를 지웠다. 홍주P 소유 파일이므로 확인과 T-04(Edge `suggest` 경로, 인플루언서 경로, 실제 키) 실행을 요청한다 `[요청]` | 실제 adapter의 오류는 모두 `ApiFailure('FILTER_UNAVAILABLE')`로 바뀌므로 `clusterQuestions`·`summarize`의 취소·시한 초과도 503이 된다. 제공자 키가 없으면 fail-closed 대신 금칙어 폴백으로 판정한다(3절, 홍주P §8.1). `index_test.ts`의 fail-closed 시험을 3건으로 바꿨고 그중 1건은 `--allow-env` 없이 실행해야 성립한다 |
+| R9 | `_shared/ai_adapter.ts`·`_shared/index_test.ts` (88c77b7) | 문환P가 `_shared/ai_adapter.ts`를 로컬 fixture 밖에서는 실제 adapter로 연결하고 `failClosedAdapter`를 지웠다. 홍주P 소유 파일이므로 확인과 T-04(Edge `suggest` 경로, 인플루언서 경로, 실제 키) 실행을 요청한다 `[요청]` | 실제 adapter의 오류는 모두 `ApiFailure('FILTER_UNAVAILABLE')`로 바뀌므로 `clusterQuestions`·`summarize`의 취소·시한 초과도 503이 된다. `moderateAndScore`에 한해 제공자 키가 없으면 fail-closed 대신 금칙어 폴백으로 판정한다(3절, 홍주P §8.1). `clusterQuestions`·`summarize`는 키가 없으면 여전히 FILTER_UNAVAILABLE이다. `index_test.ts`의 fail-closed 시험을 3건으로 바꿨고 그중 1건은 `--allow-env` 없이 실행해야 성립한다 |
 | R10 | `package.json` `test:backend` | `test:backend`에 `deno test --config deno.json supabase/functions/_shared/ai/`를 포함해 달라(`package.json`은 홍주P 파일) `[요청]` | 문환P는 `package.json`을 고치지 않는다. 지금은 위 명령을 따로 실행한다(106건, 권한 플래그 없음) |
 
 **계약 1.6 §15.2 문환P 행 확인 (2026-11-11):** 대표 질문 전 항목 재검사와 위반 묶음 제외, 재검사 실패 시 예외, source 밖·중복 ID 제거(6.6), 시한(3절·6.4·6.6·6.7)이 유지돼 있다. 시한 초과 단위 시험이 묶기·요약에 빠져 있어 6.6·6.7에 추가했다. adapter는 대표 질문과 메시지 ID만 돌려주며 DB `clusterId`·version·권한·점수 정렬은 홍주P DB 책임으로 남는다. 계약과 충돌하는 항목은 없어 해결 요청은 없다.
@@ -119,14 +119,14 @@
 | 3 | 결과 반환, 이미지 경로의 공개 URL 변환 | 홍주P `complete_round`·SDK |
 
 - **B-03:** 5.2절의 추첨·지급 부분을 `private.issue_card` 호출로 바꾼다. 원자 지급, 강제 등급 권한, `isNew` 경합 시험은 B-03에 남고, 추첨 경계값과 확률 분포 시험은 A-09로 옮긴다. 강화(`upgrade_card`)는 B-04에 그대로 둔다.
-- **migration 순서:** `issue_card` migration은 private/Auth 다음, cards/views의 `complete_round` 앞에 온다. B-01 전에 만든 파일은 B-01 머지 후 타임스탬프를 다시 매긴다.
+- **migration 순서:** `issue_card` migration은 private/Auth 다음, cards/views의 `complete_round` 앞에 오도록 정했으나, 기준선 migration 9개가 이미 원격에 적용돼 실제로는 기준선 뒤 `20261111073313`에 뒀다. `complete_round`가 함수를 런타임에 이름으로 찾으므로 순서는 동작에 영향이 없다(1절 R4 해결, 0.4).
 - **`draws.forced`:** `boolean NOT NULL DEFAULT false`를 추가한다. 강제 발급 표시이며 확률 검증에서 제외하는 근거다. 데모 시드 계정의 발급 기록도 확률 검증에서 뺀다.
 - **`completeRound` 응답:** `entryUnlocked: boolean`을 추가한다.
 - **카드 식별:** 장별 고유 ID는 두지 않는다. 수량은 `user_cards.count`, 발급 1건의 식별은 `draws.id`다.
 
 **문환P에게 제공할 데이터 정보**
 
-`홍주P_plan.md` §4.2(테이블·컬럼·제약)와 §5.1(`game_config` 값 형식)로 받았다. 남은 것은 위 R5(`gen_random_bytes` 스키마)와 B-01의 실제 migration이다.
+`홍주P_plan.md` §4.2(테이블·컬럼·제약)와 §5.1(`game_config` 값 형식)로 받았다. 위 R5(`gen_random_bytes` 스키마)는 해결했고 B-01의 실제 migration은 레포에 있다. 남은 확인은 없다.
 
 | 용도 | 데이터 |
 | --- | --- |
@@ -255,7 +255,7 @@ A-08이 U-01에 넘기는 것은 6.8의 `demo-messages.json`과 그 실제 판�
 
 ### AI 인터페이스
 
-`홍주P_plan.md` §8.1(계약 1.6, 1.5에서 변경 없음)의 `AiAdapter`와 같은 타입이다. 골격은 끝났고(A-01) 세 함수는 샌드박스에서 구현했으며 레포 이관을 기다린다(A-02~A-05).
+`홍주P_plan.md` §8.1(계약 1.6, 1.5에서 변경 없음)의 `AiAdapter`와 같은 타입이다. 골격은 끝났고(A-01) 세 함수는 샌드박스에서 구현해 브랜치 `feature/moonhwan-ai-migrate`로 레포에 이관하고 레포 로컬에서 검증했다. 홍주P 확인과 T-04 통합은 대기한다(A-02~A-05).
 
 ```ts
 type Verdict = 'pass' | 'suggest' | 'block';
@@ -308,7 +308,7 @@ interface AiAdapter {
 
 ### 카드 발급 함수
 
-샌드박스에서 구현하고 확인했다(A-09). 레포 이관을 기다린다.
+샌드박스에서 구현하고 확인한 뒤 브랜치 `feature/moonhwan-ai-migrate`로 레포에 이관해 레포 로컬에서 검증했다(A-09). 홍주P 확인과 T-04 통합은 대기한다.
 
 ```sql
 private.issue_card(
@@ -321,7 +321,7 @@ private.issue_card(
 ```
 
 - **호출 조건:** `complete_round`가 같은 트랜잭션 안에서 사용자 잠금과 강제 등급 권한 검사를 마친 뒤에만 호출한다. 이 함수는 잠금, 멱등, 권한을 처리하지 않는다. 임의의 `p_user_id`를 받으므로 `SECURITY INVOKER`로 만들고 `search_path=''`를 적용하며, `REVOKE ALL ... FROM PUBLIC, anon, authenticated`로 실행 권한을 회수한다.
-- **추첨:** `grade_rates`로 등급을 뽑고 발급 대상 카드 템플릿 중 하나를 균등하게 뽑는다. 선택 로직은 난수를 인자로 받는 함수로 분리해 경계값을 결정적으로 시험하고, 실제 난수는 스키마까지 적은 `extensions.gen_random_bytes`로 만든다(설치 스키마는 B-01에서 확인).
+- **추첨:** `grade_rates`로 등급을 뽑고 발급 대상 카드 템플릿 중 하나를 균등하게 뽑는다. 선택 로직은 난수를 인자로 받는 함수로 분리해 경계값을 결정적으로 시험하고, 실제 난수는 스키마까지 적은 `extensions.gen_random_bytes`로 만든다(설치 스키마는 `extensions`로 확인함, 1절 R5).
 - **강제 발급:** `p_force_grade`가 있으면 그 등급으로 발급하고 `draws.forced`를 `true`로 저장한다. 템플릿은 강제하지 않는다.
 - **`isNew`:** 추첨 후 지급 직전에 해당 템플릿의 전체 등급 수량 합계가 0이면 `true`다. 같은 값을 `draws.is_new`에 저장한다.
 - **`ownedCount`:** `홍주P_plan.md` §7.1의 기존 의미를 따른다(해당 템플릿·등급의 지급 직후 수량).
@@ -339,7 +339,7 @@ private.issue_card(
 | A-05 | 대화 요약 `summarize` | P2 | A-01 | 최대 100건·20,000자 입력을 20초 안에 2,000자 이내 문자열로 요약하고, 넘으면 문장 경계에서 자름. 100건 소요 시간과 사고 단계를 끈 효과 측정. 실패 시 예외 |
 | A-07 | LLM 실패·지연 시 금칙어 폴백 (adapter 내부) | P1 | A-02 | API 키를 빼도 필터가 금칙어로 동작하고 예외를 던지지 않음. 금칙어 5개 항목의 적중 문장이 기대 판정(선택 항목 `suggest`·`rewrite: null`, 항상 차단 `block`)과 `quality` 50을 돌려주고, 꺼 둔 선택 항목은 `pass`. Jev 지연·5xx 모의에서 사유 코드 확인. 키 제거 시험은 로컬에서만 하고 Supabase Secrets는 지우지 않음. `moderation-test-set.json`의 `quality` 그룹 100문장 오탐 0건, `trap` 그룹 `pass` 기대 25문장은 결과 기록. `passesAllFilters`는 항상 `false`, 서버 로그에는 사유 코드만 남음 |
 | A-08 | 필터 검증용 테스트 문장 세트 + Deno 회귀 스크립트 + 시연 메시지 판정 사전 확인 + 고정 안내문 사람 검수 | P1 | A-02 | 혐오 기대값을 `block`으로 고치고(`moderation-test-set.json`의 17문장) `server.ts`의 혐오 구분은 `prd.md`, `filter-templates.json`은 2절 표에 맞춤. Deno 스크립트로 `moderation-test-set.json` 판정 300문장 전량과 `expected_verdict=suggest`에서 뽑은 수정 문장 30건 표본을 실행(`ai_fallback`이 1건이라도 나오면 그 실행은 무효). 기대 판정 일치율 90% 이상(불일치는 읽어 보고 필터 오류와 기대값 오류를 구분, 항상 차단 항목의 `block→pass` 건수는 따로 기록), 실제 판정이 `suggest`인 표본 중 수정 문장 재검사 통과 80% 이상, 시연용 문장(`demo-messages.json`)은 전부 기대대로, 안내문 10개 확정. `influencer-message-set.json`(정상 홍보·공지 20문장, 필수 항목 위반 10문장)의 정상 문장 오탐 0건, 위반 문장은 결과 기록. 선택 필터를 끈 상태에서 `pass`가 되는 욕설 문장의 `passesAllFilters`가 `false`인지 확인 |
-| A-09 | 카드 확률 계산과 발급 `private.issue_card` | P0 | B-01 (전에는 로컬 테이블로 진행) | 등급·템플릿 선택 경계값 시험 통과, 1,000회 분포 기록과 등급별 3σ 범위 확인(벗어나면 다시 돌리기 전에 원인 확인), 강제 발급 시 `forced` 저장, 누적 4→5장 `entryUnlocked` true·5→6장 false, `min_earned_draws` 변경 시 경계 이동, `user_cards`만 있고 `draws`가 없으면 누적 0, 설정 누락·음수·합계 오류는 `CONFIG_INVALID`이고 소수 확률은 허용, 저장 실패 시 `draws`·`user_cards` 변경 없음, `has_function_privilege`로 `anon`·`authenticated`의 EXECUTE가 false임을 확인 |
+| A-09 | 카드 확률 계산과 발급 `private.issue_card` | P0 | B-01 (레포 이관 완료) | 등급·템플릿 선택 경계값 시험 통과, 1,000회 분포 기록과 등급별 3σ 범위 확인(벗어나면 다시 돌리기 전에 원인 확인), 강제 발급 시 `forced` 저장, 누적 4→5장 `entryUnlocked` true·5→6장 false, `min_earned_draws` 변경 시 경계 이동, `user_cards`만 있고 `draws`가 없으면 누적 0, 설정 누락·음수·합계 오류는 `CONFIG_INVALID`이고 소수 확률은 허용, 저장 실패 시 `draws`·`user_cards` 변경 없음, `has_function_privilege`로 `anon`·`authenticated`의 EXECUTE가 false임을 확인 |
 
 > **이관:** A-06(카드 이미지 30장 생성, P0)은 현호P가 AI 툴로 생성하는 것으로 옮겼다. 내용은 1절의 현호P 항목을 따른다.
 
@@ -612,7 +612,7 @@ lib/ai/tests/data/                           기존 4개 + influencer-message-se
 | 종류 | 명령 | 기준 |
 | --- | --- | --- |
 | 타입 | `deno check supabase/functions/_shared/ai.ts` | 오류 0 |
-| 단위 | `deno test supabase/functions/_shared/ai/` (권한 없이 실행해 네트워크 호출이 섞이면 실패하게 한다) | 6.4~6.7의 단위 시험 통과 |
+| 단위 | `deno test --config deno.json supabase/functions/_shared/ai/` (권한 없이 실행해 네트워크 호출이 섞이면 실패하게 한다) | 6.4~6.7의 단위 시험 통과 |
 | 실호출 확인 (A-01) | `deno run --allow-net=api.typesafe.ai,api.anthropic.com --allow-env --allow-read --env-file=lib/ai/tests/.env lib/ai/tests/smoke.ts` | Jev·Claude 각 1회 성공. 첫 호출 지연은 프로세스를 새로 띄워 5회 측정 |
 | 회귀 (A-08) | 같은 권한으로 `lib/ai/tests/regress.ts` | 4절 A-08 완료 기준 |
 | 폴백 (A-07) | 키 없이 `regress.ts`의 폴백 모드 실행 | 4절 A-07 완료 기준. Supabase Secrets는 건드리지 않는다 |
