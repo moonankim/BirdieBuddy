@@ -6,6 +6,7 @@ out/
 !.env.example
 supabase/.temp/
 supabase/functions/.env
+.demo-passwords.json
 
 .agents/
 harness/
