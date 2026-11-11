@@ -5,8 +5,6 @@
 ## 먼저 읽을 문서 (내용을 여기에 복사하지 않는다)
 
 - 인터페이스와 티켓: `docs/문환P_plan.md`. `AiAdapter` 타입은 `docs/홍주P_plan.md` §8.1, 동작 규칙은 `docs/문환P_plan.md` 3절을 따른다.
-- 근거와 결정: `docs/superpowers/specs/2026-11-09-birdiebuddy-ai-design.md` (이전 구조 기준, `docs/문환P_plan.md`와 어긋나면 그 문서를 따른다)
-- 구현 순서: `docs/superpowers/plans/2026-11-09-lib-ai-moderation.md` (이전 구조 기준, 위와 같다)
 
 ## 현재 상태
 
@@ -22,7 +20,7 @@
 
 ## 시험
 
-- 시험 화면은 패키지가 있는 폴더에서 `npm start`로 띄운다. 주소는 `http://127.0.0.1:4173`이고 `PORT`로 바꿀 수 있다. 패키지는 구현 계획 Task 1 전까지 `lib/ai/tests/`에 있다.
+- 시험 화면은 패키지가 있는 폴더에서 `npm start`로 띄운다. 주소는 `http://127.0.0.1:4173`이고 `PORT`로 바꿀 수 있다. 패키지는 `lib/ai/tests/`에 있다.
 - 실제 API 호출은 비용이 들고 `lib/ai/tests/.env`가 필요하다.
 - Jev 항목 설명이나 기준값을 고치면 `tests/data/moderation-test-set.json`과 `filter-eval-set.json`으로 회귀 시험을 돌린다. 조정용과 검증용 문장을 나눠서 본다. `server.ts`는 실제 adapter와 별개 구현이므로, A-08의 Deno 회귀 스크립트가 생기면 그 결과를 기준으로 한다.
 - 시험 문장의 기대 판정은 AI가 붙인 값이다. 불일치는 읽어 보고 필터 오류와 기대값 오류를 구분한다.
