@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BirdieBuddy · 디자인 시스템</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main class="page-wrap">
+<header class="topline">
+<a class="brand" href="index.html">
+<span class="brand-mark">B</span>birdiebuddy<span style="color:var(--green-500)">.</span>
+</a>
+<nav class="toplinks" aria-label="페이지">
+<a href="foundation.html">파운데이션</a>
+<a href="#colors">컬러 &amp; 타입</a>
+<a href="#components">컴포넌트</a>
+<a href="sample/index.html">화면 샘플 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+<path d="M7 17 17 7M7 7h10v10"/>
+</svg>
+</a>
+</nav>
+</header>
+<div class="intro">
+<span class="eyebrow">DESIGN SYSTEM · DRAFT 01</span>
+<h1>좋은 라운드가<br>좋은 연결이 되도록.</h1>
+<p>골프의 기분 좋은 순간을 모으고 나누는 경험. BirdieBuddy의 색상, 구성 요소, 화면 예시를 한곳에 정리했어.</p>
+<div class="screen-list">
+<a class="screen-link" href="sample/index.html">홈 화면 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+<path d="M7 17 17 7M7 7h10v10"/>
+</svg>
+</a>
+<a class="screen-link" href="sample/collection.html">컬렉션 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+<path d="M7 17 17 7M7 7h10v10"/>
+</svg>
+</a>
+<a class="screen-link" href="sample/chat.html">채팅방 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+<path d="M7 17 17 7M7 7h10v10"/>
+</svg>
+</a>
+</div>
+</div>
+<div class="layout">
+<div class="doc">
+<section class="section" id="colors">
+<div class="section-head">
+<div>
+<span class="eyebrow">01 / FOUNDATION</span>
+<h2>우리의 색</h2>
+</div>
+<span>COLOR PALETTE</span>
+</div>
+<p class="note">짙은 그린의 선명한 대비와 편안한 민트 표면.</p>
+<div class="swatches">
+<div class="swatch">
+<div class="swatch-color" style="--swatch:#10231e">
+</div>
+<strong>Pine 950</strong>
+<span>#10231E</span>
+</div>
+<div class="swatch">
+<div class="swatch-color" style="--swatch:#183e32">
+</div>
+<strong>Pine 800</strong>
+<span>#183E32</span>
+</div>
+<div class="swatch">
+<div class="swatch-color" style="--swatch:#438663">
+</div>
+<strong>Green 500</strong>
+<span>#438663</span>
+</div>
+<div class="swatch">
+<div class="swatch-color" style="--swatch:#d2e1d6">
+</div>
+<strong>Mint 100</strong>
+<span>#D2E1D6</span>
+</div>
+<div class="swatch">
+<div class="swatch-color" style="--swatch:#edf2ed">
+</div>
+<strong>Mint 50</strong>
+<span>#EDF2ED</span>
+</div>
+<div class="swatch">
+<div class="swatch-color" style="--swatch:#ffffff">
+</div>
+<strong>Surface</strong>
+<span>#FFFFFF</span>
+</div>
+<div class="swatch">
+<div class="swatch-color" style="--swatch:#ae8950">
+</div>
+<strong>Special</strong>
+<span>#AE8950</span>
+</div>
+<div class="swatch">
+<div class="swatch-color" style="--swatch:#a84c4d">
+</div>
+<strong>Danger</strong>
+<span>#A84C4D</span>
+</div>
+</div>
+</section>
+<section class="section">
+<div class="section-head">
+<div>
+<span class="eyebrow">02 / TYPOGRAPHY</span>
+<h2>읽기 편한 글자</h2>
+</div>
+<span>NOTO SANS KR · SYSTEM</span>
+</div>
+<p class="note">Noto Sans KR을 사용하고, 불러오지 못하면 시스템 한글 서체를 사용해.</p>
+<div class="type-display">오늘도 좋은 라운드</div>
+<div class="type-row">
+<strong style="font-size:var(--type-heading)">새로운 카드를 만났어요</strong>
+<small>제목 · 20px / 700</small>
+</div>
+<div class="type-row">
+<span>나의 컬렉션을 확인해 보세요.</span>
+<small>본문 · 16px / 400</small>
+</div>
+<div class="type-row">
+<span class="muted" style="font-size:var(--type-caption)">보조 정보와 설명 문구</span>
+<small>보조 · 12px / 400</small>
+</div>
+</section>
+<section class="section" id="components">
+<div class="section-head">
+<div>
+<span class="eyebrow">03 / ATOMS</span>
+<h2>작은 구성 요소</h2>
+</div>
+<span>BUTTONS · BADGES · INPUT</span>
+</div>
+<div class="component-row">
+<button class="button" type="button">라운드 완료 <span aria-hidden="true">
+<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+<path d="M7 17 17 7M7 7h10v10"/>
+</svg>
+</span>
+</button>
+<button class="button secondary" type="button">자세히 보기</button>
+<button class="button outline" type="button">취소</button>
+<button class="button" type="button" aria-busy="true" disabled>
+<span class="spinner" aria-hidden="true">
+</span>처리 중</button>
+</div>
+<div class="component-row">
+<span class="badge gray">일반</span>
+<span class="badge">레어</span>
+<span class="badge epic">에픽</span>
+<span class="badge special">스페셜</span>
+<span class="badge birdie">
+<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z"/>
+</svg> 버디</span>
+<span class="badge">
+<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+<path d="m5 12 4 4L19 6"/>
+</svg> 인증됨</span>
+</div>
+<div class="component-row">
+<span class="avatar" aria-label="프로필 예시">지</span>
+<span class="avatar alt" aria-label="기본 프로필">B</span>
+<span style="flex:1;min-width:180px">
+<label class="field-label" for="example-input">메시지 입력 예시</label>
+<input id="example-input" class="input" placeholder="메시지를 입력해 주세요">
+</span>
+</div>
+<p class="footnote">버튼은 기본·hover·pressed·disabled·focus 상태를 확인할 수 있어. 텍스트와 배지를 함께 사용해 상태를 전달해.</p>
+</section>
+<section class="section">
+<div class="section-head">
+<div>
+<span class="eyebrow">04 / MOLECULES</span>
+<h2>함께 쓰는 조합</h2>
+</div>
+</div>
+<div class="component-row">
+<div class="callout" style="flex:1;min-width:220px">
+<div class="legend">
+<i>
+</i>
+<strong>유지 게이지</strong>
+<span class="muted">50 / 100</span>
+</div>
+<div class="progress" role="progressbar" aria-label="유지 게이지" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100">
+<span>
+</span>
+</div>
+<p>여유 라운드 4회</p>
+</div>
+<div class="bubble" style="background:var(--mint-100)">다음 라운드에서는 어떤 연습을 하면 좋을까요?</div>
+</div>
+<p class="footnote">색상·타이포그래피·컴포넌트는 공통 styles.css를 기준으로 해.</p>
+</section>
+</div>
+<aside class="preview">
+<div class="preview-label">
+<span>LIVE PREVIEW</span>
+<a href="sample/index.html">화면 자세히 보기 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+<path d="M7 17 17 7M7 7h10v10"/>
+</svg>
+</a>
+</div>
+<div class="phone">
+<div class="status">
+<span>9:41</span>
+<span>
+<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+<path d="M4 19v-3M9 19v-7M14 19V8M19 19V4"/>
+</svg>
+<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+<rect x="2" y="7" width="18" height="10" rx="2"/>
+<path d="M23 10v4M5 10h10v4H5Z"/>
+</svg>
+</span>
+</div>
+<div class="app-header">
+<a class="brand" href="sample/index.html">
+<span class="brand-mark">B</span>birdiebuddy<span style="color:var(--green-500)">.</span>
+</a>
+<span class="avatar">나</span>
+</div>
+<div class="content">
+<p class="muted" style="font-size:var(--type-caption)">반가워요, 버디님</p>
+<h2 class="page-title" style="margin:4px 0 18px">오늘도 좋은 라운드!</h2>
+<div class="hero">
+<span class="eyebrow">YOUR NEXT ROUND</span>
+<h2>한 번의 라운드,<br>새로운 만남.</h2>
+<p>라운드가 끝나면 카드가 찾아와요.</p>
+<a class="button small light" href="sample/index.html">자세히 보기 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+<path d="M7 17 17 7M7 7h10v10"/>
+</svg>
+</a>
+<span class="golf-art" aria-hidden="true">
+<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+<path d="M8 21V3l11 4-11 5M4 21h12"/>
+<ellipse cx="14" cy="20" rx="7" ry="2"/>
+</svg>
+</span>
+</div>
+<div class="quick-row">
+<a class="quick" href="sample/collection.html">
+<b>
+<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+<rect x="5" y="5" width="14" height="16" rx="2"/>
+<path d="M8 2h11a3 3 0 0 1 3 3v13M9 10h6M9 14h4"/>
+</svg>
+</b>컬렉션</a>
+<a class="quick" href="sample/collection.html#owned">
+<b>
+<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+<rect x="5" y="5" width="14" height="16" rx="2"/>
+<path d="M8 2h11a3 3 0 0 1 3 3v13M9 10h6M9 14h4"/>
+</svg>
+</b>보유 카드</a>
+<a class="quick" href="sample/chat.html">
+<b>
+<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+<path d="M21 11a8 8 0 0 1-8 8H7l-4 3V11a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8Z"/>
+<path d="M7 10h10M7 14h6"/>
+</svg>
+</b>채팅</a>
+</div>
+<div class="section-head">
+<h2 style="font-size:var(--type-body)">나의 카드</h2>
+<a href="sample/collection.html">전체 보기 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+<path d="M7 17 17 7M7 7h10v10"/>
+</svg>
+</a>
+</div>
+<div class="card-grid">
+<div class="card-tile">
+<div class="card-picture">
+<span class="badge">레어</span>
+<div class="portrait">
+</div>
+</div>
+<h3>서윤 프로</h3>
+<p>일러스트 · 2장</p>
+</div>
+<div class="card-tile">
+<div class="card-picture peach">
+<span class="badge gray">일반</span>
+<div class="portrait">
+</div>
+</div>
+<h3>민준 프로</h3>
+<p>레트로 · 1장</p>
+</div>
+</div>
+</div>
+<nav class="bottom-nav" aria-label="샘플 화면">
+<a class="nav-item active" href="sample/index.html">
+<b>
+<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/>
+</svg>
+</b>홈</a>
+<a class="nav-item" href="sample/collection.html">
+<b>
+<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+<rect x="5" y="5" width="14" height="16" rx="2"/>
+<path d="M8 2h11a3 3 0 0 1 3 3v13M9 10h6M9 14h4"/>
+</svg>
+</b>카드</a>
+<a class="nav-item" href="sample/chat.html">
+<b>
+<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+<path d="M21 11a8 8 0 0 1-8 8H7l-4 3V11a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8Z"/>
+<path d="M7 10h10M7 14h6"/>
+</svg>
+</b>채팅</a>
+</nav>
+</div>
+</aside>
+</div>
+</main>
+</body>
+</html>
