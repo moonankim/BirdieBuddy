@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Foundation · BirdieBuddy</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="foundation.css">
+</head>
+<body>
+<main class="foundation">
+<header class="foundation-header">
+<a class="brand" href="index.html">
+<span class="brand-mark">B</span>birdiebuddy<span style="color:var(--green-500)">.</span>
+</a>
+<nav class="foundation-links" aria-label="디자인 시스템 메뉴">
+<a href="index.html">컴포넌트</a>
+<a href="sample/index.html">화면 샘플 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+<path d="M7 17 17 7M7 7h10v10"/>
+</svg>
+</a>
+</nav>
+</header>
+<div class="foundation-hero">
+<div>
+<span class="eyebrow">BIRDIEBUDDY · DESIGN SYSTEM</span>
+<h1>Foundation<span>.</span>
+</h1>
+<p>화면을 만드는 공통 색상, 서체, 간격과 형태를 한곳에 정리했어.</p>
+</div>
+<div class="foundation-meta">
+<span>STYLE GUIDE</span>
+<strong>01 / 01</strong>
+<span>VERSION 0.2 · 초안</span>
+</div>
+</div>
+<section class="foundation-section" aria-labelledby="color-title">
+<div class="foundation-heading">
+<div>
+<span class="eyebrow">01 / COLOR</span>
+<h2 id="color-title">깊이 있는 그린, 편안한 표면</h2>
+</div>
+<p>기본 동작은 딥 그린, 보조 표면은 채도를 낮춘 민트로 표현해.</p>
+</div>
+<div class="foundation-colors">
+<div class="foundation-color">
+<div class="foundation-chip" style="--chip:var(--pine-950)">
+</div>
+<strong>Pine 950</strong>
+<code>--pine-950</code>
+<span>#10231E · 본문 / 내비게이션</span>
+</div>
+<div class="foundation-color">
+<div class="foundation-chip" style="--chip:var(--pine-800)">
+</div>
+<strong>Pine 800</strong>
+<code>--pine-800</code>
+<span>#183E32 · 기본 버튼</span>
+</div>
+<div class="foundation-color">
+<div class="foundation-chip" style="--chip:var(--green-500)">
+</div>
+<strong>Green 500</strong>
+<code>--green-500</code>
+<span>#438663 · 강조 / 진행</span>
+</div>
+<div class="foundation-color">
+<div class="foundation-chip" style="--chip:var(--mint-100)">
+</div>
+<strong>Mint 100</strong>
+<code>--mint-100</code>
+<span>#D2E1D6 · 보조 표면</span>
+</div>
+<div class="foundation-color">
+<div class="foundation-chip" style="--chip:var(--mint-50)">
+</div>
+<strong>Mint 50</strong>
+<code>--mint-50</code>
+<span>#EDF2ED · 화면 배경</span>
+</div>
+<div class="foundation-color">
+<div class="foundation-chip" style="--chip:var(--surface)">
+</div>
+<strong>Surface</strong>
+<code>--surface</code>
+<span>#FFFFFF · 카드 / 입력</span>
+</div>
+<div class="foundation-color">
+<div class="foundation-chip" style="--chip:var(--ink-muted)">
+</div>
+<strong>Muted</strong>
+<code>--ink-muted</code>
+<span>#5C6C62 · 보조 텍스트</span>
+</div>
+<div class="foundation-color">
+<div class="foundation-chip" style="--chip:var(--border)">
+</div>
+<strong>Border</strong>
+<code>--border</code>
+<span>#D3DED5 · 구분선</span>
+</div>
+<div class="foundation-color">
+<div class="foundation-chip" style="--chip:var(--special)">
+</div>
+<strong>Special</strong>
+<code>--special</code>
+<span>#AE8950 · 스페셜 등급</span>
+</div>
+<div class="foundation-color">
+<div class="foundation-chip" style="--chip:var(--danger)">
+</div>
+<strong>Danger</strong>
+<code>--danger</code>
+<span>#A84C4D · 오류 / 차단</span>
+</div>
+</div>
+</section>
+<section class="foundation-section" aria-labelledby="type-title">
+<div class="foundation-heading">
+<div>
+<span class="eyebrow">02 / TYPOGRAPHY</span>
+<h2 id="type-title">명확하고 단정하게</h2>
+</div>
+<p>Noto Sans KR · 시스템 한글 폰트 대체</p>
+</div>
+<div class="foundation-type">
+<div class="foundation-type-lead">
+<span>가나다 Aa 0123</span>
+<strong>Noto Sans KR</strong>
+<p>Regular 400 · Medium 500 · Bold 700 · ExtraBold 800</p>
+</div>
+<div class="foundation-type-scale">
+<div>
+<span class="sample-display">좋은 라운드의 시작</span>
+<code>Display / 32 · 800</code>
+</div>
+<div>
+<span class="sample-heading">나의 컬렉션</span>
+<code>Heading / 20 · 700</code>
+</div>
+<div>
+<span class="sample-body">오늘도 버디와 함께해요</span>
+<code>Body / 16 · 400</code>
+</div>
+<div>
+<span class="sample-caption">보조 정보와 설명</span>
+<code>Caption / 12 · 400</code>
+</div>
+</div>
+</div>
+</section>
+<section class="foundation-section" aria-labelledby="spacing-title">
+<div class="foundation-heading">
+<div>
+<span class="eyebrow">03 / SPACING &amp; SHAPE</span>
+<h2 id="spacing-title">일관된 여백과 형태</h2>
+</div>
+<p>4px 단위의 간격과 둥근 모서리를 조합해.</p>
+</div>
+<div class="foundation-pair">
+<div>
+<h3>Spacing <span>4px 기본 단위</span>
+</h3>
+<div class="spacing-row">
+<div>
+<i style="--size:var(--space-1)">
+</i>
+<code>4</code>
+</div>
+<div>
+<i style="--size:var(--space-2)">
+</i>
+<code>8</code>
+</div>
+<div>
+<i style="--size:var(--space-3)">
+</i>
+<code>12</code>
+</div>
+<div>
+<i style="--size:var(--space-4)">
+</i>
+<code>16</code>
+</div>
+<div>
+<i style="--size:var(--space-6)">
+</i>
+<code>24</code>
+</div>
+<div>
+<i style="--size:var(--space-8)">
+</i>
+<code>32</code>
+</div>
+</div>
+</div>
+<div>
+<h3>Radius <span>컴포넌트별 크기</span>
+</h3>
+<div class="radius-row">
+<div>
+<i style="border-radius:var(--radius-sm)">
+</i>
+<code>12 · Small</code>
+</div>
+<div>
+<i style="border-radius:var(--radius-md)">
+</i>
+<code>20 · Medium</code>
+</div>
+<div>
+<i style="border-radius:var(--radius-lg)">
+</i>
+<code>28 · Large</code>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section class="foundation-section" aria-labelledby="usage-title">
+<div class="foundation-heading">
+<div>
+<span class="eyebrow">04 / APPLICATION</span>
+<h2 id="usage-title">같은 기준으로 만드는 화면</h2>
+</div>
+<a href="index.html">컴포넌트 전체 보기 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+<path d="M7 17 17 7M7 7h10v10"/>
+</svg>
+</a>
+</div>
+<div class="foundation-usage">
+<div>
+<span class="foundation-label">ACTIONS</span>
+<div class="component-row">
+<button class="button" type="button">라운드 완료</button>
+<button class="button secondary" type="button">자세히 보기</button>
+</div>
+</div>
+<div>
+<span class="foundation-label">GRADE &amp; STATUS</span>
+<div class="component-row">
+<span class="badge gray">일반</span>
+<span class="badge">레어</span>
+<span class="badge epic">에픽</span>
+<span class="badge special">스페셜</span>
+</div>
+</div>
+<div>
+<span class="foundation-label">PROGRESS</span>
+<div class="foundation-progress">
+<div class="legend">
+<i>
+</i>
+<strong>유지 게이지</strong>
+<span class="muted">50 / 100</span>
+</div>
+<div class="progress" role="progressbar" aria-label="유지 게이지" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100">
+<span>
+</span>
+</div>
+<p>여유 라운드 4회</p>
+</div>
+</div>
+</div>
+</section>
+<section class="foundation-section" aria-labelledby="roles-title">
+<div class="foundation-heading">
+<div>
+<span class="eyebrow">공유 규칙</span>
+<h2 id="roles-title">색상은 역할로, 상태는 동작으로</h2>
+</div>
+<p>원색 값은 공통 토큰에서 관리하고 화면에서는 의미 토큰을 사용해.</p>
+</div>
+<div class="token-pairs">
+<div class="token-pair">
+<strong>일반 텍스트</strong>
+<code>text-primary / surface-screen</code>
+<span>본문·제목 · 대비 14.46:1</span>
+</div>
+<div class="token-pair">
+<strong>보조 텍스트</strong>
+<code>text-secondary / surface-raised</code>
+<span>필터·날짜·설명 · 대비 5.56:1</span>
+</div>
+<div class="token-pair">
+<strong>기본 동작</strong>
+<code>text-inverse / action-primary</code>
+<span>기본 버튼 · 대비 11.84:1</span>
+</div>
+</div>
+<p class="footnote">일반 텍스트는 4.5:1 이상을 기준으로 해. Green 500은 게이지 등 시각 표시용이며 작은 글자에는 text-accent를 사용해.</p>
+<div class="state-grid">
+<div>
+<h3>버튼 상태</h3>
+<div class="component-row">
+<button class="button" type="button">기본</button>
+<button class="button is-hover" type="button">Hover 예시</button>
+<button class="button is-pressed" type="button">Pressed 예시</button>
+<button class="button" type="button" disabled>사용 불가</button>
+<button class="button" type="button" aria-busy="true" disabled>
+<span class="spinner" aria-hidden="true">
+</span>처리 중</button>
+</div>
+<p class="footnote">키보드 Tab으로 초점 표시를 확인해. Focus는 3px 외곽선, 조작 영역은 최소 44px이야.</p>
+</div>
+<div>
+<h3>입력 상태</h3>
+<div class="field">
+<label for="foundation-name">표시 이름</label>
+<input class="input" id="foundation-name" placeholder="이름을 입력해 주세요">
+</div>
+<div class="field">
+<label for="foundation-error">표시 이름 · 오류 예시</label>
+<input class="input" id="foundation-error" value="" aria-invalid="true" aria-describedby="foundation-error-message">
+<span class="field-error" id="foundation-error-message">이름을 입력해 주세요.</span>
+</div>
+</div>
+</div>
+<div class="field disabled-field"><label for="foundation-disabled">표시 이름 · 사용 불가 예시</label><input class="input" id="foundation-disabled" value="심사 중에는 변경할 수 없어요" disabled></div>
+<p class="footnote">모션은 상태 피드백 120ms부터 시작하고, 동작 줄이기 설정에서는 전환·회전을 생략해. 라이트 테마 초안이며 다크 테마는 별도 검토가 필요해.</p>
+</section>
+<footer class="foundation-footer">
+<span>BirdieBuddy Design System · Foundation</span>
+<span>초안 · 제품 적용 전 검토 필요</span>
+</footer>
+</main>
+</body>
+</html>
