@@ -4,7 +4,7 @@
 
 > 제품 규칙은 [prd.md](./prd.md)를 기준으로 한다. 이 문서는 공통 아키텍처와 담당 경계를 설명하고, Supabase 백엔드의 상세 데이터·권한·SDK/RPC/Edge 계약과 구현 순서는 [홍주P_plan.md](./홍주P_plan.md)를 따른다.
 >
-> 이 구조는 **개발 착수 시 생성할 예정 구조**다. 현재 없는 supabase/·환경 파일·앱 코드를 문서 갱신 때문에 미리 만들지 않는다. 실제 구현·로컬 검증·실제 AI·팀 화면 통합·원격 배포 상태는 구분한다.
+> 홍주P 백엔드 구현이 진행 중이다. 현재 저장소에는 migration·seed·SDK·Edge 전송 계층과 local fixture가 있다. 사용자가 지정한 Supabase `main / PRODUCTION`에 기본 DB·Edge Function을 적용했지만, 실제 AI·팀 화면 통합·Auth origin·production smoke는 별도 미완료 항목이다.
 >
 > 제품 요구사항과 다른 구현 기본값이 생기면 PRD와 담당 계획을 함께 갱신한다. 런타임에서는 CSR·RLS·Supabase 호출 계약을 따른다.
 
@@ -94,24 +94,22 @@ BirdieBuddy/
 │  │  ├─ client.ts                     # 브라우저 클라이언트
 │  │  └─ database.types.ts             # CLI 생성 DB 타입
 │  └─ api/                             # 홍주P: Supabase 호출 SDK
-│     ├─ index.ts                      # createBackendApi(client)·브라우저 export
-│     ├─ types.ts                      # 도메인 타입·Result·ApiError·Page
-│     ├─ cards.ts                      # 뽑기·컬렉션·강화
-│     ├─ rooms.ts                      # 목록·입장·멤버십·월 라운드 요약·데모 월 경과
-│     ├─ chat.ts                       # 팬/인플루언서 메시지·재연결 복구·인박스·답변·방별 차단 집계·AI 기능
-│     ├─ verifications.ts              # 신청·목록·관리자 심사
-│     ├─ game-config.ts                # 설정 읽기·관리자 변경
-│     ├─ room-filters.ts               # 방 필터 읽기·변경
-│     └─ influencer-profiles.ts        # 인플루언서 프로필 사진 업로드·조회
-├─ supabase/                           # 홍주P: 개발 착수 시 init
+│     ├─ index.ts                      # createBackendApi(client)·브라우저 SDK
+│     ├─ types.ts                      # 전체 도메인 타입·Result·API 계약
+│     └─ cursor.ts                     # 인박스 opaque cursor encode/decode
+├─ supabase/                           # 홍주P: local Supabase backend
 │  ├─ config.toml                      # 로컬 구성·Function 설정
-│  ├─ migrations/                      # schema·RLS·grants·RPC·trigger·Storage·publication
+│  ├─ migrations/                      # ordered schema/RLS/RPC/Storage migrations
 │  ├─ seed.sql                         # 비기밀 콘텐츠·게임 설정 기본값
+│  ├─ fixtures/                        # 로컬 전용 가상 라인업·카드 placeholder
+│  │  ├─ influencers.json              # B-02 안정적 UUID·표시명·유형
+│  │  ├─ card-assets/<uuid>/<style>.webp # A-06 전달 전 임시 로컬 이미지
+│  │  └─ local_issue_card.sql           # A-09 전달 전 missing 함수에만 설치하는 로컬 발급 fixture
 │  ├─ tests/                           # DB·RLS·RPC 테스트 — 홍주P
 │  └─ functions/
 │     ├─ .env.example                  # 비밀 없는 Function 환경 예제
-│     ├─ _shared/                      # 공통 인증·검증·AI adapter
-│     │  └─ ai.ts                      # 문환P AI 로직 ↔ 홍주P adapter 경계
+│     ├─ _shared/http.ts               # 공통 인증·검증·RPC 전달
+│     ├─ _shared/ai_adapter.ts          # 문환P AI 경계 + local-only sample selector
 │     ├─ submit-message/index.ts       # 홍주P: 인증·판정·최종 저장
 │     ├─ send-influencer-message/index.ts # 홍주P: 답변·전체 메시지 mandatory filter
 │     ├─ update-room-greeting/index.ts # 홍주P: 인사말 필터·설정
@@ -120,11 +118,12 @@ BirdieBuddy/
 ├─ scripts/                            # 홍주P: Node 실행·검증 도구
 │  ├─ prepare-local-env.mjs            # local:start/local:env, 비밀값 비출력
 │  ├─ setup-demo-accounts.mjs          # 로컬 Auth Admin + pg 프로비저닝
-│  └─ verify-backend.mjs               # P0/P1/P2·역할·Realtime 스모크
-├─ tests/backend/                      # 홍주P: SDK·Edge 경계·동시성 검증
-├─ package.json                        # B-01이 backend 바탕을 생성, F-01이 Next.js 의존성·scripts를 추가
+│  └─ verify-backend.mjs               # local roles·messages·inbox·cursor·RPC checks
+├─ tests/backend/                      # cursor·Edge adapter contract tests
+├─ deno.json                           # Edge Function 전용 고정 의존성·검사 설정
+├─ package.json                        # pinned local backend toolchain and scripts
 ├─ tsconfig.backend.json               # Node/SDK 검사, Edge는 Deno로 별도 검사
-└─ .env.example                        # 비밀 없는 프론트 연결 예제, 착수 시 생성
+└─ .env.example                        # 공개 placeholder만 포함, 실제 연결값 없음
 ```
 
 ### 변경된 경로의 의미
@@ -132,10 +131,10 @@ BirdieBuddy/
 | 과거 위치 | 현재 위치·책임 |
 | --- | --- |
 | app/api/ | 생성하지 않음. Data API·RPC·Edge Function을 lib/api에서 호출 |
-| lib/db/ | lib/supabase/client.ts·database.types.ts와 lib/api 도메인 모듈로 분리 |
-| lib/ai/ | supabase/functions/_shared/ai.ts. 실제 AI 로직은 문환P, adapter·호출 검증은 홍주P |
+| lib/db/ | lib/supabase/client.ts·database.types.ts와 lib/api/index.ts로 분리 |
+| lib/ai/ | supabase/functions/_shared/ai_adapter.ts. 실제 AI 로직은 문환P, adapter·호출 검증은 홍주P |
 | lib/scoring.ts | supabase/migrations/의 점수 SQL helper·저장 RPC |
-| lib/config.ts | lib/api/game-config.ts. 값 검증·변경 권한은 DB RPC |
+| lib/config.ts | lib/api/index.ts. 값 검증·변경 권한은 DB RPC |
 | supabase/schema.sql | 순서가 있는 supabase/migrations/*.sql로 관리 |
 | SQL seed의 Auth 계정·암호 | seed는 콘텐츠만, 계정은 scripts/setup-demo-accounts.mjs |
 
@@ -147,7 +146,7 @@ lib/api는 브라우저 SDK이며 서버 구현 위치가 아니다. 클라이�
 2. createBackendApi(client)로 호출 클라이언트를 주입한다. 브라우저 export와 Node 테스트는 같은 도메인 로직을 사용하고 import 시 window/localStorage에 접근하지 않는다.
 3. 모든 mutation은 requestId를 사용한다. 네트워크 재전송은 같은 ID, 새 사용자 동작은 새 ID다. 반환 타입은 Result<T>, 상세 오류 코드는 홍주P 계획 §6을 따른다.
 4. actor는 검증한 세션에서 얻는다. 브라우저 userId·role·quality·verdict·보유량을 신뢰하지 않는다. messages의 bigint ID는 전송 전 문자열로 보존한다.
-5. 문서 구조는 예정 산출물이다. 개발 시작 요청 전에는 삭제한 supabase/·.env.example을 재생성하거나 원격 변경을 하지 않는다.
+5. 지금까지 검증한 migration·SDK·Edge 경계·local-only 흐름을 구분해 기록한다. 사용자 JWT를 통한 화면·실제 AI·원격 동작은 별도 검증 전까지 완료로 보지 않는다.
 
 ## 3. 데이터 모델과 권한
 
@@ -240,7 +239,7 @@ B-01은 첫 단계에서 `package.json`·`package-lock.json`, backend toolchain�
 
 ## 5. AI 구현 경계
 
-문환P는 supabase/functions/_shared/ai.ts에서 사용하는 AiAdapter의 실제 LLM 로직·프롬프트·품질·금칙어 fallback을 제공한다. 홍주P는 인증·입출력 검증·호출 제한·lease·멱등성·최종 저장 RPC·실패 응답을 구현한다.
+문환P는 `supabase/functions/_shared/ai_adapter.ts` 경계의 실제 LLM 로직·프롬프트·품질·금칙어 fallback을 제공한다. 홍주P는 인증·입출력 검증·호출 제한·lease·멱등성·최종 저장 RPC·실패 응답을 구현한다. 담당 구현이 들어오기 전에는 두 조건을 모두 만족하는 로컬 Supabase runtime에서만 temporary sample adapter를 선택한다: `BB_USE_LOCAL_AI_FIXTURE=true`, API host `kong`/loopback, DB host `db`/loopback. 다른 환경은 계속 fail-closed 한다.
 
 | adapter 함수 | 역할 | 홍주P 검증·저장 경계 |
 | --- | --- | --- |
@@ -250,7 +249,7 @@ B-01은 첫 단계에서 `package.json`·`package-lock.json`, backend toolchain�
 
 AiAdapter 타입의 유일한 상세 기준은 홍주P 계획 §8.1이다. 여기서 다른 함수 시그니처를 중복 정의하지 않는다. ownScore·priority는 AI 모듈이 아니라 DB helper/저장 RPC에서 계산한다.
 
-개발자가 주입하는 로컬 fixture는 전송·권한·응답 형식 검증에만 쓴다. Jev 키 누락·timeout·5xx·응답 형식 불량은 문환P adapter의 keyword fallback으로 처리한다. 선택 항목 적중은 `suggest`와 rewrite 없음, 필수 항목 적중은 `block`, 미적중은 `pass`이며 fallback 결과의 `passesAllFilters`는 항상 false다. fallback pass는 quality=50으로 저장하고 fallback block은 오늘 차단 집계에 포함한다. fallback 여부를 분리한 누적 위반 집계는 실서비스 과제이며 현재 계획 범위에 없다. Claude 수정 문장 생성·재검사가 실패하거나 시한을 넘기면 `suggest`와 `rewrite:null`을 반환한다. 유효하지 않은 최종 adapter 반환값·adapter 예외·fallback 불가에는 `FILTER_UNAVAILABLE`로 응답하고 저장하지 않는다. fallback은 실제 LLM 성공으로 보고하지 않으며 서버 로그에는 fallback 사유 코드만 남긴다. `moderateAndScore` adapter 시한은 8초(Edge 전체 처리 목표 12초), cluster/summary adapter 시한은 20초다. cluster/summary Edge는 25초 signal과 29초 lease를 사용하고 자동 재시도와 fallback이 없다. 답변·전체 메시지·인사말은 influencer sender type으로 선택 필터를 적용하지 않고 필수 차단 7개(threat, stalking, sexual_harassment, privacy, hate, illegal_ad, spam)를 적용한다. 상세 token·멱등성·저장 규칙은 홍주P 계획 §§7~8을 따른다.
+로컬 fixture는 전송·권한·응답 형식 연결을 확인하는 샘플이다. 일반 로컬 문장은 quality=50, `passesAllFilters=false`로 통과하며, `[[fixture:suggest]]`, `[[fixture:block]]`, 공통 id를 가진 `[[fixture:cluster=<id>]]`로 각 응답 샘플을 고른다. 요약문은 메시지 내용을 평가하지 않고 개수만 표시한다. 이것은 안전 판정이나 실제 AI 품질을 제공하지 않으며 운영·hosted 프로젝트에서는 선택되지 않는다. 문환P의 실구현이 도착하면 selector/fixture를 교체하고 이 경계를 통해 contract 검증을 다시 한다. 실제 adapter의 Jev/Claude fallback 규칙, 시간 제한, `passesAllFilters` 계약은 홍주P 계획 §8을 따른다. 유효하지 않은 최종 adapter 반환값·예외·fallback 불가에는 `FILTER_UNAVAILABLE`로 응답하고 저장하지 않는다. cluster/summary Edge는 25초 signal과 29초 lease를 사용하고 자동 재시도와 fallback이 없다. 답변·전체 메시지·인사말은 influencer sender type으로 선택 필터를 적용하지 않고 필수 차단 7개(threat, stalking, sexual_harassment, privacy, hate, illegal_ad, spam)를 적용한다. 상세 token·멱등성·저장 규칙은 홍주P 계획 §§7~8을 따른다.
 
 ## 6. 초기화·환경·배포
 
@@ -303,3 +302,18 @@ P0/P1/P2는 순서이며 전체 구현 요청에서 P2를 자동 제외하는 �
 - [ ] **T-05** 기능 동결 후 전체 시연 리허설 2회.
 
 U-01 시연 대본·발표 자료는 담당 미정으로 유지한다. 검증 증거는 환경·명령·역할·결과·미검증 범위와 함께 기록한다. 이 문서를 갱신했다고 코드·DB·실제 AI·원격 배포가 완료된 것으로 표시하지 않는다.
+
+## 9. 정책 결정 경계와 현재 외부 조건
+
+제품의 사용자 관찰 가능 동작은 PRD가 결정하고, 홍주P는 그 계약 안에서 권한·원자성·멱등성·페이지 경계·local fixture 선택 같은 backend 구현 세부사항을 독립적으로 정한다. 별도 합의 없이 이 세부사항이 SDK 입력/결과/오류 형식을 바꾸면 안 된다.
+
+현재 backend에서 독립 적용하는 기본값은 다음과 같다.
+
+- fixture는 local Supabase host와 명시 설정을 모두 확인한 때만 사용하며, remote hosted AI는 실제 adapter가 배포되기 전까지 fail-closed 한다.
+- production에는 demo 사용자·fictional seed·placeholder object를 넣지 않는다. role은 검증된 사용자 세션과 database authorization으로 판정한다.
+- browser CORS와 Auth redirect에는 확인된 실제 origin만 추가한다. 공개 URL이 없으면 wildcard나 추정 도메인을 넣지 않는다.
+- PRD의 달력 월·정산 제외·같은 달 3회 재입장 정책은 UI에도 그대로 적용한다. 이를 바꾸려면 PRD, 자성P 화면 계획, 홍주P backend 계약을 함께 갱신한다.
+
+다른 소유자와 함께 결정할 정책은 각각 담당 경계를 따른다. 모델·호출량·비용과 실제 AI 결과는 문환P, 최종 인물·이미지 사용권은 현호P 및 콘텐츠 소유자, 계정 전환·Auth UX·화면 CORS origin은 자성P/배포 담당자, 실서비스 차단 데이터 보관·제재·이의제기는 제품·법무·운영 담당자의 확인이 필요하다. 현재 blocker와 처리 담당은 [홍주P 계획 §14](./홍주P_plan.md#14-진행완료-보고)의 티켓 상태와 정책 결정 항목에서 관리한다.
+
+현재 remote는 migration 9개와 JWT 검증 Edge Function 5개까지 적용되어 있다. AI adapter가 없어 hosted moderation·cluster·summary는 fail-closed하고, 배포 origin 부재로 Auth redirect/CORS를 설정하지 않았다. 실제 사용자 JWT, Storage upload, Realtime delivery와 UI flow는 별도 검증 전까지 완료로 보지 않는다.
