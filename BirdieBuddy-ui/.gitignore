@@ -1,0 +1,6 @@
+node_modules/
+.next/
+output/
+tsconfig.tsbuildinfo
+next-env.d.ts
+_backup-before-design/
