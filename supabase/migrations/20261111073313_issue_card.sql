@@ -3,7 +3,8 @@
 CREATE FUNCTION private.pick_grade(p_rates jsonb, p_roll numeric)
 RETURNS public.card_grade
 LANGUAGE plpgsql
-IMMUTABLE
+-- enum_range가 STABLE이라 IMMUTABLE로 둘 수 없다(db lint).
+STABLE
 SET search_path = ''
 AS $$
 DECLARE
