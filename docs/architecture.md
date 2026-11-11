@@ -10,7 +10,7 @@
 
 ## 1. 전체 시스템과 데이터 흐름
 
-유저 웹·인플루언서 인박스·관리자 화면은 하나의 Next.js 앱으로 제공한다. Next.js는 정적 UI shell과 CSR 화면을 맡고, 브라우저가 lib/api SDK를 통해 Supabase를 직접 호출한다. 실제 골프존 회원·라운드·결제 연동은 하지 않고 라운드 완료 버튼과 실제 Auth 데모 계정 전환으로 대체한다.
+서비스 목표는 유저 웹·인플루언서 인박스·관리자 화면을 하나의 Next.js 앱에서 제공하는 것이다. 해커톤 동안 PR #14의 화면 미리보기는 Next.js 16·TypeScript 5.9를 쓰는 별도 `BirdieBuddy-ui/` 패키지로 유지한다. 루트 백엔드는 Node 24·TypeScript 7 도구 체계를 유지한다. 실제 데이터 연동 시 브라우저가 루트 `lib/api` SDK를 통해 Supabase를 직접 호출하며, PR #14 미리보기는 현재 더미 SDK 상태다. 실제 골프존 회원·라운드·결제 연동은 하지 않고 라운드 완료 버튼과 실제 Auth 데모 계정 전환으로 대체한다.
 
 ```mermaid
 flowchart LR
@@ -147,6 +147,12 @@ lib/api는 브라우저 SDK이며 서버 구현 위치가 아니다. 클라이�
 3. 모든 mutation은 requestId를 사용한다. 네트워크 재전송은 같은 ID, 새 사용자 동작은 새 ID다. 반환 타입은 Result<T>, 상세 오류 코드는 홍주P 계획 §6을 따른다.
 4. actor는 검증한 세션에서 얻는다. 브라우저 userId·role·quality·verdict·보유량을 신뢰하지 않는다. messages의 bigint ID는 전송 전 문자열로 보존한다.
 5. 지금까지 검증한 migration·SDK·Edge 경계·local-only 흐름을 구분해 기록한다. 사용자 JWT를 통한 화면·실제 AI·원격 동작은 별도 검증 전까지 완료로 보지 않는다.
+
+### PR #14 해커톤 화면 패키지 결정
+
+- 해커톤 동안 안 A를 적용한다. `BirdieBuddy-ui/`를 독립 Next.js 패키지로 두고 루트 백엔드 패키지에 Next 의존성이나 프론트 TypeScript 설정을 추가하지 않는다.
+- UI와 백엔드가 공유하는 API 타입·호출 구현은 루트 `lib/api`가 단일 원본이다. 화면 패키지 안에서 서비스 타입을 복제하지 않고 SDK 타입을 가져다 쓴다.
+- `BirdieBuddy-ui/`에서 루트 `lib/api`/`lib/supabase`를 해석하는 패키지 경계와 Vercel 빌드 루트는 아직 배포 검증 전이다. 이를 확인하기 전까지는 별도 패키지 선택을 프론트 배포 완료로 취급하지 않는다.
 
 ## 3. 데이터 모델과 권한
 

@@ -52,6 +52,20 @@ export type RoundGaugeSummary = {
   remainingRounds: number;
 };
 
+export type AdvanceDemoMonthData = {
+  closedMonth: string;
+  currentMonth: string;
+  applied: boolean;
+  members: {
+    roomId: UUID;
+    userId: UUID;
+    roundCount: number;
+    previousGauge: number;
+    gauge: number;
+    status: 'active' | 'left';
+  }[];
+};
+
 export type RoomCatalogItem = {
   roomId: UUID;
   influencerId: UUID;
@@ -234,7 +248,7 @@ export type BackendApi = {
   joinRoom(input: { requestId: UUID; roomId: UUID }): Promise<Result<JoinRoomData>>;
   getMyMembership(input: { roomId: UUID }): Promise<Result<Membership | null>>;
   getMyRoundGaugeSummary(): Promise<Result<RoundGaugeSummary>>;
-  advanceDemoMonth(input: { requestId: UUID; targetMonth: string }): Promise<Result<Record<string, unknown>>>;
+  advanceDemoMonth(input: { requestId: UUID; targetMonth: string }): Promise<Result<AdvanceDemoMonthData>>;
   getMessages(input: { roomId: UUID; beforeId?: MessageId; afterId?: MessageId; limit?: number }): Promise<Result<Page<Message>>>;
   submitMessage(input: SubmitMessageInput): Promise<Result<SubmitMessageData>>;
   getRoomMessageCheckpoint(input: { roomId: UUID }): Promise<Result<MessageChangeCursor | null>>;

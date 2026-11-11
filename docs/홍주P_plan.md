@@ -432,6 +432,11 @@ type RoundGaugeSummary = {
   currentMonth: string; monthlyRoundCount: number;
   targetRounds: number; remainingRounds: number;
 };
+type AdvanceDemoMonthData = {
+  closedMonth: string; currentMonth: string; applied: boolean;
+  members: { roomId: UUID; userId: UUID; roundCount: number;
+    previousGauge: number; gauge: number; status: 'active' | 'left' }[];
+};
 type SupportBadge = 'none' | 'buddy' | 'eagle' | 'albatross';
 type MessageKind = 'user_question' | 'influencer_answer' | 'influencer_broadcast' | 'greeting';
 type Message = {
@@ -610,7 +615,7 @@ helper는 모든 page를 성공한 뒤에만 through를 새 checkpoint로 반환
 | completeRound → complete_round | p_force_grade card_grade default null | `{roundId,drawId,grade,template:CardTemplate,isNew,ownedCount,entryUnlocked}` / user, 고정등급은 capability 추가 |
 | upgradeCard → upgrade_card | p_template_id uuid, p_grade card_grade | `{templateId,fromGrade,toGrade,consumed,remainingCount,upgradedCount}` / user |
 | joinRoom → join_room | p_room_id uuid | `{membership:Membership,alreadyActive:boolean,welcomeMessage:Message|null}` / user. B-05는 입장 구간을 기록하고 greeting은 null; P2 B-15에서 첫 입장에만 snapshot 생성 |
-| advanceDemoMonth → advance_demo_month | p_target_month date | `{closedMonth,currentMonth,applied:boolean,members:[{roomId,userId,roundCount,previousGauge,gauge,status}]}` / demo admin |
+| advanceDemoMonth → advance_demo_month | p_target_month date | `AdvanceDemoMonthData` (`members[].status` is `active` or `left`) / demo admin |
 | deleteInfluencerMessage → delete_influencer_message | p_room_id uuid, p_message_id bigint | `{message:Message}` / 본인 답변·전체 메시지만 soft delete. greeting은 불가 |
 | requestVerification → request_verification | p_type influencer_type, p_evidence_url text | `{verification:Verification}` / 본인 influencer |
 | approveVerification → approve_verification | p_verification_id uuid, p_decision text(approved/rejected), p_reason text default null | `{verification:Verification,verifiedAt:string 또는 null}` / admin |
@@ -1110,6 +1115,17 @@ const sent = await submitMessage({ requestId: crypto.randomUUID(), roomId, body 
 ```
 
 cards는 현호P, rooms/chat/filters/verifications는 자성P가 사용한다. 코드·타입·예제를 저장소에 제공한다. 외부 메시지는 별도 지시 없이 전송하지 않는다.
+
+### 13.9 PR #14 화면 SDK 인계 확인
+
+2026-11-11 PR #14 본문에서 홍주P에게 요청한 SDK 타입 대조, 데모 계정 매핑, UI 패키지 결정을 현재 `lib/api`와 `npm run demo:setup` 기준으로 확인했다. 별도 리뷰 댓글·스레드는 없었다.
+
+- **패키지 결정:** 해커톤 기간에는 안 A를 사용한다. `BirdieBuddy-ui/`는 Next.js 16·TypeScript 5.9 패키지로 유지하고, 루트 Node 24·TypeScript 7 백엔드 도구 체인에 Next 의존성을 섞지 않는다. API 런타임과 타입의 단일 원본은 루트 `lib/api`다. 프론트 패키지에서 이 코드를 참조하는 방법과 Vercel 빌드 범위는 배포 전 확인한다. 현재 선택만으로 UI 통합·배포 완료를 뜻하지 않는다.
+- **타입 비교:** `UUID`, `MessageId`, `Result`, `Page`, `Membership`, `SupportBadge`, `RoomCatalogItem` 등 기본 타입은 대체로 일치한다. UI 목업의 `Message`에는 `isReplyToMe`가 빠져 있다. UI `InboxItem = Message & ...`는 SDK의 `question | cluster` 판별 union과 다르고 `InboxPage.revision`도 빠져 있다. `replyToMessage`는 SDK의 `expectedClusterId`·`expectedClusterVersion`을 전달해야 한다. 메시지 재조회는 `updatedAfter/afterId` 대신 SDK의 `checkpoint` 계약을 사용한다. `getMyMembership` 입력은 문자열이 아니라 `{roomId}`다. pass 결과의 `rewriteQuality`, `suggestionToken`, `expiresAt`은 SDK 타입에서 `null`로 포함된다. 구독 상태 문자열 값은 같으므로 UI 별칭을 둘 수 있다.
+- **SDK 보완:** `advanceDemoMonth`의 구현 반환값은 계획·RPC 응답과 일치하지만 SDK에서 `Record<string, unknown>`으로만 선언돼 있었다. 이를 `AdvanceDemoMonthData`로 구체화했다. UI에서 이 반환 계약을 별도로 복사하지 않고 루트 SDK 타입을 사용한다.
+- **데모 계정 매핑:** `demo:setup`은 로컬 전용 Auth 사용자와 `profiles.role`을 만든다. `userA`는 `user`이며 샘플 카드/라운드 10건, 입장하지 않은 상태다. `userB`는 `user`이며 샘플 카드/라운드 5건과 첫 방 active 멤버십이 있다. `influencer`는 influencer UUID `20000000-0000-4000-8000-000000000001`에 연결된 인증 완료 인플루언서다. `pendingInfluencer`는 UUID `20000000-0000-4000-8000-000000000011`에 연결된 미승인 신청자이며 `profiles.role`은 역시 `influencer`다. `admin`은 admin이며 데모 월 경과 권한을 갖는다. setup에는 UI에서 요청한 다섯 계정 외 `influencerB`와 `outsider`도 있다.
+- **로그인 연결 규칙:** `demo:setup`이 발급하는 실제 Auth UUID는 로컬 재생성마다 결정된 상수로 보장되지 않으며 `.demo-passwords.json`에 로컬 전용으로 저장한다. UI의 mock `userA` 같은 문자열 ID를 실제 사용자 ID로 쓰지 않는다. 실제 로그인은 Supabase Auth 세션의 `user.id`를 쓰고, 역할/닉네임 표시 정보는 프로필에서 조회한다. 권한은 클라이언트 역할값으로 판단하지 않고 RLS/RPC에서 다시 확인한다. `user_metadata`를 인가 근거로 쓰지 않는다.
+- **프론트 후속 조건:** 중복 타입을 SDK import/`Pick<BackendApi, ...>`로 교체하고 묶음 revision/version과 복구 checkpoint 인자를 보존한다. `pendingInfluencer`는 역할만으로 승인 상태가 구별되지 않으므로 신청 조회 결과에 따라 화면 진입을 결정한다. 이 항목은 자성P 화면 구현 완료를 표시하지 않는다.
 
 ## 14. 진행·완료 보고
 
