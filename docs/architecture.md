@@ -1,10 +1,10 @@
 # BirdieBuddy — 전체 시스템 아키텍처
 
-**최종 갱신:** 2026-11-11 — main 병합 후 B-03/A-09 통합 검증
+**최종 갱신:** 2026-11-12 — PR #16 moderation 정책 변경을 백엔드 계약에 대조
 
 > 제품 규칙은 [prd.md](./prd.md)를 기준으로 한다. 이 문서는 공통 아키텍처와 담당 경계를 설명하고, Supabase 백엔드의 상세 데이터·권한·SDK/RPC/Edge 계약과 구현 순서는 [홍주P_plan.md](./홍주P_plan.md)를 따른다.
 >
-> 홍주P 백엔드는 로컬 구현·검증을 진행 중이다. 현재 branch에는 main의 PR #14 UI preview와 PR #15 Jev/Claude adapter·A-09 발급 migration이 병합되어 있고, local 11개 migration에서 SDK·Edge·카드 발급 연동을 검증했다. 이전에 기록된 Supabase `main / PRODUCTION` 적용 상태는 이번 병합 뒤 재조회하지 않았으며, 새 migration 배포·실제 AI·팀 화면 통합·Auth origin·production smoke는 미확인이다.
+> 홍주P 백엔드는 로컬 구현·검증을 진행 중이다. 현재 branch에는 main의 PR #14 UI preview, PR #15 Jev/Claude adapter·A-09 발급 migration, PR #16 stalking 분류 범위 변경이 병합되어 있다. PR #16은 공개되지 않은 시간 또는 장소에서의 목격을 필수 차단으로 명확히 했으며, 공개 장소라도 사적인 시간의 목격은 차단 대상이다. Jev 요청은 공용 카테고리 설명을 사용하고 홍주P 검증기는 기존 `stalking` 필수 차단 계약을 적용하므로 SDK/RPC 스키마 변경은 없다. 이전에 local 11개 migration에서 SDK·Edge·카드 발급 연동을 검증했다. 문환P의 회귀 결과는 해당 계획 §7.2에 기록되어 있으며, 이 브랜치의 Edge 실호출·실제 AI·hosted 반영은 별도 미확인이다. 이전에 기록된 Supabase `main / PRODUCTION` 적용 상태도 이번 병합 뒤 재조회하지 않았다.
 >
 > 제품 요구사항과 다른 구현 기본값이 생기면 PRD와 담당 계획을 함께 갱신한다. 런타임에서는 CSR·RLS·Supabase 호출 계약을 따른다.
 

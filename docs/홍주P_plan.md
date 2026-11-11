@@ -769,6 +769,8 @@ interface AiAdapter {
 
 고정 reason 매핑은 category별 문환P 계획의 문구를 사용한다. 계약 category는 선택 `profanity`, `belittling`, `appearance`; 필수 `threat`, `stalking`, `sexual_harassment`, `privacy`, `hate`, `illegal_ad`, `spam`으로 고정한다. 필수 category 판정은 block만, 선택 category 판정은 suggest 또는 block만 허용한다. disabledFilters category를 사유로 차단한 판정은 계약 오류로 거부한다. 이 10개 값은 PRD와 문환P 계획에 맞춰 일치시킨다.
 
+`stalking` 의미는 문환P 계획 §6.2와 일치시킨다. 공개되지 않은 시간 또는 장소 중 하나만 해당해도 필수 `block`이며, 공개 장소에서 사적인 시간에 목격했다는 내용도 포함한다. 이 분류 설명은 provider 판정 문맥에 전달하고, 홍주P 계층에서는 기존 `category='stalking'`·`verdict='block'` 계약을 검증해 저장한다. SDK/RPC 입력·반환 구조는 바뀌지 않는다.
+
 ### 8.3 summarize-room·cluster-questions
 
 JWT 인증 **방 소유 influencer만**, admin 타방 호출도 불가. 브라우저의 임의 원문 배열을 받지 않고 DB에서 source를 읽는다. 두 작업 합쳐 방1회/분·actor3회/분, 같은 requestId 재시도 추가 차감 없음.
@@ -1310,3 +1312,10 @@ docs/홍주P_plan.md 계약 1.6의 §§6~9·12·15와 내 담당 *_plan.md를 �
 - 로컬 DB: `supabase migration up`으로 A-09와 호출 수정 migration 두 개를 local stack에 적용했다. reset은 하지 않았다. DB contract/integration 및 1,000회 확률 SQL은 transaction rollback으로 실행해 기존 demo data를 보존했다.
 - 검증: `npm run typecheck` 통과; `npm run test:backend` Node 3 + Deno 113 통과; `npm run db:test` 113 pgTAP assertion 통과; `supabase db lint` 오류 없음. A-09 1,000회 표본은 common 696, rare 184, epic 92, special 28로 각 정의 구간에 들었고 template 30종을 모두 사용했다. wrapper 통합 test에서 force 권한·4→5/5→6 경계·실패 시 round/draw/idempotency rollback도 확인했다. `git diff --check` 통과.
 - 미검증: `npm run verify:backend`는 local demo/Auth 데이터를 변경하는 시나리오라 실행하지 않았다. 나머지 cross-ticket/동시 요청 시나리오, 실제 provider API·비용, 브라우저/UI·Realtime·Storage, remote migration/function 상태와 production smoke는 이번 결과로 완료 처리하지 않는다. 원격 Supabase에는 접속하거나 쓰지 않았다.
+
+### 15.7 2026-11-12 — PR #16 스토킹 필수 차단 계약 대조
+
+- 병합 기준: `main`의 PR #16 (`248dacb`)이 `stalking` 설명을 “방송 밖”에서 “공개되지 않은 시간·장소”로 좁히고, 회귀 자료에 공개 행사 목격 정상 문장과 공개 장소의 사적 시간 목격 차단 문장을 추가했다. 문환P 계획 §6.2는 시간·장소 중 하나만 사적이어도 차단한다는 결정을 명시한다.
+- 영향 확인: `jev.ts`는 `CATEGORIES` 설명을 Jev 요청에 직접 사용한다. 팬 전송은 기본 `user`, 인플루언서 전송은 `senderType:'influencer'`로 같은 판정 adapter에 전달한다. `validateModeration`은 `stalking`을 필수 카테고리로 허용하고 이 경우 `block`만 받는다. 따라서 병합된 설명이 두 발신 경로에 적용되며 SDK/RPC·DB 구조 변경은 필요하지 않다.
+- 문서 반영: §8.2에 시간 또는 장소 중 하나가 비공개인 경우와 공개 장소의 사적 시간 목격을 명시했다. 공통 architecture의 PR 병합 현황 및 검증 한계를 갱신했다.
+- 검증 범위: 소스·계약 정적 대조 및 `git diff --check`. 문환P 계획 §7.2에 기록된 upstream Deno 회귀는 71/71·73/73이지만 이번 홍주P 브랜치에서 재실행하지 않았다. 홍주P Edge 경로 실호출, hosted AI, 원격 적용은 미확인이고 B-06 통합 확인으로 처리하지 않는다.
