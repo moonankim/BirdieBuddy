@@ -1,10 +1,10 @@
 # BirdieBuddy — 전체 시스템 아키텍처
 
-**최종 갱신:** 2026-11-11 — 홍주P 계약 1.6
+**최종 갱신:** 2026-11-11 — main 병합 후 B-03/A-09 통합 검증
 
 > 제품 규칙은 [prd.md](./prd.md)를 기준으로 한다. 이 문서는 공통 아키텍처와 담당 경계를 설명하고, Supabase 백엔드의 상세 데이터·권한·SDK/RPC/Edge 계약과 구현 순서는 [홍주P_plan.md](./홍주P_plan.md)를 따른다.
 >
-> 홍주P 백엔드 구현이 진행 중이다. 현재 저장소에는 migration·seed·SDK·Edge 전송 계층과 local fixture가 있다. 사용자가 지정한 Supabase `main / PRODUCTION`에 기본 DB·Edge Function을 적용했지만, 실제 AI·팀 화면 통합·Auth origin·production smoke는 별도 미완료 항목이다.
+> 홍주P 백엔드는 로컬 구현·검증을 진행 중이다. 현재 branch에는 main의 PR #14 UI preview와 PR #15 Jev/Claude adapter·A-09 발급 migration이 병합되어 있고, local 11개 migration에서 SDK·Edge·카드 발급 연동을 검증했다. 이전에 기록된 Supabase `main / PRODUCTION` 적용 상태는 이번 병합 뒤 재조회하지 않았으며, 새 migration 배포·실제 AI·팀 화면 통합·Auth origin·production smoke는 미확인이다.
 >
 > 제품 요구사항과 다른 구현 기본값이 생기면 PRD와 담당 계획을 함께 갱신한다. 런타임에서는 CSR·RLS·Supabase 호출 계약을 따른다.
 
@@ -104,7 +104,7 @@ BirdieBuddy/
 │  ├─ fixtures/                        # 로컬 전용 가상 라인업·카드 placeholder
 │  │  ├─ influencers.json              # B-02 안정적 UUID·표시명·유형
 │  │  ├─ card-assets/<uuid>/<style>.webp # A-06 전달 전 임시 로컬 이미지
-│  │  └─ local_issue_card.sql           # A-09 전달 전 missing 함수에만 설치하는 로컬 발급 fixture
+│  │  └─ local_issue_card.sql           # A-09 migration 전 로컬 전용 결정적 발급 fixture
 │  ├─ tests/                           # DB·RLS·RPC 테스트 — 홍주P
 │  └─ functions/
 │     ├─ .env.example                  # 비밀 없는 Function 환경 예제
@@ -255,7 +255,7 @@ B-01은 첫 단계에서 `package.json`·`package-lock.json`, backend toolchain�
 
 AiAdapter 타입의 유일한 상세 기준은 홍주P 계획 §8.1이다. 여기서 다른 함수 시그니처를 중복 정의하지 않는다. ownScore·priority는 AI 모듈이 아니라 DB helper/저장 RPC에서 계산한다.
 
-로컬 fixture는 전송·권한·응답 형식 연결을 확인하는 샘플이다. 일반 로컬 문장은 quality=50, `passesAllFilters=false`로 통과하며, `[[fixture:suggest]]`, `[[fixture:block]]`, 공통 id를 가진 `[[fixture:cluster=<id>]]`로 각 응답 샘플을 고른다. 요약문은 메시지 내용을 평가하지 않고 개수만 표시한다. 이것은 안전 판정이나 실제 AI 품질을 제공하지 않으며 운영·hosted 프로젝트에서는 선택되지 않는다. 문환P의 실구현이 도착하면 selector/fixture를 교체하고 이 경계를 통해 contract 검증을 다시 한다. 실제 adapter의 Jev/Claude fallback 규칙, 시간 제한, `passesAllFilters` 계약은 홍주P 계획 §8을 따른다. 유효하지 않은 최종 adapter 반환값·예외·fallback 불가에는 `FILTER_UNAVAILABLE`로 응답하고 저장하지 않는다. cluster/summary Edge는 25초 signal과 29초 lease를 사용하고 자동 재시도와 fallback이 없다. 답변·전체 메시지·인사말은 influencer sender type으로 선택 필터를 적용하지 않고 필수 차단 7개(threat, stalking, sexual_harassment, privacy, hate, illegal_ad, spam)를 적용한다. 상세 token·멱등성·저장 규칙은 홍주P 계획 §§7~8을 따른다.
+로컬 fixture는 전송·권한·응답 형식 연결을 확인하는 샘플이다. 일반 로컬 문장은 quality=50, `passesAllFilters=false`로 통과하며, `[[fixture:suggest]]`, `[[fixture:block]]`, 공통 id를 가진 `[[fixture:cluster=<id>]]`로 각 응답 샘플을 고른다. 요약문은 메시지 내용을 평가하지 않고 개수만 표시한다. 이것은 안전 판정이나 실제 AI 품질을 제공하지 않으며 운영·hosted 프로젝트에서는 선택되지 않는다. Jev/Claude provider adapter source는 main에 병합됐고 local fixture selector는 명시적 local host/flag 경계를 유지한다. Provider unit tests는 모의 응답을 쓰며 live AI 동작은 별도 확인이 필요하다. 실제 adapter의 Jev/Claude fallback 규칙, 시간 제한, `passesAllFilters` 계약은 홍주P 계획 §8을 따른다. 유효하지 않은 최종 adapter 반환값·예외·fallback 불가에는 `FILTER_UNAVAILABLE`로 응답하고 저장하지 않는다. cluster/summary Edge는 25초 signal과 29초 lease를 사용하고 자동 재시도와 fallback이 없다. 답변·전체 메시지·인사말은 influencer sender type으로 선택 필터를 적용하지 않고 필수 차단 7개(threat, stalking, sexual_harassment, privacy, hate, illegal_ad, spam)를 적용한다. 상세 token·멱등성·저장 규칙은 홍주P 계획 §§7~8을 따른다.
 
 ## 6. 초기화·환경·배포
 
@@ -315,11 +315,11 @@ U-01 시연 대본·발표 자료는 담당 미정으로 유지한다. 검증 �
 
 현재 backend에서 독립 적용하는 기본값은 다음과 같다.
 
-- fixture는 local Supabase host와 명시 설정을 모두 확인한 때만 사용하며, remote hosted AI는 실제 adapter가 배포되기 전까지 fail-closed 한다.
+- 카드·AI fixture는 local Supabase host와 명시 설정을 모두 확인한 때만 사용한다. A-09 migration은 명시적인 local fixture marker가 있는 함수만 교체한다. Jev/Claude provider adapter source는 병합됐지만 live 호출과 Edge 배포는 미검증이다.
 - production에는 demo 사용자·fictional seed·placeholder object를 넣지 않는다. role은 검증된 사용자 세션과 database authorization으로 판정한다.
 - browser CORS와 Auth redirect에는 확인된 실제 origin만 추가한다. 공개 URL이 없으면 wildcard나 추정 도메인을 넣지 않는다.
 - PRD의 달력 월·정산 제외·같은 달 3회 재입장 정책은 UI에도 그대로 적용한다. 이를 바꾸려면 PRD, 자성P 화면 계획, 홍주P backend 계약을 함께 갱신한다.
 
 다른 소유자와 함께 결정할 정책은 각각 담당 경계를 따른다. 모델·호출량·비용과 실제 AI 결과는 문환P, 최종 인물·이미지 사용권은 현호P 및 콘텐츠 소유자, 계정 전환·Auth UX·화면 CORS origin은 자성P/배포 담당자, 실서비스 차단 데이터 보관·제재·이의제기는 제품·법무·운영 담당자의 확인이 필요하다. 현재 blocker와 처리 담당은 [홍주P 계획 §14](./홍주P_plan.md#14-진행완료-보고)의 티켓 상태와 정책 결정 항목에서 관리한다.
 
-현재 remote는 migration 9개와 JWT 검증 Edge Function 5개까지 적용되어 있다. AI adapter가 없어 hosted moderation·cluster·summary는 fail-closed하고, 배포 origin 부재로 Auth redirect/CORS를 설정하지 않았다. 실제 사용자 JWT, Storage upload, Realtime delivery와 UI flow는 별도 검증 전까지 완료로 보지 않는다.
+마지막으로 기록한 remote 상태는 migration 9개와 JWT 검증 Edge Function 5개 적용이다. main 병합 뒤 remote migration/function 상태는 다시 확인하거나 변경하지 않았다. hosted moderation·cluster·summary의 provider 동작과 Auth redirect/CORS origin도 미확인이다. 실제 사용자 JWT, Storage upload, Realtime delivery와 UI flow는 별도 검증 전까지 완료로 보지 않는다.

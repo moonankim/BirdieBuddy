@@ -12,7 +12,7 @@
 
 ## 0. 한 문장으로 시작하는 실행 지시
 
-사용자가 이 계획을 바탕으로 개발을 요청하면 이 파일을 실행 명세로 삼는다. 현재는 사용자의 개발 시작 요청에 따라 로컬 구현 중이며, 실제 원격 데이터·schema·배포는 변경하지 않는다.
+사용자가 이 계획을 바탕으로 개발을 요청하면 이 파일을 실행 명세로 삼는다. 현재는 로컬 구현·검증을 보완 중이다. 이번 main 병합 후속 작업은 로컬 migration/test만 반영하며 원격 데이터·schema·배포는 변경하지 않는다.
 
 1. 저장소 상태와 작업 지침을 확인하고 기존 수정사항을 보존한다. 아래 체크리스트와 실제 파일을 비교해 미완료 지점부터 진행한다. 체크 표시만으로 구현 완료를 가정하지 않는다.
 2. B-01~B-17을 구현한다. 제품 규칙은 PRD를 적용하고, 미정인 기술 세부사항은 아래 계약을 사용한다. 다른 담당자의 화면·AI 코드·최종 이미지가 없다는 이유로 독립 가능한 백엔드 구현을 중단하지 않는다.
@@ -80,8 +80,8 @@ supabase/migrations/README.md        migration safety and local workflow
 supabase/migrations/*.sql            schema·RLS·grants·RPC·trigger·Storage·publication
 supabase/seed.sql                   비기밀 고정 콘텐츠
 supabase/functions/_shared/http.ts  인증·CORS·입력 검증·service client·오류 변환
-supabase/functions/_shared/ai_adapter.ts  owner AI adapter boundary + local-only fixture selector
-supabase/fixtures/local_issue_card.sql  A-09 전달 전 로컬에만 설치하는 결정적 카드 발급 sample
+supabase/functions/_shared/ai_adapter.ts  Jev/Claude provider adapter + explicit local-only fixture selector
+supabase/fixtures/local_issue_card.sql  A-09 migration 적용 전 로컬 전용 결정적 카드 발급 sample
 supabase/functions/submit-message/index.ts
 supabase/functions/send-influencer-message/index.ts
 supabase/functions/update-room-greeting/index.ts
@@ -208,11 +208,11 @@ DB 암호는 Management API/PAT 범위가 제한되어도 별도의 DB 권한을
 
 원격 계정, DB, Function, Secrets, Auth 설정 권한은 서로 분리해 기록한다. dry-run은 변경 목록을 검토하는 증거일 뿐 실제 쓰기 권한이나 배포 성공 증거가 아니다.
 
-2026-11-11 현재 상태:
+마지막 원격 확인 기록(2026-11-11, 이번 PR #14/#15 main 병합 전):
 
 - MCP로 사용자가 지정한 `kjfaqfpvfvgbrvdoosyi` `main / PRODUCTION` 프로젝트의 기존 상태를 읽고, migration 및 Function 쓰기 권한을 사용해 적용했다. 이는 별도 CLI PAT 로그인이 확인됐다는 뜻은 아니다.
 - 적용 전 PostgreSQL 17.11·ACTIVE_HEALTHY, migration·앱 테이블·Auth 사용자·Storage object·Edge Function이 비어 있음을 읽기 전용으로 확인했다. 기존 사용자 데이터가 없어 데이터 백업/복구 대상은 없었으며, 원격 `reset`은 실행하지 않았다.
-- 9 migrations와 5개 JWT 검증 Edge Function의 적용 후 상태를 MCP로 읽어 확인했다. Secret 값·Owner/Administrator Secret 수정 권한은 조회하거나 사용하지 않았다.
+- 당시 9 migrations와 5개 JWT 검증 Edge Function의 적용 후 상태를 MCP로 읽어 확인했다. Secret 값·Owner/Administrator Secret 수정 권한은 조회하거나 사용하지 않았다. PR #14/#15 병합 후에는 원격 상태를 재조회하지 않았다.
 - 미확인: CLI용 `SUPABASE_ACCESS_TOKEN`, CLI linked-remote migration list/dry-run, Secret 쓰기 권한·실제 provider 호출, 공개 앱 origin에 따른 Auth redirect/CORS, 실제 사용자 JWT·Realtime·Storage smoke.
 
 MCP 또는 CLI 접근 성공 하나로 다른 작업 권한을 추정하지 않는다. 현재 범위와 후속 순서는 §§13~14에 구분해 기록한다.
@@ -754,7 +754,7 @@ interface AiAdapter {
 - 사용자 입력을 비신뢰 데이터로 전달한다. 키·계정정보·차단 원문을 추가 문맥으로 넘기지 않는다.
 - pass는 category/reason/rewrite=null, quality 0~100, passesAllFilters boolean이다. suggest는 선택 category와 rewrite null 또는 1~2000자, rewrite가 있으면 rewriteQuality 0~100을 요구한다. block은 category 필수·rewrite=null이다. adapter의 `reason`은 항상 null이며, 최종 사용자 안내는 아래 고정 문구로 만든다. 자유문장 reason은 저장·로그·사용자 응답에 사용하지 않는다. 원문을 인용할 수 있기 때문이다. 불량 category/최종 adapter 결과를 pass로 보정하지 않는다.
 - metadata7일 보관. 본문/JWT/rewrite 서버로그 금지. 만료 moderation_events·operations·과거 rate_windows는 서버 전용 cleanup 및 일별 pg_cron으로 정리하고 실행 여부 검증.
-- 실제 adapter/키 없으면 actual AI 미검증. fixture를 실제 판정 성공으로 보고하지 않는다.
+- Jev/Claude adapter source는 main에 병합됐지만 실제 provider key로 호출하지 않았다. Provider unit tests는 모의 응답 기반이며 live AI 결과로 보고하지 않는다.
 
 ### 8.2 필터
 
@@ -1016,7 +1016,7 @@ migration 순서: core/config→private/Auth→RLS/helpers→문환P A-09 `issue
 
 - 원격 적용 대상은 `kjfaqfpvfvgbrvdoosyi`인지 매번 확인한다. 사용자가 지정한 이번 직접 적용 대상은 main/PRODUCTION이며, 다른 ref/프리뷰/운영은 별도 대상 승인 없이 연결하지 않는다.
 - 변경 범위는 reviewed migration과 필요한 함수(`submit-message`, `send-influencer-message`, `update-room-greeting`, `summarize-room`, `cluster-questions`)로 제한한다. 문서상 예정 함수 목록을 실제 배포 완료로 보지 않는다.
-- `local_issue_card.sql`, `BB_USE_LOCAL_AI_FIXTURE`, fictional local seed/Auth/Storage setup은 hosted environment에 적용·배포하지 않는다. hosted AI는 실제 문환P adapter가 준비되기 전까지 fail-closed 한다.
+- `local_issue_card.sql`, `BB_USE_LOCAL_AI_FIXTURE`, fictional local seed/Auth/Storage setup은 hosted environment에 적용·배포하지 않는다. Jev/Claude provider adapter source는 main에 병합됐지만 live 호출·Edge 배포는 미검증이다. 키 부재 시 계약된 moderation fallback을 쓰며 provider 호출 오류는 `FILTER_UNAVAILABLE`로 변환한다.
 - 현재 schema, migration history, DB major version, 기존 함수/Secret 이름, Storage bucket/object, `messages` publication, Auth URL/redirect, 기존 사용자와 데이터를 읽어 baseline을 만든다. 소유되지 않은 기존 구조와 이력은 임의로 채택·삭제·repair하지 않는다.
 - §12의 로컬 migration/권한/Function 검증을 통과한 commit을 대상으로 한다. 사용 중인 DB와 호환성을 확인하고, 기존 사용자/Storage 데이터가 있으면 복구 백업과 기존 Function 소스를 확보하지 못한 상태로 쓰기 단계에 넘어가지 않는다. 사전 조회로 두 데이터가 모두 비어 있음을 확인한 신규 설치는 이를 기록하고 계속할 수 있다.
 - 실제 Jev 검증에는 `TYPESAFE_API_KEY`, Claude suggest/summary 검증에는 `ANTHROPIC_API_KEY`가 필요하다. 전체 AI 경로의 시연 검증은 §2.7에 따라 두 hosted Secrets를 설정하고 호출량/비용 조건을 확인한 뒤 수행한다. 키가 없을 때는 문환P adapter의 계약된 fallback을 쓰며 실제 모델 판정으로 보고하지 않는다. 키가 없다고 fail-closed만 하지는 않으며 fallback pass는 PRD대로 quality 50으로 저장한다.
@@ -1154,14 +1154,14 @@ cards는 현호P, rooms/chat/filters/verifications는 자성P가 사용한다. �
 | 상태 | 조건 | 현재 |
 | --- | --- | --- |
 | 계획 단독 실행 준비 | 범위·기본값·타입·권한·순서·검증·외부조건 | 문서 보완·정적 교차 검토 완료 |
-| 백엔드 로컬 완료 | B-01~17 코드·필수로컬검증 | 진행 중: 9 ordered migrations·seed·7개 local 계정·SDK·5개 Edge 함수. 기본 기능 검증 51 checks·Node 3·Deno 4·pgTAP 19·typecheck·DB lint는 fixture 추가 전 통과. 이번 local fixture 구현 뒤 DB reset·demo setup은 다시 적용했으나 테스트/통합 스모크는 재실행하지 않음. AI owner adapter 및 실제 A-09 확률/발급 구현·전체 acceptance 미완료 |
+| 백엔드 로컬 완료 | B-01~17 코드·필수로컬검증 | 진행 중: 로컬 11 ordered migrations·seed·7개 local 계정·SDK·5개 Edge 함수. 현재 `typecheck`, Node 3 + Deno 113, pgTAP 113, SQL lint 통과. A-09 1,000회 표본과 `complete_round` 재시도·단일 draw·force 권한·4→5/5→6 경계·실패 rollback도 local transaction에서 통과. 나머지 cross-ticket `verify:backend` 시나리오, browser·Realtime·Storage·live AI, 전체 acceptance는 별도 미검증 |
 | LLM hosted Secrets 준비 | `TYPESAFE_API_KEY`·`ANTHROPIC_API_KEY` 존재 여부와 회전된 값의 실제 호출 검증 | Dashboard에서 두 Secret 이름 저장 확인. 값·회전 여부 미열람·미확인, live 호출 미실행 |
 | 실제AI 검증 | live 호출·3판정·장애 | 미검증 |
 | 팀화면 통합 | 담당화면 P0/P1/P2·오류·구독 | 미검증 |
 | Supabase 관리 연결 | 프로젝트·DB 관리 경로 | Supabase MCP로 대상 읽기/적용 확인. CLI deploy는 로컬 `SUPABASE_ACCESS_TOKEN` 부재로 실패했으나 MCP deploy로 계속함 |
 | Supabase 로그인·프로젝트 권한 | 계정/PAT 범위/프로젝트 멤버십 및 Owner/Administrator Secret 쓰기 권한 | MCP에서 §2.1 ref 접근 및 migration/function 반영 성공. Secret 권한은 사용하지 않았고 별도 확인하지 않음. Production 직접 적용은 사용자 명시 지시 |
 | 원격 preflight | target ref·환경·DB major version·기존 데이터/schema baseline | MCP read-only 완료: main/PRODUCTION, PostgreSQL 17.11, 적용 전 테이블·migration·함수·Auth user·Storage object 0. CLI dry-run은 미실행, 사용자 데이터 부재로 데이터 backup 대상 없음 |
-| 원격 적용 | 승인환경 migration/Functions/Secrets·스모크 | 9 migrations·5 Edge Functions(active, verify_jwt=true) 반영. game_config 5 rows·Storage buckets 2·messages Realtime publication 1 확인. MCP 실행 시각으로 기록된 migration version에 맞춰 로컬 파일 timestamp를 정렬했고 로컬 reset·CLI 이력을 재확인. provider Secrets·Auth origin·실데이터·smoke는 변경/실행 안 함 |
+| 원격 적용 | 승인환경 migration/Functions/Secrets·스모크 | 마지막 기록은 9 migrations·5 Edge Functions(active, verify_jwt=true), game_config 5 rows·Storage buckets 2·messages Realtime publication 1이다. 이번 작업은 원격 상태를 재조회하거나 변경하지 않았으므로 main에 병합된 A-09와 후속 fix migration의 hosted 적용은 미확인. provider Secrets·Auth origin·실데이터·smoke도 이번에 변경/실행 안 함 |
 | 데모 완료 | 동결 후 전체리허설2회 | 미실행 |
 
 보고 순서는 변경 파일 → 명령/증거 → 완료 티켓 → 외부 조건/미검증 → 재개 방법이다. 외부 권한·AI 모듈이 없어도 독립 가능한 구현은 끝까지 진행한다.
@@ -1174,17 +1174,17 @@ cards는 현호P, rooms/chat/filters/verifications는 자성P가 사용한다. �
 | --- | --- | --- |
 | B-01 | toolchain, schema/Auth/RLS/grants, SDK 기반과 production migration 적용 완료 | fixture 변경 뒤 검증 재실행 및 다른 화면과 세션 통합 |
 | B-02 | local seed, 반복 가능한 7개 local Auth 계정, 30 placeholder와 샘플 카드 발급 준비 | 최종 콘텐츠 사용권 확인; production에는 fictional user/object를 올리지 않음 |
-| B-03 | complete-round transaction과 SDK 계약, local deterministic `issue_card` fixture | 문환P A-09 확률 기반 함수·분포/경계 검증과 실제 함수 연동 |
+| B-03 | complete-round/SDK 계약에 A-09 migration 통합. local marker fixture만 교체하는 안전 가드와 `regprocedure` 동적 호출 수정 추가. pgTAP에서 결과·재시도·draw 1건·force 권한·4→5/5→6·실패 rollback 확인 | 더 넓은 cross-ticket `verify:backend` 시나리오와 동시 요청 경계를 추가 검증 |
 | B-04 | collection/inventory·upgrade RPC와 SDK 구현 | 현호P 화면 통합 및 전체 acceptance 재확인 |
 | B-05 | catalog/join/re-entry RPC와 SDK 구현 | 자성P 화면·세션 흐름 통합 |
-| B-06 | submission RPC·JWT Edge·SDK·Realtime history/recovery 구현; local AI fixture 연결 | 문환P adapter 전에는 hosted fail-closed; 화면 Realtime delivery와 실제 권한 통합 |
+| B-06 | submission RPC·JWT Edge·SDK·Realtime history/recovery와 Jev moderation adapter 연결; explicit local fixture도 유지 | live provider 호출/장애 조건, 화면 Realtime delivery와 실제 권한 통합 |
 | B-07 | demo clock·월 정산·round gauge 계약 구현 | 자성P 월 경과/퇴장/재입장 UI 통합 |
 | B-08 | score·inbox/revision·filtered answer·answer history 구현 | 인박스 UI와 실제 두 세션 흐름 통합 |
 | B-09 | verification 신청·심사·이력 backend 구현 | 자성P 관리자 신청/승인 UI 통합 |
 | B-10 | filters/version/rate-limit/metadata cleanup 구현 | latest fixture 이후 회귀 검증, 운영 cron 실제 실행 관찰 |
-| B-11 | production migrations·Functions 반영, recovery 절차 문서화 | CLI linked dry-run, exact Auth/CORS origin, provider runtime, user JWT/Storage/Realtime smoke |
-| B-12 | source/lease/commit RPC, Edge wrappers와 local cluster/summary fixture | 문환P Jev/Claude adapter 통합·품질/안전 회귀 |
-| B-13 | Node/Deno/pgTAP/통합 checks가 fixture 추가 전 통과한 기록 있음 | fixture 변경 후 재실행, 브라우저·Realtime·Storage·실AI·production smoke |
+| B-11 | 이전 기록에서 migrations·Functions 반영, recovery 절차 문서화 | 이번 main 병합분의 hosted 적용 여부 재조회, exact Auth/CORS origin, user JWT/Storage/Realtime smoke |
+| B-12 | source/lease/commit RPC, Edge wrappers와 main에 병합된 Jev/Claude adapter | live provider 품질/안전 회귀 및 hosted 실행 검증 |
+| B-13 | 현재 local Node 3·Deno 113·pgTAP 113·typecheck·DB lint와 A-09 distribution/integration checks 통과 | demo-data 쓰기형 `verify:backend`, 브라우저·Realtime·Storage·실AI·production smoke |
 | B-14 | bucket/RLS/photo RPC와 SDK upload flow 구현 | 실제 browser File→WebP, 재시도·복구·과거 메시지 갱신 smoke |
 | B-15 | greeting read/update Edge·RPC와 first-entry snapshot 구현 | 자성P 설정/첫 입장 UI 통합 |
 | B-16 | influencer broadcast Edge/RPC·SDK 구현 | 자성P compose/수신 화면·Realtime 통합 |
@@ -1260,8 +1260,8 @@ cards는 현호P, rooms/chat/filters/verifications는 자성P가 사용한다. �
 | 자성P F-08/F-14/F-15 | §§6.2·7.2: influencer block은 Result 오류 MESSAGE_BLOCKED, 팬의 SubmitMessageData와 다른 반환 위치 | category/고정 reason 표시·draft 유지·인사말 기존 문구 유지·본문 수정 시 새 requestId를 명시. 네트워크 재전송은 기존 requestId. 더미도 동일 오류 형식으로 맞춤 |
 | 자성P F-12/F-13 | §§6.5·8.5·9.3: SDK가 원본 File 변환/동일 bytes 재시도/포인터 갱신을 담당 | 화면은 원본 File·requestId를 전달하고 SDK와 중복 인코딩하지 않음. 실패 시 파일/동작 ID를 유지하고 새 파일은 새 ID. 본인 성공 응답으로 즉시 사진 cache 갱신, 다른 열린 화면은 다음 3초 상태 조회 성공 시 과거 말풍선까지 반영. 업로드 완료 뒤 응답 유실/RPC 실패를 검증 항목에 추가 |
 | 문환P A-02/A-04/A-07 | §8.1~8.3의 AiAdapter 입출력·시한·fallback 소유권은 유지. 묶음 최고 점수 정렬/답변 링크/version은 홍주P DB 책임 | 문환P 계획에서 대표문장 전 항목 재검사·안전하지 않은 묶음 제외·실패 시 예외·source 밖/중복 ID·시한 회귀 검증이 유지되는지 확인. AI 반환에 DB clusterId/version·권한·점수 정렬을 새로 떠넘기지 않음. 기존 계약과 다르면 근거/대안을 기록해 공동 문서에 해결 요청 |
-| 문환P A-02/A-04/A-07 구현 인계 | 임시 adapter는 fixture marker와 local-host guard만 제공하며 hosted path는 fail-closed | 문환P의 실 adapter가 준비되면 local selector/fixtures를 소유 모듈에 맞게 교체하고 pass/suggest/block·cluster·summary Edge 계약을 다시 확인. 이 fixture를 Jev/Claude fallback이나 안전 판정으로 인계하지 않음 |
-| 문환P A-09 구현 인계 | `local_issue_card.sql`은 deterministic common 카드만 지급하며 migration/확률 구현이 아님 | A-09 migration이 도착하면 로컬 reset 후 `demo:setup`이 기존 함수를 보존하는지 확인. 4→5 entry 경계·강제 권한·원자 지급은 실제 owner 구현으로 검증하고 fixture 결과를 확률 표본에 포함하지 않음 |
+| 문환P A-02/A-04/A-07 구현 인계 | main PR #15에 Jev/Claude provider adapter가 병합됐고 local selector는 별도 marker/host guard를 유지. provider unit tests는 mock 기반 | 실 provider call·품질/비용·hosted Edge 동작은 별도 검증. fallback과 `passesAllFilters` 경계를 PRD·adapter 계약대로 함께 확인 |
+| 문환P A-09 구현 인계 | main PR #15의 `issue_card` migration을 local에 적용했다. 명시된 local fixture marker만 교체하며, 기존 `complete_round`의 `regprocedure` 문자열 호출 오류는 후속 migration으로 수정하고 pgTAP 통합 회귀를 추가했다 | owner 구현 인계/리뷰와 force-grade 권한, `complete_round` wrapper의 4→5 entry 경계 및 rollback을 추가 확인. local deterministic fixture 결과는 확률 표본에 포함하지 않음 |
 | 현호P D-01 및 자성P와의 공통 상태 디자인 | 카드 지급·강화 API와 A-06 이미지 생성 소유권은 이번에 바뀌지 않음 | 필요한 경우 묶음 1명/0명·목록 갱신·차단 reason·퇴장/재입장·사진 갱신 상태를 자성P와 맞추고 본인 디자인 계획에 반영. 채팅 SDK/DB를 대신 구현하지 않고 기존 카드 화면 검증 범위를 유지 |
 
 ### 15.3 다른 담당자에게 전달할 에이전트 작업 지시
@@ -1302,3 +1302,11 @@ docs/홍주P_plan.md 계약 1.6의 §§6~9·12·15와 내 담당 *_plan.md를 �
 - migration 이력 정합성: MCP 기록 `version`은 원격 적용 시각이고 `name`은 원래 파일 stem이었다. Supabase CLI는 timestamp만 비교하므로 로컬 파일 prefix를 원격 version에 맞췄다. SQL 내용과 production history row는 수정하지 않았다. `npm run db:reset` 후 `npx supabase@3.0.0 migration list`에서 9개 local version의 적용 일치를 확인했다. CLI의 linked-remote list/dry-run은 보호된 `SUPABASE_ACCESS_TOKEN`이 없어 실행하지 않았다.
 - 외부 조건: Supabase CLI 원격 deploy에는 로컬 `SUPABASE_ACCESS_TOKEN`이 없어 실패했지만 Supabase MCP 경로로 migration/function 반영을 완료했다. UI origin이 정해지지 않아 Auth `site_url`/redirect와 `ALLOWED_ORIGINS`는 조정하지 않았고 provider Secrets도 변경하지 않았다. owner AI module absent라 hosted moderation/summary/cluster는 fail-closed다. 원격 사용자 JWT smoke·실제 AI·Storage upload는 실행하지 않았다.
 - 테스트: 이번 fixture 코드 변경 후 tests/checks는 실행하지 않았다. 로컬 DB는 9개 migration reset과 demo setup까지 다시 적용했다.
+
+### 15.6 2026-11-11 — main 병합 후 A-09/complete_round 통합 보완
+
+- 병합 기준: PR #14 UI preview와 PR #15 Jev/Claude adapter·A-09 migration이 main에서 병합됐다. 홍주P 작업은 backend SDK/계약, A-09 transaction 경계, 검증 도구와 이 계획 문서에 한정했다.
+- 구현: `test:backend`와 Deno task가 전체 Edge shared test tree를 실행하도록 넓혔다. `verify-backend.mjs`는 확률 기반 grade 범위, 동일 requestId replay, 반환 draw의 user/round 연결을 확인하도록 고쳤다. A-09 migration은 정확한 local fixture marker일 때만 기존 함수 교체를 허용한다. 실제 `complete_round` 호출에서 `regprocedure`가 전체 signature 문자열을 반환해 생성 SQL이 실패하는 점을 발견해, 새 migration `20261111083319_fix_complete_round_issue_card_call.sql`에서 schema-qualified 고정 함수 호출로 수정했다. pgTAP transaction test가 wrapper 결과·retry·round/draw 1건·force 권한·4→5/5→6 경계·실패 rollback을 확인한다.
+- 로컬 DB: `supabase migration up`으로 A-09와 호출 수정 migration 두 개를 local stack에 적용했다. reset은 하지 않았다. DB contract/integration 및 1,000회 확률 SQL은 transaction rollback으로 실행해 기존 demo data를 보존했다.
+- 검증: `npm run typecheck` 통과; `npm run test:backend` Node 3 + Deno 113 통과; `npm run db:test` 113 pgTAP assertion 통과; `supabase db lint` 오류 없음. A-09 1,000회 표본은 common 696, rare 184, epic 92, special 28로 각 정의 구간에 들었고 template 30종을 모두 사용했다. wrapper 통합 test에서 force 권한·4→5/5→6 경계·실패 시 round/draw/idempotency rollback도 확인했다. `git diff --check` 통과.
+- 미검증: `npm run verify:backend`는 local demo/Auth 데이터를 변경하는 시나리오라 실행하지 않았다. 나머지 cross-ticket/동시 요청 시나리오, 실제 provider API·비용, 브라우저/UI·Realtime·Storage, remote migration/function 상태와 production smoke는 이번 결과로 완료 처리하지 않는다. 원격 Supabase에는 접속하거나 쓰지 않았다.

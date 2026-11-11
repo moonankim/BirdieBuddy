@@ -210,8 +210,14 @@ async function main(){
   const privilegedRpc=await a.rpc('begin_message_submission',{p_actor_id:userA,p_room_id:firstRoom.roomId,p_request_id:'80000000-0000-4000-8000-000000000002',p_payload_hash:'0'.repeat(64)});
   check(Boolean(privilegedRpc.error),'authenticated client cannot execute service-only message reservation');
 
-  const sampleRound=await apiA.completeRound({requestId:'80000000-0000-4000-8000-000000000003',forceGrade:null});
-  check(sampleRound.ok&&sampleRound.data.grade==='common'&&sampleRound.data.entryUnlocked===false,'local issuer fixture awards a deterministic sample without claiming a probability result');
+  const sampleRoundRequestId='80000000-0000-4000-8000-000000000003';
+  const sampleRound=await apiA.completeRound({requestId:sampleRoundRequestId,forceGrade:null});
+  const sampleRoundRetry=sampleRound.ok?await apiA.completeRound({requestId:sampleRoundRequestId,forceGrade:null}):undefined;
+  const issuedDraw=sampleRound.ok?await service.from('draws').select('id,round_id,user_id',{count:'exact'}).eq('round_id',sampleRound.data.roundId).eq('user_id',userA).maybeSingle():undefined;
+  const validGrades=new Set(['common','rare','epic','special']);
+  check(Boolean(sampleRound.ok&&validGrades.has(sampleRound.data.grade)&&sampleRound.data.drawId&&sampleRound.data.roundId&&typeof sampleRound.data.entryUnlocked==='boolean'),'probability-based A-09 award is returned through completeRound');
+  check(Boolean(sampleRound.ok&&sampleRoundRetry?.ok&&JSON.stringify(sampleRoundRetry.data)===JSON.stringify(sampleRound.data)),'same completeRound request replays the original award without another draw');
+  check(Boolean(sampleRound.ok&&issuedDraw&&!issuedDraw.error&&issuedDraw.count===1&&issuedDraw.data?.id===sampleRound.data.drawId&&issuedDraw.data?.round_id===sampleRound.data.roundId),'completeRound commits one A-09 draw for the authenticated user');
 
   const dailyCount=await apiOwner.getRoomDailyBlockCount({roomId:firstRoom.roomId});
   check(dailyCount.ok&&dailyCount.data.count===1,'verified owner sees only the aggregate local fixture block count');
