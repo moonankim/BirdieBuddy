@@ -1,7 +1,7 @@
 # BirdieBuddy — 자성P 프론트엔드 개발 정의서 v2
 
 - 작성일: 2026-11-11
-- 기준 문서: `prd.md`, `architecture.md`, `홍주P_plan.md`(SDK 계약 §6~9), `현호P_plan.md`, `design-system/README.md`
+- 기준 문서: `prd.md`, `architecture.md`, `홍주P_plan.md`(SDK 계약 §6~9), `현호P_plan.md`, `design.md`, `design-system/README.md`
 - 상세 화면 스펙·오류 처리·더미 SDK 규칙은 v1(`자성P_develop_document.md`)을 그대로 따른다. v2는 **현재 상태와 남은 작업**만 다룬다.
 
 ## 1. 현재 상태 요약
@@ -52,11 +52,12 @@
 
 ### 3.4 현호P 화면 교체 (현호P와 합의)
 
-- [ ] 홈 경로 확정: `/home` 별도(라운드 완료 → `/draw` 연출) 또는 `/draw` 하나로 겸용. 정해지면 하단 바·로그인 후 첫 화면(`homeFor`, 현재 팬은 `/chat`)을 맞춘다
+- [ ] 홈 경로 확정: `/home` 별도(라운드 완료 → `/draw` 결과) 또는 `/draw` 하나로 겸용. 정해지면 하단 바·로그인 후 첫 화면(`homeFor`, 현재 팬은 `/chat`)을 맞춘다. 뽑기 연출은 미정이다.
 - [ ] `/home`·`/collection`·`/draw` 목업과 `_mock/cards.ts`를 현호P 화면으로 교체
 - [ ] 뽑기 결과의 "입장 가능" 안내에서 `/chat/[roomId]`로 이동하는 링크 합의
 - [ ] 홈 라운드 정보에 "이번 달 라운드 N회 남음, 소진 전까지 남은 기간" 포함(PRD 4절 "게임 시작 전" 알림)
 - [ ] 디자인 시스템 원본이 바뀌면 `app/design-system.css` 재동기화
+- [ ] 앱 화면은 `design.md`와 디자인 시스템을 따르고 카드 표시 영역은 2:3으로 준비한다. 최종 카드 디자인은 별도 프로젝트에서 전달받는다.
 
 ### 3.5 남은 기능 보강 (P2 후순위)
 
