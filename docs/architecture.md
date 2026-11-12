@@ -1,6 +1,6 @@
 # BirdieBuddy — 전체 시스템 아키텍처
 
-**최종 갱신:** 2026-11-12 — PR #29 Supabase Auth·SDK 연결 상태 반영
+**최종 갱신:** 2026-11-12 — PR #30 카드 SDK 대조·시연 초기화 인계
 
 > 제품 규칙은 [prd.md](./prd.md)를 기준으로 한다. 이 문서는 공통 아키텍처와 담당 경계를 설명하고, Supabase 백엔드의 상세 데이터·권한·SDK/RPC/Edge 계약과 구현 순서는 [홍주P_plan.md](./홍주P_plan.md)를 따른다.
 >
@@ -118,6 +118,7 @@ BirdieBuddy/
 ├─ scripts/                            # 홍주P: Node 실행·검증 도구
 │  ├─ prepare-local-env.mjs            # local:start/local:env, 비밀값 비출력
 │  ├─ setup-demo-accounts.mjs          # 로컬 Auth Admin + pg 프로비저닝
+│  ├─ reset-local-demo.mjs             # 기본 계획 출력·--apply로 로컬 전체 재현
 │  └─ verify-backend.mjs               # local roles·messages·inbox·cursor·RPC checks
 ├─ tests/backend/                      # cursor·Edge adapter contract tests
 ├─ deno.json                           # Edge Function 전용 고정 의존성·검사 설정
@@ -155,6 +156,12 @@ lib/api는 브라우저 SDK이며 서버 구현 위치가 아니다. 클라이�
 - `components/chat/api/chat-api.tsx`는 `BackendApi`에서 화면 메서드 타입을 선택하고, 화면이 사용하는 도메인 타입도 루트 `lib/api/types.ts`를 가져온다. 정적 대조 결과 `Message.isReplyToMe`, `getMyMembership({roomId})`, `reconcileRoomMessages({roomId,currentMessages,checkpoint})`, `InboxPage.revision`, question/cluster 답변 version 계약이 현재 SDK와 맞아 홍주P SDK 타입 수정은 필요하지 않았다.
 - PR #29는 `lib/session`을 Supabase Auth 세션 복원·이메일 로그인과 `profiles` 본인 행의 역할/닉네임 조회에 연결하고, `components/chat/providers.tsx`의 실제 모드를 `createBackendApi()`로 바꿨다. 목 로그인과 목 SDK는 E2E·미리보기용으로 남아 있다. 클라이언트 역할은 화면 분기에만 쓰고 권한은 RLS/RPC가 다시 검사한다.
 - 실제 사용자 브라우저 로그인·다중 브라우저 Realtime·Storage 흐름과 Vercel 배포는 아직 검증되지 않았다. 관리자 데모 월 화면은 현재 KST 월과 오류 details를 사용한다. 홍주P SDK에는 서버의 데모 시계를 읽는 `getAdminDemoMonth()`를 추가했으며, 화면 연결은 자성P 담당이다.
+
+### PR #30 카드 화면 검토와 시연 데이터 (open PR 기준)
+
+- PR #30 head `3b36523`은 `/home`·`/collection`·`/draw`를 기존 카드·월 요약 SDK에 연결한다. 계약을 대조했으며 새 백엔드 RPC/schema는 필요하지 않다. 이번 작업에서 해당 open PR을 로컬 또는 원격으로 병합하지 않았다.
+- 실제 모드의 라운드 완료는 연결 프로젝트의 데이터를 변경한다. 공유 hosted 프로젝트를 기본 개발 환경으로 유지하고 기존 시연 데이터를 남겨 둔 채 새 팬 계정으로 시연을 시작한다. 로컬 전체 재현은 `demo:reset`의 계획 확인 후 `--apply`로 실행한다. `demo:setup`은 재초기화 명령이 아니다. 로컬 도구는 기존 원격 브라우저 환경값을 보존하므로 화면의 실제 연결 대상은 별도로 확인한다.
+- `getAdminDemoMonth` SDK/migration은 홍주P 브랜치에 있으며 main 반영·대상 DB 적용과 자성P 관리자 UI 연결이 남아 있다. PR #30의 응답 유실 후 재발급, 계정 간 마지막 결과 공유, 고정 입장 장수 문구는 자성P·현호P 수정 인계로 [홍주P 계획 §13.13](./홍주P_plan.md#1313-2026-11-12--pr-30-카드-화면-연동과-시연-초기화-인계)에 기록했다. 정적 발견을 실제 사용자 브라우저 재현으로 처리하지 않는다.
 
 ## 3. 데이터 모델과 권한
 

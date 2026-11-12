@@ -875,7 +875,7 @@ IDs use the prefix `20000000-0000-4000-8000-0000000000` and suffixes `001` throu
 2. setup: userA는 첫 인물 illust common 10장과 이를 지급한 직전 월 rounds/draws 10건(`clock_kind='demo'`)을 갖고, 활성 membership은 없어 입장 가능·강화 가능·Buddy badge가 보인다. userB는 첫 인물 illust common 5장과 직전 월 rounds/draws 5건(`clock_kind='demo'`)으로 첫 방 active/gauge50 상태를 갖고 최초 입장 period를 갖는다. B-15 구현 뒤 별도 greeting fixture에서 최초 입장 snapshot을 준비한다. 미리 주입한 fixture 발급은 통계 표본에서 제외하되 누적 장수에는 포함한다. `forced`는 `demoForceGrade`를 실제 적용한 발급만 표시한다. 두 사용자 모두 데모 강제 등급 권한은 환경 설정에 따르며, admin만 월 진행 권한을 갖는다.
 3. 같은 quality의 두 user 질문으로 정렬 차이, 답변완료1개·pending인증1개를 구성한다. 준비한 10장은 입장 자격과 강화 후에도 유지되는 누적 기록 기준을 보여 준다. 테스트는 RPC 또는 명시적 로컬 fixture setup을 사용한다.
 4. userA가 10장을 강화해 같은 템플릿 rare 1장을 받아도 누적 발급 10장과 입장 자격·Buddy badge는 유지된다. 4/5회 누적 발급 경계와 퇴장 후 달력 월 라운드 0/2/3회 재입장 경계는 독립 fixture로 검증한다.
-5. 전체 재현 기준은 **로컬 db reset+demo setup**. seed upsert만으로 사용자상태 전체 초기화를 약속하지 않음.
+5. 전체 재현 기준은 **로컬 db reset+demo setup**. seed upsert만으로 사용자상태 전체 초기화를 약속하지 않음. `npm run demo:reset`은 계획만 출력하며 `npm run demo:reset -- --apply`가 로컬 상태 조회·loopback API/DB 확인·환경 준비·DB reset·demo setup을 순서대로 실행한다. 원격 대상 인자를 받지 않고 기존 원격 브라우저 환경값도 보존한다. 공유 hosted 프로젝트에서 새 시연은 별도 팬 계정으로 시작하며, 기존 사용자 데이터·공유 데모 시계 reset은 제공하지 않는다. 자세한 인계는 §13.13을 따른다.
 
 ### 10.2 환경변수
 
@@ -1155,6 +1155,34 @@ cards는 현호P, rooms/chat/filters/verifications는 자성P가 사용한다. �
 - **보안 후속:** PR #27의 `.demo-passwords.json`·`supabase/functions/.env`는 현재 branch index에서 제거 대상으로 stage했고, 로컬 파일은 ignore 상태로 보존했다. 비밀값은 열람하지 않았다. Read-only hosted Auth 집계에서 7개 local `example.test` demo identity와 일치하는 Auth 계정 7개가 2026-11-12 04:53–04:55 UTC에 만들어졌고, 비밀 파일 commit `337269c`는 04:20 UTC였다. 같은 비밀번호 사용 여부는 인증 시도 없이 미확정이나 재사용 위험을 높게 본다. 공유 Auth 계정 password reset과 기존 Git history rewrite는 아직 수행되지 않았으며, 파일이 과거 remote commit에 남아 있다.
 - **목록 데이터 대조:** hosted `main / PRODUCTION`은 읽기 전용으로 확인했다. `influencers` 11행·인증 10행, `chat_rooms` 10행, `card_templates` 30행, 이름이 비어 있는 influencer 0행이다. `authenticated` role과 synthetic JWT claim을 사용하는 SQL probe의 `room_catalog`도 10행/이름 10행을 반환했다. 이 결과는 실제 브라우저·사용자 JWT smoke가 아니며, 이름이 비어 있을 때 보이지 않는다고 한 화면/입력 경로는 사용자 확인을 기다린다.
 - **현상 추적:** 최근 24시간 Auth 로그에 password grant 5건·`invalid_credentials` 2건·audit login 3건이 있었지만 화면 이름 누락에 연결할 정보는 없다. PostgREST 로그에는 `profiles`/`room_catalog` 경로가 없어 요청별 화면 추적이 불가능했다. 프로필 행 자체가 누락되면 현재 session provider가 로그아웃시키는 분기지만, hosted profiles 7/7은 모두 존재한다. 이름 metadata 누락만으로는 DB trigger가 `버디`를 기본 처리하고 방 조회는 influencer name으로 필터하지 않는다. 사용자에게 들은 현상의 화면·입력·결과 상태가 확인되면 해당 경로를 재현한다.
+
+### 13.13 2026-11-12 — PR #30 카드 화면 연동과 시연 초기화 인계
+
+- **검토 기준:** [PR #30](https://github.com/moonankim/BirdieBuddy/pull/30)의 head `3b365236422bbae50c83cad5f484d78d9e9bcff7`, base `754363d`. 검토 시 PR은 open이며 이번 홍주P 변경에 PR head를 병합하지 않았다. 아래 화면 관련 발견은 해당 PR head의 정적 대조 결과다.
+- **백엔드 계약:** `completeRound`·`getCollection`·`getOwnedCards`·`getMyRoundGaugeSummary`는 기존 `BackendApi`와 일치한다. 새 RPC/schema는 필요하지 않다. `complete_round`는 검증된 actor와 같은 requestId의 성공 결과를 재생하고 A-09 발급·round·draw·operations를 한 트랜잭션으로 처리한다. `entryUnlocked`는 해당 인물의 누적 발급이 입장 기준을 처음 넘은 응답에서만 true이며, 강화 후 현재 보유량과 누적 발급량은 다르다.
+- **초기화 구현(B-02/B-13):** `demo:setup`은 fixture marker가 있으면 최초 카드·라운드·멤버십을 다시 넣지 않는다. 반복 로컬 검증을 위해 `scripts/reset-local-demo.mjs`와 `demo:reset` 명령을 추가한다. 기본은 쓰기 없는 계획 출력이고 `--apply`만 로컬 전체 재설정을 실행한다. 고정 CLI 3.0.0의 `db reset`은 local 기본값이며 별도 `--local` 옵션은 없다. 스크립트는 원격 옵션을 전달하지 않고 상태의 API/DB loopback 주소를 먼저 확인한다. 단계 실패 시 후속 단계를 실행하지 않는다.
+- **기본 공유 환경:** 팀 개발은 `BirdieBuddy Project`의 `kjfaqfpvfvgbrvdoosyi` / `main / PRODUCTION`을 유지한다. 이번 로컬 도구는 이 프로젝트를 초기화하지 않는다. 공유 데이터로 새 카드 시연을 시작하려면 홍주P가 별도 팬 Auth 계정을 준비하고, 데모 시계가 필요한 계정에만 관리 경계에서 `private.demo_accounts`를 지정한다. 일반 가입 계정은 실제 KST 월을 사용하므로 공유 데모 월과 혼동하지 않는다. 이번 변경에서는 원격 계정 생성·데모 capability 부여·데이터 삭제를 실행하지 않는다.
+
+로컬 전체 재현이 필요한 경우:
+
+```bash
+npm run local:start -- --backend-only
+npm run demo:reset
+npm run demo:reset -- --apply
+```
+
+초기 결과는 userA의 첫 인물 illust common 10장/직전 데모 월 발급 10건/미입장, userB의 5장/직전 월 발급 5건/첫 방 active·gauge 50이다. 두 계정의 현재 데모 월 라운드 수는 0에서 시작한다. Auth 재생성 뒤 로그인 UUID는 달라질 수 있으므로 다시 로그인한다. 암호는 ignored `.demo-passwords.json`에만 저장하며 공유 프로젝트 암호로 간주하지 않는다. 새 계정의 빈 상태와 4→5 입장 해제는 초기 카드가 없는 다른 인물/별도 fixture로 확인한다.
+
+`demo:reset`은 `prepare-local-env.mjs --backend-only`로 backend·로컬 Function 환경만 준비하며 브라우저의 `.env`·`.env.local`은 생성하거나 수정하지 않는다. reset 완료만으로 브라우저가 로컬을 사용한다고 판단하지 않는다. 로컬 화면 검증 시 공개 URL/key와 data mode를 확인하고 dev server를 재시작한다. 별도로 실행하는 `local:env`는 원격 `.env.local`이 있으면 보존하지만 없으면 로컬 `.env.local`을 생성한다. PR #30의 마지막 발급 결과는 탭 저장소에도 있으므로 새 브라우저 세션으로 확인한다. DB 초기화는 이 브라우저 저장소를 지우지 않는다.
+
+| 담당 | PR #30 이후 조치와 완료 조건 |
+| --- | --- |
+| 홍주P → 자성P (B-07/F-10) | `getAdminDemoMonth(): Promise<Result<string>>`는 현재 `feature/hongjoo`의 `79d2c90`에 구현돼 있다. `get_admin_demo_month()` migration을 포함해 main 반영·대상 DB 적용이 선행되어야 한다. 자성P는 성공한 서버 월로 현재 월 표시·다음 월을 계산한다. 조회 실패 시 KST 월을 서버 월처럼 쓰지 않고 오류/재시도를 표시한다. 이번 작업으로 main 반영이나 hosted 적용이 완료된 것은 아니다. |
+| 자성P (홈 발급 재시도) | PR head `app/(user)/home/page.tsx`의 기본 발급 버튼은 pending만 검사한다. 응답이 유실된 뒤 기본 버튼을 다시 누르면 `useRequest.run({})`이 새 requestId를 만들어 이미 성공한 발급과 별도로 지급될 수 있다. retryable 오류 동안 새 발급을 잠그거나 기존 요청으로 재시도한다. 서버 커밋 뒤 응답 유실→기본 버튼/재시도 버튼 클릭 시 requestId 동일·추가 발급 없음 검증을 추가한다. |
+| 자성P·현호P (발급 결과 계정 격리) | PR head `_lib/cards.ts`의 `birdiebuddy-last-draw` 키는 계정 구분이 없다. 로그인 사용자 ID로 저장을 분리하고 session-reset에서 정리한다. A 발급→로그아웃→B 로그인→`/draw`에서 A 결과가 표시되지 않아야 한다. DB reset 뒤 탭에 남은 결과도 새 발급으로 오인하지 않도록 처리한다. |
+| 현호P·자성P (입장 안내/디자인) | PR head `/draw`의 “5장” 고정 문구를 이미 조회하는 `getRooms().requiredCards` 또는 숫자 없는 문구로 바꾼다. 입장 기준은 게임 설정이며 누적 발급 기준이다. 카드 상세·`upgradeCard`·연출·최종 이미지·홈 경로 결정은 현호P 소유 작업을 유지한다. |
+
+담당자 인계는 이 문서와 README에 기록하며 GitHub 댓글이나 외부 메시지를 보내지 않는다. 검증은 Deno의 Node 호환 backend 13건(초기화 도구 7건 포함), 로컬 `complete_round` pgTAP 17건, backend typecheck·plan checker·diff check를 통과했다. 초기화 테스트는 fake runner와 격리 파일시스템의 CLI stub을 사용하며 실제 `--apply` reset·setup, PR #30 UI·브라우저·원격 변경은 실행하지 않았다. 현재 PATH에 Node/npm이 없어 Node 24/npm 실행 결과로 보고하지 않는다. 상세 명령과 환경별 한계는 로컬 검증 기록 `harness/verification-log.md`에 남겼다.
 
 ## 14. 진행·완료 보고
 

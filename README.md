@@ -8,7 +8,7 @@
 
 화면은 루트의 단일 Next.js 앱이다(`app/`, `components/`, `lib/session/`). 설치는 루트 `package.json`·`package-lock.json` 하나를 기준으로 한다.
 
-- **실제 모드(기본):** 루트 `.env`의 `NEXT_PUBLIC_SUPABASE_URL`·`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`로 Supabase에 연결한다. 로그인은 Supabase Auth 이메일·암호이며 역할·닉네임은 `profiles`에서 읽는다. 화면 SDK는 루트 `lib/api`의 `createBackendApi`다. 데모 계정 이메일은 로그인 화면의 버튼으로 채우고, 암호는 해당 프로젝트에 `npm run demo:setup`을 실행한 사람의 `.demo-passwords.json`(로컬 전용)에 있다.
+- **실제 모드(기본):** 루트 `.env`의 `NEXT_PUBLIC_SUPABASE_URL`·`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`로 공유 hosted Supabase에 연결한다(`.env.local`이 있으면 그 설정이 우선한다). 로그인은 Supabase Auth 이메일·암호이며 역할·닉네임은 `profiles`에서 읽는다. 화면 SDK는 루트 `lib/api`의 `createBackendApi`다. 로그인 화면의 데모 이메일 버튼은 이메일만 채운다. 공유 프로젝트의 암호는 계정을 발급한 담당자에게 전달받는다. `npm run demo:setup`과 `.demo-passwords.json`은 로컬 Supabase 전용이며 공유 프로젝트의 계정·암호를 준비하지 않는다.
 - **목 모드:** `NEXT_PUBLIC_DATA_MODE=mock npm run dev`. 목 SDK(`components/chat/api/mock`)와 더미 계정 버튼으로 동작한다. 단위 테스트와 E2E는 목 모드를 쓴다.
 
 ```bash
@@ -16,7 +16,7 @@ npm ci
 npm run dev        # http://localhost:3000
 ```
 
-역할별 첫 화면은 다음과 같다(목 모드의 더미 계정 이름, 실제 모드는 `demo:setup` 계정).
+역할별 첫 화면은 다음과 같다(목 모드의 더미 계정 이름, 실제 모드는 연결 프로젝트에서 발급받은 계정).
 
 | 계정 | 첫 화면 | 볼 수 있는 것 |
 | --- | --- | --- |
@@ -36,6 +36,22 @@ npm run test:ui        # vitest (tests/ui/unit)
 npm run test:e2e       # Playwright (tests/ui/e2e, 3313 포트 dev 서버)
 npm run build
 ```
+
+## 카드 시연 데이터와 초기화
+
+아직 병합되지 않은 PR #30은 홈·컬렉션·발급 결과를 실제 카드 SDK에 연결하는 변경이다. 아래 카드 저장 동작은 PR #30 적용 후 기준이며, 현재 홍주P 브랜치의 해당 화면은 위에서 설명한 목업 상태다. PR 적용 후 실제 모드에서 라운드 완료를 누르면 현재 로그인한 프로젝트에 라운드와 카드가 저장된다. 화면 이동·새로고침·로그아웃으로 DB 데이터가 초기화되지 않는다. 공유 hosted 프로젝트의 데이터를 유지하면서 새 시연을 시작하려면 별도 팬 계정을 준비한다. 계정 생성·권한 지정은 홍주P가 대상 계정을 확인해 진행하며, 기존 계정의 카드·채팅·공유 데모 월을 초기화하는 기능은 제공하지 않는다.
+
+로컬 Supabase를 통째로 재현할 때만 다음 명령을 사용한다. 기본 실행은 계획만 출력하고, `--apply` 실행은 해당 checkout의 로컬 DB와 Auth 데이터를 삭제하고 migration·seed·데모 계정/카드/이미지를 다시 준비한다.
+
+```bash
+npm run local:start -- --backend-only
+npm run demo:reset                 # 실행 계획 확인
+npm run demo:reset -- --apply      # 로컬 전체 재설정
+```
+
+`demo:setup`만 다시 실행하면 이미 있는 카드·라운드·멤버십은 유지된다. `demo:reset`은 backend 전용 환경만 준비하며 브라우저의 `.env`·`.env.local`을 변경하지 않는다. 로컬 화면을 확인하려면 `.env.local`의 공개 URL/key가 로컬을 가리키는지 확인하고 Next.js를 재시작한 뒤 다시 로그인한다. PR #30의 발급 결과는 탭의 `sessionStorage`에도 남으므로 초기화 후 새 브라우저 세션으로 확인한다. 공유 hosted 프로젝트의 카드 시연과 로컬 reset은 서로 영향을 주지 않는다.
+
+관리자 월 조회 SDK와 PR #30 담당별 수정 사항은 [홍주P 계획 §13.13](docs/홍주P_plan.md#1313-2026-11-12--pr-30-카드-화면-연동과-시연-초기화-인계)를 따른다.
 
 ## 백엔드 로컬 개발
 

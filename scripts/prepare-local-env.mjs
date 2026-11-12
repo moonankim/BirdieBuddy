@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cli = path.join(root, 'node_modules', '.bin', process.platform === 'win32' ? 'supabase.cmd' : 'supabase');
 const isStarting = process.argv.includes('--start');
+const backendOnly = process.argv.includes('--backend-only');
 
 function sanitize(value) {
   return value
@@ -146,7 +147,7 @@ async function main() {
 
   const rootCurrent = parseEnv(rootEnv);
   const oldBrowserUrl = rootCurrent.get('NEXT_PUBLIC_SUPABASE_URL');
-  const preserveRootEnv = Boolean(oldBrowserUrl && !['localhost', '127.0.0.1', '::1'].includes(new URL(oldBrowserUrl).hostname));
+  const preserveRootEnv = backendOnly || Boolean(oldBrowserUrl && !['localhost', '127.0.0.1', '::1'].includes(new URL(oldBrowserUrl).hostname));
 
   const backendValues = {
     BB_LOCAL_SUPABASE_URL: apiUrl,
@@ -183,7 +184,8 @@ async function main() {
   console.log(preserveRootEnv
     ? '로컬 backend 연결값을 .env.backend.local과 supabase/functions/.env에 기록했습니다. 값은 출력하지 않았습니다.'
     : '로컬 연결값을 .env.local, .env.backend.local, supabase/functions/.env에 기록했습니다. 값은 출력하지 않았습니다.');
-  if (preserveRootEnv) console.warn('기존 .env.local이 원격 URL을 가리켜 보존했습니다. backend/local Edge 검증은 local 전용 env 파일을 사용합니다.');
+  if (backendOnly) console.log('backend-only 모드로 브라우저 환경파일을 보존했습니다. backend/local Edge 검증은 local 전용 env 파일을 사용합니다.');
+  else if (preserveRootEnv) console.warn('기존 .env.local이 원격 URL을 가리켜 보존했습니다. backend/local Edge 검증은 local 전용 env 파일을 사용합니다.');
   if (functionsEnvChanged) {
     runCli(['stop']);
     runCli(['start']);
