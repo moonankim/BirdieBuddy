@@ -1,5 +1,0 @@
-'use client';
-import {useEffect,useState} from 'react';
-import {useRouter} from 'next/navigation';
-import {accounts,homeFor,useSession} from '@/lib/session';
-export default function Login() {const s=useSession();const router=useRouter();const [error,setError]=useState('');useEffect(()=>{if(s.status==='signedIn') router.replace(homeFor(s.user));},[s,router]);if(s.status==='loading')return <p>세션을 확인하고 있어요.</p>;if(s.status==='signedIn')return <p>이동 중...</p>;return <section className="stack pt-4"><div><span className="eyebrow">DEMO</span><h1 className="page-title">더미 계정으로 시작</h1></div><p className="muted text-[length:var(--type-label)]">샌드박스에서만 사용하는 계정입니다. 팬은 채팅방 목록으로 이동합니다.</p><div className="grid gap-2">{Object.entries(accounts).map(([key,user])=><button className="card flex min-h-[var(--touch-target)] items-center justify-between border-0 text-left font-bold" key={key} onClick={async()=>{const result=await s.signIn(key,'');if(result.ok) router.replace(homeFor(result.data));else setError('로그인하지 못했어요. 다시 시도해 주세요.');}}>{user.nickname} <span className="badge gray">({key})</span></button>)}</div><p aria-live="polite">{error}</p></section>;}

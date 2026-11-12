@@ -8,7 +8,7 @@
 
 앱 전반의 화면은 [`design-system/`](../design-system/README.md)의 밝은 민트 배경, 짙은 그린 주요 버튼, 둥근 표면과 모바일 중심 레이아웃을 공통 기준으로 사용합니다. 제품 동작은 [PRD](./prd.md), 데이터와 권한은 [아키텍처](./architecture.md) 및 담당 계획을 따릅니다. 디자인 시스템의 HTML은 정적 시안이며 기능 구현이나 검증 완료를 뜻하지 않습니다.
 
-원본 토큰과 구성은 [`styles.css`](../design-system/styles.css), 컴포넌트 예시는 [`index.html`](../design-system/index.html), 홈·컬렉션·채팅은 [`sample/`](../design-system/sample/index.html)을 참고합니다. 현재 별도 프론트의 [`design-system.css`](../BirdieBuddy-ui/app/design-system.css)는 원본을 옮긴 사본입니다. 원본 변경 시 차이를 확인하고 프론트에 동기화하며, 화면마다 별도의 색상·컴포넌트 체계를 만들지 않습니다.
+원본 토큰과 구성은 [`styles.css`](../design-system/styles.css), 컴포넌트 예시는 [`index.html`](../design-system/index.html), 홈·컬렉션·채팅은 [`sample/`](../design-system/sample/index.html)을 참고합니다. 현재 별도 프론트의 [`design-system.css`](../app/design-system.css)는 원본을 옮긴 사본입니다. 원본 변경 시 차이를 확인하고 프론트에 동기화하며, 화면마다 별도의 색상·컴포넌트 체계를 만들지 않습니다.
 
 ## 공통 화면 규칙
 

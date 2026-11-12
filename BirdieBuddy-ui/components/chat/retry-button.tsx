@@ -1,4 +1,0 @@
-'use client';
-import {useEffect,useState} from 'react';
-import type {ApiError} from './api/types';
-export function RetryButton({error,pending,onRetry}:{error:ApiError;pending:boolean;onRetry:()=>void}){const delay=error.code==='RATE_LIMITED'&&typeof error.details?.retryAfterSeconds==='number'?Math.max(0,error.details.retryAfterSeconds):0;const [remaining,setRemaining]=useState(delay);useEffect(()=>{setRemaining(delay);if(!delay)return;const until=Date.now()+delay*1000;const timer=setInterval(()=>{const left=Math.max(0,Math.ceil((until-Date.now())/1000));setRemaining(left);if(!left)clearInterval(timer);},250);return()=>clearInterval(timer);},[error,delay]);if(!error.retryable)return null;return <button type="button" disabled={pending||remaining>0} onClick={onRetry}>다시 시도{remaining>0?` (${remaining}초)`:''}</button>;}
