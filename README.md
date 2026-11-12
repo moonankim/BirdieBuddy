@@ -2,6 +2,36 @@
 
 골프존 AI 해커톤 프로젝트입니다. 브라우저는 Supabase Auth, Data API, RPC, Edge Functions, Realtime, Storage를 직접 호출하고 서버 데이터 처리는 Supabase에 둡니다.
 
+## 화면(Next.js) 로컬 실행
+
+화면은 루트의 단일 Next.js 앱이다(`app/`, `components/`, `lib/session/`). 설치는 루트 `package.json`·`package-lock.json` 하나를 기준으로 한다. 현재 채팅 화면은 목 SDK(`components/chat/api/mock`)로 동작하며, 실제 Supabase 로그인·SDK 연결은 후속 작업이다.
+
+```bash
+npm ci
+npm run dev        # http://localhost:3000
+```
+
+로그인 화면에서 더미 계정 버튼을 누른다.
+
+| 계정 | 첫 화면 | 볼 수 있는 것 |
+| --- | --- | --- |
+| 팬 A (userA), 팬 B (userB) | `/chat` | 하단 바(홈·카드·채팅), 채팅방 목록·입장·대화 |
+| 인플루언서 (influencer) | `/inbox` | 인박스, 전체 메시지, 묶기·요약, 설정(필터·인사말·사진) |
+| 신청자 (pendingInfluencer) | `/inbox` | 인증 신청 |
+| 관리자 (admin) | `/admin` | 데모 월 경과, 인증 심사 |
+
+- 목 데이터는 브라우저 탭 안에만 있다. 팬 ↔ 인플루언서 주고받기는 같은 탭에서 계정을 전환해 확인한다.
+- 모바일 화면(390px) 기준이다. `/home`·`/collection`·`/draw`는 현호P 화면이 들어올 자리의 목업이다(`app/(user)/_mock/cards.ts`).
+- 화면 타입은 루트 `lib/api/types.ts`를 그대로 쓴다. `app/design-system.css`는 `design-system/styles.css`(디자인 시스템 0.2)를 옮긴 사본이다.
+
+```bash
+npm run typecheck:ui   # 화면 TypeScript (백엔드는 npm run typecheck)
+npm run lint
+npm run test:ui        # vitest (tests/ui/unit)
+npm run test:e2e       # Playwright (tests/ui/e2e, 3313 포트 dev 서버)
+npm run build
+```
+
 ## 백엔드 로컬 개발
 
 필요한 환경은 Node.js 24, npm, Deno 2, Supabase CLI 3.0.0, Docker 호환 런타임입니다. 이 저장소는 CLI와 앱 패키지 버전을 lockfile에 고정합니다.

@@ -40,7 +40,7 @@
 - `BirdieBuddy-ui/`는 자성P의 별도 Next.js 더미 UI입니다. `/home`·`/collection`·`/draw`는 현호P 화면을 위한 목업이며, 컬렉션은 가상 카드 3장과 미보유 자리표시자, 뽑기는 준비 안내만 있습니다. 강화·카드 상세와 실제 SDK 연결은 아직 없습니다. 레포 통합 방식은 미결정이며 그전까지 별도 패키지를 기준으로 합니다.
 - 루트 `lib/api`에 카드 발급·컬렉션·강화·설정 SDK와 Supabase 구현이 있습니다. A-09 발급 migration과 `complete_round` 호출 수정도 존재합니다. 홍주P 계획 §15.6의 로컬 백엔드 검증 기록은 화면 통합 완료를 의미하지 않습니다.
 - `supabase/fixtures/card-assets/`의 30개 WebP는 로컬 자리표시자이고 최종 A-06 이미지가 아닙니다. 시드 UUID·스타일 경로는 홍주P 계획 §10.1을 참고하되 최종 전달 전 담당자와 확인합니다.
-- `lib/ai/tests`는 AI 시험용이며 프론트 셋업이나 카드 시드가 아닙니다. UI 실행은 [UI README](../BirdieBuddy-ui/README.md)를 따릅니다.
+- `lib/ai/tests`는 AI 시험용이며 프론트 셋업이나 카드 시드가 아닙니다. UI 실행은 [README의 화면 실행](../README.md)를 따릅니다.
 
 ## 1. 담당 경계와 산출물
 
