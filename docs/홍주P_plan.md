@@ -772,6 +772,8 @@ interface AiAdapter {
 
 `stalking` 의미는 문환P 계획 §6.2와 일치시킨다. 공개되지 않은 시간 또는 장소 중 하나만 해당해도 필수 `block`이며, 공개 장소에서 사적인 시간에 목격했다는 내용도 포함한다. 이 분류 설명은 provider 판정 문맥에 전달하고, 홍주P 계층에서는 기존 `category='stalking'`·`verdict='block'` 계약을 검증해 저장한다. SDK/RPC 입력·반환 구조는 바뀌지 않는다.
 
+PR #18 우회 표기 대응은 기존 adapter 반환 계약을 바꾸지 않는다. `keywordHits`는 기호 제거본, 한글 자모·닮은꼴·NFKC 복원본(받침 결합 전·후), 영문 토큰을 대조해 폴백의 키워드 적중을 넓힌다. 정상 Jev 본경로에서는 변환본에서만 새로 드러난 금칙어별 적중 중 필수 `illegal_ad`만 점수를 최소 1로 올려 `decide`에 전달한다. 따라서 팬·인플루언서 메시지 및 `disabledFilters` 설정과 무관하게 우회 불법 광고는 차단하며, 다른 항목의 변환 적중이나 원문에 이미 드러난 단어만으로 Jev 점수를 덮어쓰지 않는다. 폴백은 기존대로 모든 항목의 키워드 적중을 판정하고 `passesAllFilters=false`를 반환한다. 예외 복합어와 금칙어 뒤 낱자 초성 처리는 오탐·누락을 줄이기 위한 대조 규칙이며 adapter 입력·저장 계약은 그대로다.
+
 ### 8.3 summarize-room·cluster-questions
 
 JWT 인증 **방 소유 influencer만**, admin 타방 호출도 불가. 브라우저의 임의 원문 배열을 받지 않고 DB에서 source를 읽는다. 두 작업 합쳐 방1회/분·actor3회/분, 같은 requestId 재시도 추가 차감 없음.
@@ -1326,3 +1328,10 @@ docs/홍주P_plan.md 계약 1.6의 §§6~9·12·15와 내 담당 *_plan.md를 �
 - 확인: PR #21은 홍주P 소유 `scripts/verify-backend.mjs`가 userA로 10초 안에 submit-message를 6회 예약해 다섯 번째 이후 요청이 `RATE_LIMITED`되는 원인을 보고했다. actor별 10초 5건 제한은 제품 계약이므로 완화하지 않는다.
 - 변경: pass/block 및 cluster fixture 제출을 이미 해당 방을 읽는 userB와 userA에 분산했다. userA는 최대 5회, userB는 최대 3회로 유지한다. 묶음 fixture 질문은 서로 다른 두 활성 계정이 제출해 `memberCount=2` 검증을 유지한다. 차단/제안 본문 미저장은 두 계정 모두 볼 수 있는 방 owner 이력으로 확인한다.
 - 미검증: full `npm run verify:backend`는 local demo/Auth 데이터를 변경하므로 실행하지 않았다. R12 수정은 스크립트 정적 검토와 Node 문법 검사까지만 확인하며, local end-to-end 전체 통과는 별도 실행 전까지 완료로 보지 않는다. 원격 Supabase에는 접속하지 않았다.
+
+### 15.9 2026-11-12 — origin/main 병합 및 담당 계약 대조
+
+- 병합: `origin/main`의 `4263860`을 `feature/hongjoo`에 merge commit `78bdaff`로 반영했다. PR #18~#22와 후속 문서 커밋이 포함됐다. merge는 충돌 없이 완료됐다.
+- 홍주P AI 경로: PR #18의 `deobfuscate`·키워드별 우회 적중과 Jev 본경로 `illegal_ad` 승격을 검토했다. §8.2와 공통 architecture에 실제 코드 경계를 기록했다. adapter 반환 형식·Edge 저장/RPC 경계 변경은 필요하지 않았다.
+- 홍주P API와 UI: PR #19 인박스 화면의 페이지 `revision`, question/cluster 항목, 예상 cluster ID/version 답변 입력을 `lib/api`의 `getRoomInbox`·`replyToMessage`·`clusterQuestions` 계약과 대조했다. 백엔드 API 추가 변경은 필요하지 않았다. PR #21의 R12 제한 대응은 앞선 `a01f482`에 반영된 상태로 보존됐다.
+- 검증: 병합 후 소스·계약 정적 대조와 `git diff --check`를 수행했다. 테스트와 `npm run verify:backend`는 실행하지 않았으며, 이 병합으로 hosted·실사용자 경로가 검증된 것으로 처리하지 않는다.
