@@ -12,7 +12,7 @@
 
 ## 0. 한 문장으로 시작하는 실행 지시
 
-사용자가 이 계획을 바탕으로 개발을 요청하면 이 파일을 실행 명세로 삼는다. 현재는 로컬 구현·검증을 보완 중이다. 이번 main 병합 후속 작업은 로컬 migration/test만 반영하며 원격 데이터·schema·배포는 변경하지 않는다.
+사용자가 이 계획을 바탕으로 개발을 요청하면 이 파일을 실행 명세로 삼는다. 현재는 로컬 구현·검증을 보완 중이다. 이번 main 병합 후속 작업은 로컬 코드·문서의 대조와 필요한 업데이트만 반영하며 hosted 데이터·schema·배포는 변경하지 않는다.
 
 1. 저장소 상태와 작업 지침을 확인하고 기존 수정사항을 보존한다. 아래 체크리스트와 실제 파일을 비교해 미완료 지점부터 진행한다. 체크 표시만으로 구현 완료를 가정하지 않는다.
 2. B-01~B-17을 구현한다. 제품 규칙은 PRD를 적용하고, 미정인 기술 세부사항은 아래 계약을 사용한다. 다른 담당자의 화면·AI 코드·최종 이미지가 없다는 이유로 독립 가능한 백엔드 구현을 중단하지 않는다.
@@ -1138,6 +1138,13 @@ cards는 현호P, rooms/chat/filters/verifications는 자성P가 사용한다. �
 - **루트 도구 정합:** 루트 package에 화면 프로젝트의 Next.js 16.4.6·React 19.3.1·Tailwind 4.3.5·TypeScript 5.9.3 및 UI 검사 도구 버전을 맞추고, 기존 Node 24 runtime과 Supabase/backend dependencies를 보존한다. Backend TypeScript 설정은 `tsconfig.backend.json`으로 유지하며 `package-lock.json`과 `deno.lock`은 공통 manifest 의존성을 고정한다. 단일 패키지 구조·화면 이동은 아직 완료되지 않았다.
 - **담당 인계:** 자성P에게 `BirdieBuddy-ui/app`, `components`, 화면 전용 설정과 테스트를 루트 구조로 옮기고, 루트 package/lockfile 하나를 기준으로 정리하며 root `lib/api` 타입·호출을 사용하는 통합을 요청한다. 본문에 남은 Message·membership·checkpoint 차이를 함께 해결한다. 이번 커밋 본문에 요청을 남기며 외부 메시지는 보내지 않는다.
 - **검증 경계:** 루트 TypeScript 5.9 도구로 backend 및 기존 UI의 정적 typecheck를 확인한다. UI source 이동, browser flow, production build/deployment, 실제 Supabase·Auth 연동은 이 작업의 완료 범위에 포함하지 않는다.
+
+### 13.11 2026-11-12 — PR #26 루트 화면 병합 후 SDK 계약 대조
+
+- **병합:** `origin/main`의 `fbf275d` (PR #26, 화면 루트 이동)를 `feature/hongjoo`에 fast-forward로 반영했다. 기존 작업 트리는 깨끗했고 충돌은 없었다.
+- **담당 계약 대조:** 화면 `ChatApi`가 루트 `BackendApi`의 `Pick`으로 정의되고 도메인 타입도 `lib/api/types.ts`를 공유한다. `Message.isReplyToMe`, `getMyMembership({roomId})`, `reconcileRoomMessages({roomId,currentMessages,checkpoint})`, inbox revision/question/cluster 답변 version 계약이 일치한다. 이번 병합으로 홍주P의 SDK·migration·Edge 코드 변경은 필요하지 않았다.
+- **남은 통합:** 앱 Provider는 아직 `createMockChatApi()`를, SessionProvider는 mock 계정을 사용한다. 실제 Supabase Auth 세션, profiles role/nickname 조회, `createBrowserSupabaseClient()`·`createBackendApi()` 연결과 browser/JWT 흐름은 미검증이며 화면·세션 담당자 후속으로 남긴다. UI 역할 정보는 화면 분기만을 위한 표시값이고 실제 권한은 RLS/RPC가 검사한다.
+- **검증 범위:** 병합된 화면·SDK 타입 경계와 계획/아키텍처를 정적으로 대조했다. 테스트·typecheck·browser smoke는 실행하지 않았고 hosted Supabase에 접속하거나 변경하지 않았다.
 
 ## 14. 진행·완료 보고
 
