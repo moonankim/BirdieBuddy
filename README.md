@@ -6,14 +6,17 @@
 
 ## 화면(Next.js) 로컬 실행
 
-화면은 루트의 단일 Next.js 앱이다(`app/`, `components/`, `lib/session/`). 설치는 루트 `package.json`·`package-lock.json` 하나를 기준으로 한다. 현재 채팅 화면은 목 SDK(`components/chat/api/mock`)로 동작하며, 실제 Supabase 로그인·SDK 연결은 후속 작업이다.
+화면은 루트의 단일 Next.js 앱이다(`app/`, `components/`, `lib/session/`). 설치는 루트 `package.json`·`package-lock.json` 하나를 기준으로 한다.
+
+- **실제 모드(기본):** 루트 `.env`의 `NEXT_PUBLIC_SUPABASE_URL`·`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`로 Supabase에 연결한다. 로그인은 Supabase Auth 이메일·암호이며 역할·닉네임은 `profiles`에서 읽는다. 화면 SDK는 루트 `lib/api`의 `createBackendApi`다. 데모 계정 이메일은 로그인 화면의 버튼으로 채우고, 암호는 해당 프로젝트에 `npm run demo:setup`을 실행한 사람의 `.demo-passwords.json`(로컬 전용)에 있다.
+- **목 모드:** `NEXT_PUBLIC_DATA_MODE=mock npm run dev`. 목 SDK(`components/chat/api/mock`)와 더미 계정 버튼으로 동작한다. 단위 테스트와 E2E는 목 모드를 쓴다.
 
 ```bash
 npm ci
 npm run dev        # http://localhost:3000
 ```
 
-로그인 화면에서 더미 계정 버튼을 누른다.
+역할별 첫 화면은 다음과 같다(목 모드의 더미 계정 이름, 실제 모드는 `demo:setup` 계정).
 
 | 계정 | 첫 화면 | 볼 수 있는 것 |
 | --- | --- | --- |
@@ -22,7 +25,7 @@ npm run dev        # http://localhost:3000
 | 신청자 (pendingInfluencer) | `/inbox` | 인증 신청 |
 | 관리자 (admin) | `/admin` | 데모 월 경과, 인증 심사 |
 
-- 목 데이터는 브라우저 탭 안에만 있다. 팬 ↔ 인플루언서 주고받기는 같은 탭에서 계정을 전환해 확인한다.
+- 목 모드 데이터는 브라우저 탭 안에만 있다. 팬 ↔ 인플루언서 주고받기는 같은 탭에서 계정을 전환해 확인한다.
 - 모바일 화면(390px) 기준이다. `/home`·`/collection`·`/draw`는 현호P 화면이 들어올 자리의 목업이다(`app/(user)/_mock/cards.ts`).
 - 화면 타입은 루트 `lib/api/types.ts`를 그대로 쓴다. `app/design-system.css`는 `design-system/styles.css`(디자인 시스템 0.2)를 옮긴 사본이다.
 
