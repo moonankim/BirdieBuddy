@@ -1187,7 +1187,7 @@ cards는 현호P, rooms/chat/filters/verifications는 자성P가 사용한다. �
 | B-10 | filters/version/rate-limit/metadata cleanup 구현 | latest fixture 이후 회귀 검증, 운영 cron 실제 실행 관찰 |
 | B-11 | 이전 기록에서 migrations·Functions 반영, recovery 절차 문서화 | 이번 main 병합분의 hosted 적용 여부 재조회, exact Auth/CORS origin, user JWT/Storage/Realtime smoke |
 | B-12 | source/lease/commit RPC, Edge wrappers와 main에 병합된 Jev/Claude adapter | live provider 품질/안전 회귀 및 hosted 실행 검증 |
-| B-13 | 현재 local Node 3·Deno 113·pgTAP 113·typecheck·DB lint와 A-09 distribution/integration checks 통과 | demo-data 쓰기형 `verify:backend`, 브라우저·Realtime·Storage·실AI·production smoke |
+| B-13 | 현재 local Node 3·Deno 113·pgTAP 113·typecheck·DB lint와 A-09 distribution/integration checks 통과. `verify:backend`의 R12 actor 분산 수정은 반영했으나 full rerun은 미실행 | demo-data 쓰기형 `verify:backend` 전체, 브라우저·Realtime·Storage·실AI·production smoke |
 | B-14 | bucket/RLS/photo RPC와 SDK upload flow 구현 | 실제 browser File→WebP, 재시도·복구·과거 메시지 갱신 smoke |
 | B-15 | greeting read/update Edge·RPC와 first-entry snapshot 구현 | 자성P 설정/첫 입장 UI 통합 |
 | B-16 | influencer broadcast Edge/RPC·SDK 구현 | 자성P compose/수신 화면·Realtime 통합 |
@@ -1320,3 +1320,9 @@ docs/홍주P_plan.md 계약 1.6의 §§6~9·12·15와 내 담당 *_plan.md를 �
 - 영향 확인: `jev.ts`는 `CATEGORIES` 설명을 Jev 요청에 직접 사용한다. 팬 전송은 기본 `user`, 인플루언서 전송은 `senderType:'influencer'`로 같은 판정 adapter에 전달한다. `validateModeration`은 `stalking`을 필수 카테고리로 허용하고 이 경우 `block`만 받는다. 따라서 병합된 설명이 두 발신 경로에 적용되며 SDK/RPC·DB 구조 변경은 필요하지 않다.
 - 문서 반영: §8.2에 시간 또는 장소 중 하나가 비공개인 경우와 공개 장소의 사적 시간 목격을 명시했다. 공통 architecture의 PR 병합 현황 및 검증 한계를 갱신했다.
 - 검증 범위: 소스·계약 정적 대조 및 `git diff --check`. 문환P 계획 §7.2에 기록된 upstream Deno 회귀는 71/71·73/73이지만 이번 홍주P 브랜치에서 재실행하지 않았다. 홍주P Edge 경로 실호출, hosted AI, 원격 적용은 미확인이고 B-06 통합 확인으로 처리하지 않는다.
+
+### 15.8 2026-11-12 — PR #21 R12 로컬 검증 rate limit 대응
+
+- 확인: PR #21은 홍주P 소유 `scripts/verify-backend.mjs`가 userA로 10초 안에 submit-message를 6회 예약해 다섯 번째 이후 요청이 `RATE_LIMITED`되는 원인을 보고했다. actor별 10초 5건 제한은 제품 계약이므로 완화하지 않는다.
+- 변경: pass/block 및 cluster fixture 제출을 이미 해당 방을 읽는 userB와 userA에 분산했다. userA는 최대 5회, userB는 최대 3회로 유지한다. 묶음 fixture 질문은 서로 다른 두 활성 계정이 제출해 `memberCount=2` 검증을 유지한다. 차단/제안 본문 미저장은 두 계정 모두 볼 수 있는 방 owner 이력으로 확인한다.
+- 미검증: full `npm run verify:backend`는 local demo/Auth 데이터를 변경하므로 실행하지 않았다. R12 수정은 스크립트 정적 검토와 Node 문법 검사까지만 확인하며, local end-to-end 전체 통과는 별도 실행 전까지 완료로 보지 않는다. 원격 Supabase에는 접속하지 않았다.
