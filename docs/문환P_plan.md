@@ -28,7 +28,7 @@
 ### 0.2 현재 상태 (`main` e5957d5, 2026-11-12)
 
 - A-01~A-05, A-07, A-08, A-09 코드는 `main`에 병합됐다. 이관(PR #15, 98b43d4: AI 모듈 ee2130b, 회귀·smoke 스크립트 a85c3e0, `issue_card` migration과 pgTAP f206bae, 분포 스크립트 1663334, `_shared/ai_adapter.ts` 연결 88c77b7), 프롬프트 조정(PR #16), 우회형 광고 필터(PR #18) 순이다. 레포 로컬 검증 결과는 7.2에 있다. 남은 것은 홍주P 확인(1절 R9)과 T-04 통합이다. A-08의 수정 문장 통과율·시연 문장 결과와 고정 안내문 검수는 4절과 7.2를 따른다. A-06은 현호P로 옮겼다.
-- 홍주P가 6f77dd2(PR #17)에서 R11을 고쳤다. forward migration `20261111083319_fix_complete_round_issue_card_call.sql`이 `complete_round`의 동적 호출을 정적 문자열 `EXECUTE 'SELECT private.issue_card($1,$2,$3)'`로 바꿨고, `supabase/tests/complete_round_issue_card.test.sql`을 추가했다. 같은 커밋이 문환P 소유인 `20261111073313_issue_card.sql`에 홍주P 로컬 fixture 교체 블록을 더했다(0.4). 이 수정 뒤 `complete_round`를 거친 추첨을 문환P가 다시 실행해 보지는 않았다(미확인).
+- 홍주P가 6f77dd2(PR #17)에서 R11을 고쳤다. forward migration `20261111083319_fix_complete_round_issue_card_call.sql`이 `complete_round`의 동적 호출을 정적 문자열 `EXECUTE 'SELECT private.issue_card($1,$2,$3)'`로 바꿨고, `supabase/tests/complete_round_issue_card.test.sql`을 추가했다. 같은 커밋이 문환P 소유인 `20261111073313_issue_card.sql`에 홍주P 로컬 fixture 교체 블록을 더했다(0.4). 2026-11-12 레포 로컬에서 `complete_round`를 거친 추첨이 동작함을 확인했다(7.2). `verify:backend`는 도배 제한 때문에 카드 발급 검사 전에 멈춰 전 구간 통과는 미확인이다(1절 R12).
 - 원격 Supabase에는 Edge Function Secrets 두 개의 이름만 저장돼 있다(`홍주P_plan.md` §14.2). 값의 유효성과 실제 호출은 확인되지 않았다.
 - `lib/ai/tests/.env`에 두 키 이름이 있다. 값이 유효한지는 A-01의 실호출로 확인한다.
 
@@ -69,6 +69,7 @@
 | R6 | §8.2 고정 안내문 | 2절 표의 문구를 어디에 복사해 두는지(A-08 검수로 문구가 바뀌면 함께 고칠 위치) | 2절 표가 기준이고, 문구가 바뀌면 커밋 메시지로 알린다 |
 | R7 | §3·§9.2·B-02 카드 이미지 | A-06의 최종 이미지 30장을 받아 `card-assets`에 올리는 단계가 티켓에 명시돼 있지 않다(`현호P_plan.md`는 홍주P B-02가 한다고 적음) | 문환P 작업에는 영향이 없다 |
 | R9 | `_shared/ai_adapter.ts`·`_shared/index_test.ts` (88c77b7) | 문환P가 `_shared/ai_adapter.ts`를 로컬 fixture 밖에서는 실제 adapter로 연결하고 `failClosedAdapter`를 지웠다. 홍주P 소유 파일이므로 확인과 T-04(Edge `suggest` 경로, 인플루언서 경로, 실제 키) 실행을 요청한다 `[요청]` | 실제 adapter의 오류는 모두 `ApiFailure('FILTER_UNAVAILABLE')`로 바뀌므로 `clusterQuestions`·`summarize`의 취소·시한 초과도 503이 된다. `moderateAndScore`에 한해 제공자 키가 없으면 fail-closed 대신 금칙어 폴백으로 판정한다(3절, 홍주P §8.1). `clusterQuestions`·`summarize`는 키가 없으면 여전히 FILTER_UNAVAILABLE이다. `index_test.ts`의 fail-closed 시험을 3건으로 바꿨고 그중 1건은 `--allow-env` 없이 실행해야 성립한다 |
+| R12 | `scripts/verify-backend.mjs:98-148` | `verify:backend`가 10초 안에 userA로 submit-message를 6번 예약한다(`questionBegin`, `directEdge`, fixture pass, fixture suggest, 제안 수락, fixture block). 6번째인 block 요청이 도배 제한(10초 5건, `messages_and_inbox_rpc.sql:245-261`)에 걸려 `RATE_LIMITED`가 되고, 스크립트가 `FAIL local AI fixture returns the mandatory block sample`에서 멈춰 뒤의 카드 발급 검사까지 가지 못한다(2026-11-12 레포 로컬 재현, 검증 기록). block 요청을 다른 계정으로 보내거나, 시험 전에 해당 계정의 `rate_windows`를 비우는 식으로 고쳐 달라 `[요청]` | 문환P는 홍주P 스크립트를 고치지 않는다. A-09 E2E는 같은 SDK 경로를 재현해 확인했다 |
 
 **해결된 요청**
 
@@ -76,7 +77,7 @@
 - **R5:** `complete_round`는 `SECURITY DEFINER`(소유자 postgres)라 EXECUTE를 회수해도 `issue_card`를 부를 수 있고, `gen_random_bytes`는 `extensions` 스키마에 있다.
 - **R8:** `draws`의 round 소유자 일치는 복합 FK `(user_id, round_id) → rounds(user_id, id)`로 강제한다. A-09 pgTAP이 SQLSTATE 23503을 확인한다.
 - **R10:** 6f77dd2에서 `test:backend`가 `deno test --config deno.json supabase/functions/`를 실행하도록 바뀌어 `_shared/ai/` 단위 시험이 포함된다.
-- **R11:** `complete_round`가 `regprocedure`를 `%s`로 포맷해 `syntax error at or near "("`로 실패하던 문제다. 6f77dd2의 forward migration이 정적 `EXECUTE`로 고쳤고, `verify-backend.mjs`는 등급 enum 소속(`validGrades`)을 확인한다. 수정 뒤 문환P의 재실행은 미확인이다.
+- **R11:** `complete_round`가 `regprocedure`를 `%s`로 포맷해 `syntax error at or near "("`로 실패하던 문제다. 6f77dd2의 forward migration이 정적 `EXECUTE`로 고쳤고, `verify-backend.mjs`는 등급 enum 소속(`validGrades`)을 확인한다. 2026-11-12 레포 로컬에서 `complete_round`를 거친 추첨을 확인했다(7.2).
 
 **계약 1.6 §15.2 문환P 행 (2026-11-11 확인):** 충돌 없음. adapter는 대표 질문과 메시지 ID만 돌려주고, DB `clusterId`·version·권한·점수 정렬은 홍주P DB 책임이다.
 
@@ -284,7 +285,7 @@ private.issue_card(
 - [ ] **A-05** 대화 요약 `summarize` (P2) — 실호출 확인, 요약 품질 관찰은 7.2. 대기: 홍주P 확인·T-04. 명세 6.7
 - [ ] **A-07** 금칙어 폴백 (P1) — 기준 충족(폴백 품질 오탐 0, 우회 세트 block 조정 22/26·검증 11/13). 대기: 홍주P 확인·T-04. 명세 6.5
 - [ ] **A-08** 테스트 세트, 시연 메시지 확인, 고정 안내문 검수 (P1) — 기준 충족(검증 세트 73/73, 시연 7/7, 인플루언서 오탐 0), 안내문 2026-11-11 확정. 대기: U-01 전달·T-04. 명세 6.8
-- [ ] **A-09** 카드 확률 계산과 발급 `private.issue_card` (P0) — pgTAP·1,000회 분포 확인, R11 해결(6f77dd2). 미확인: 수정 뒤 `complete_round`를 거친 추첨. 대기: 홍주P 확인·T-04. 명세 6.9
+- [ ] **A-09** 카드 확률 계산과 발급 `private.issue_card` (P0) — pgTAP·1,000회 분포 확인, R11 해결(6f77dd2), `complete_round` 경유 추첨 레포 로컬 확인(2026-11-12). 미확인: `verify:backend` 전 구간(R12). 대기: 홍주P 확인·T-04. 명세 6.9
 
 ## 5. 문환P 타임라인
 
@@ -589,7 +590,7 @@ lib/ai/tests/data/                           기존 4개 + influencer-message-se
 | A-05 | 6회 모두 성공, 사고 끔 중앙값 3.8~4.2초·677~782자, 모두 2,000자 이하 | 샌드박스 실호출, 2026-11-11 | 마크다운 기호 2/6건(프롬프트 미수정), 20,000자 상한 입력 |
 | A-07 | 폴백 품질 오탐 0, 금칙어 문장 전부 기대 판정, 우회 세트 block 조정 22/26·검증 11/13, 단위 시험 140건 | 레포 로컬, 2026-11-12 | 폴백 오탐 `TOTO 비데`·`카지노 로얄`. Jev 지연·5xx 사유 코드는 단위 시험만 |
 | A-08 | 검증 세트 73/73, 시연 7/7, 인플루언서 정상 오탐 0, 안내문 확정 | 레포 로컬 실호출, 2026-11-12 | 조정 세트 수치는 독립 검증 아님. 우회 샘플은 에이전트가 구성 |
-| A-09 | pgTAP 96건(backend_contract 19 + issue_card 77), 분포 693/198/77/32로 3σ 안 | 레포 로컬, 2026-11-11 | R11 수정 뒤 `complete_round`를 거친 추첨, 원격 적용 |
+| A-09 | pgTAP 113건(3파일, `complete_round_issue_card` 포함) 통과. SDK `completeRound` 3회 성공·재요청 같은 응답·라운드당 `draws` 1건, 권한 없는 강제 등급은 `FORBIDDEN`. 분포 693/198/77/32로 3σ 안(2026-11-11) | 레포 로컬, 2026-11-12 | `verify:backend` 전 구간(R12에서 멈춤), 원격 적용 |
 
 **시연 문장 실제 판정 (U-01 전달용, 후속 조정 2회차, 2026-11-11, 샌드박스 Deno 실호출)**
 
