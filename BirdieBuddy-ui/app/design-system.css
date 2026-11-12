@@ -9,6 +9,7 @@
   a { color:var(--text-accent); font-weight:700; }
   h1, h2, h3, p { margin:0; overflow-wrap:anywhere; }
   h1, h2, h3 { line-height:var(--line-heading); letter-spacing:var(--tracking-heading); text-wrap:balance; }
+  html:has(.bottom-nav) { scroll-padding-bottom:calc(112px + env(safe-area-inset-bottom, 0px)); }
   :focus-visible { outline:3px solid var(--focus-ring); outline-offset:3px; }
   /* 클래스가 없는 기본 요소도 시스템에 맞춘다 */
   textarea:not([class*="input"]), input[type="text"]:not([class*="input"]), input[type="url"]:not([class*="input"]), input:not([type]):not([class*="input"]), select { display:block; width:100%; min-width:0; min-height:48px; border:1px solid var(--border-input); border-radius:var(--radius-sm); padding:var(--space-3) var(--space-4); background:var(--surface-raised); font-size:var(--type-body); }
@@ -130,6 +131,10 @@
   .quick-row { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: var(--space-3); margin: var(--space-4) 0 var(--space-6); }
   .quick { padding: var(--space-3) var(--space-2); background: var(--surface-raised); border-radius: var(--radius-md); text-align: center; font-size: var(--type-caption); font-weight: 700; min-height: var(--touch-target); }
   .quick b { display: block; color: var(--text-accent); margin-bottom: var(--space-1); }
+  /* docs/design.md: 카드 표시 영역은 2:3, 하단 탐색은 기기 안전 영역까지 여백 확보 */
+  .card-picture { height:auto; aspect-ratio:2 / 3; }
+  .bottom-nav { padding-bottom:calc(var(--space-4) + env(safe-area-inset-bottom, 0px)); }
+  .bottom-nav-spacer { height:calc(96px + env(safe-area-inset-bottom, 0px)); }
   .page-title { font-size:var(--type-page); font-weight:800; letter-spacing:var(--tracking-heading); }
   .stack { display:flex; flex-direction:column; gap:var(--space-3); }
 }

@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import type { Viewport } from 'next';
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover' };
 import {SessionProvider} from '@/lib/session';
 import {Providers} from '@/components/chat/providers';
 import {Shell} from '@/components/chat/shell';

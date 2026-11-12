@@ -18,7 +18,7 @@ describe('demo month settlement and readmission', () => {
   it.each([0, 2, 4])('skips joinedMonth settlement for %d rounds (entry/reentry month policy)', async (rounds) => {
     const api = createMockChatApi({ emptyMessages: true, initialMonthlyRoundCount: rounds });
     api.setActor(accounts.userB);
-    const membership = unwrap(await api.getMyMembership('room-1'));
+    const membership = unwrap(await api.getMyMembership({ roomId: 'room-1' }));
     api.setActor(accounts.admin);
     const result = unwrap(await api.advanceDemoMonth({ requestId: crypto.randomUUID(), targetMonth: nextMonth(api.getMockDemoMonth()) }));
     expect(result.closedMonth).toBe(membership?.joinedMonth);
@@ -42,7 +42,7 @@ describe('demo month settlement and readmission', () => {
       });
     }
     api.setActor(accounts.userB);
-    expect(unwrap(await api.getMyMembership('room-1'))).toMatchObject({ status: 'left', gauge: 0 });
+    expect(unwrap(await api.getMyMembership({ roomId: 'room-1' }))).toMatchObject({ status: 'left', gauge: 0 });
     for (let round = 0; round < 2; round++) api.completeMockRound('userB');
     expect(await api.joinRoom({ requestId: crypto.randomUUID(), roomId: 'room-1' })).toMatchObject({
       ok: false, error: { code: 'REJOIN_NOT_AVAILABLE', details: { monthlyRoundCount: 2 } },
@@ -63,7 +63,7 @@ describe('demo month settlement and readmission', () => {
     expect(duplicate).toEqual({ ...first, applied: false });
     expect(api.getMockDemoMonth()).toBe(input.targetMonth);
     api.setActor(accounts.userB);
-    expect(unwrap(await api.getMyMembership('room-1'))).toMatchObject({ gauge: 50, status: 'active' });
+    expect(unwrap(await api.getMyMembership({ roomId: 'room-1' }))).toMatchObject({ gauge: 50, status: 'active' });
   });
 
   it('adds 12.5 per round above the monthly target and clamps the resulting gauge to 100', async () => {

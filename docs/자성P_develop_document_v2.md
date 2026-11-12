@@ -31,6 +31,7 @@
 
 ### 3.1 검증 (바로)
 
+- [ ] `BirdieBuddy-ui/package-lock.json`이 `package.json`과 어긋나 `npm ci`가 실패한다(picomatch). `npm install`은 동작하므로 맥에서 `npm install` 후 바뀐 lockfile을 커밋
 - [ ] `BirdieBuddy-ui`에서 `npm install` 후 `typecheck`·`lint`·`build`·`npx vitest run`·`npx playwright test` 실행, 깨진 테스트 수정
 - [ ] `tests/README.md`의 미검증 항목 보강: F-09 묶음 답변·요약 전체, F-07 월 경과 → 퇴장 → 라운드 3회 재입장, F-06 토큰 만료·RATE_LIMITED 잠금, F-12 사진 형식·크기·세 위치 갱신
 - [ ] 화면 전체 글자 크기를 시안 기준(본문 16·라벨 14·보조 12)으로 점검
@@ -42,10 +43,12 @@
 - [x] ① 인박스 목록 구조: `getRoomInbox`가 `InboxPage`(`items` + `nextCursor` + `revision`)를 돌려주고, 항목은 `kind: 'question' | 'cluster'` 유니온이다(`inboxKey`·`priority`·`tieMessageId`·`replyTo`·`answered`·`replyId` 공통). 묶음은 인박스 목록 안의 항목으로 온다 → F-08·F-09 화면 재구성
 - [x] ② 답변 전송: `replyToMessage`에 `expectedClusterId`·`expectedClusterVersion`을 함께 보낸다(질문 항목은 `null`). 묶음이 바뀌었으면 오류 → 목록 재조회
   - 2026-11-12 완료: 목 SDK·인박스 화면·테스트를 계약 1.6 형태로 변경. SOURCE_CHANGED는 목록을 다시 읽고 작성 중인 답변은 보존, 같은 ID 재시도 대신 새 전송. vitest 156건 통과, lint 오류 0
-- [ ] ③ 누락 메시지 복구: `reconcileRoomMessages`가 `updatedAfter`/`afterId` 대신 `checkpoint: MessageChangeCursor | null`을 주고받는다 → F-05 `use-room-messages`
-- [ ] ④ 본인 답변 표시: `Message.isReplyToMe`를 그대로 쓴다(질문 ID·묶음 ID 비교 제거) → F-05
-- [ ] ⑤ `getMyMembership(roomId)` → `getMyMembership({ roomId })` → F-04
+- [x] ③ 누락 메시지 복구: `reconcileRoomMessages`가 `updatedAfter`/`afterId` 대신 `checkpoint: MessageChangeCursor | null`을 주고받는다 → F-05 `use-room-messages`
+- [x] ④ 본인 답변 표시: `Message.isReplyToMe`를 그대로 쓴다(질문 ID·묶음 ID 비교 제거) → F-05
+- [x] ⑤ `getMyMembership(roomId)` → `getMyMembership({ roomId })` → F-04
 
+  - 2026-11-12 완료: ③ `use-room-messages`가 `checkpoint`를 보관해 다음 복구에 넘김(초기·초기화 시 null), ④ 목 SDK가 보는 사람 기준으로 `isReplyToMe`를 계산하고 채팅방은 그 값으로 "내 질문에 대한 답변" 표시, ⑤ `getMyMembership({ roomId })`. vitest 157건·`next build` 통과
+- [ ] **다음:** 화면 패키지의 타입 복사본(`components/chat/api/types.ts`)을 지우고 루트 `lib/api` 타입을 가져다 쓰기(홍주P §13.9, 단일 원본). `ChatApi`는 `Pick<BackendApi, ...>`로. `BirdieBuddy-ui`에서 상위 `lib/api`·`lib/supabase`를 읽는 tsconfig·Next 설정과 Vercel 빌드 루트 확인
 - [ ] 루트 `lib/api/types.ts`와 `BirdieBuddy-ui/components/chat/api/types.ts` 차이 비교, 다르면 실제 타입 기준으로 화면 수정
 - [ ] `ChatApiProvider` 주입을 더미 → `createBackendApi(client)`로 교체(더미는 테스트용으로 유지)
 - [ ] `lib/session`을 Supabase Auth 로그인/로그아웃으로 교체, 데모 계정 5종(userA·userB·influencer·pendingInfluencer·admin) 매핑은 `npm run demo:setup` 결과 기준
@@ -67,6 +70,13 @@
 - [ ] 홈 라운드 정보에 "이번 달 라운드 N회 남음, 소진 전까지 남은 기간" 포함(PRD 4절 "게임 시작 전" 알림)
 - [ ] 디자인 시스템 원본이 바뀌면 `app/design-system.css` 재동기화
 - [ ] 앱 화면은 `design.md`와 디자인 시스템을 따르고 카드 표시 영역은 2:3으로 준비한다. 최종 카드 디자인은 별도 프로젝트에서 전달받는다.
+
+### 3.4.1 디자인 가이드(`docs/design.md`) 반영
+
+- [x] 카드 표시 영역 2:3(홈·컬렉션 목업), 하단 바·본문 끝 여백에 기기 안전 영역 포함(`viewport-fit=cover`), 하단 바에 포커스가 가려지지 않게 스크롤 여백
+- [x] 로그인 처리 중 상태(버튼 잠금·"로그인 중..."), 로그인 오류를 경고 영역으로 표시
+- [x] `/draw` 자리표시를 "발급 결과" 화면으로 정정(뽑기 연출 미정)
+- [ ] 실제 화면에서 확대·긴 이름·키보드 포커스·대비 점검(브라우저로 확인 필요)
 
 ### 3.5 남은 기능 보강 (P2 후순위)
 

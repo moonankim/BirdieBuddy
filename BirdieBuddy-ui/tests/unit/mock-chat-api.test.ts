@@ -170,18 +170,46 @@ describe('mock visibility and recovery', () => {
     })).message;
     api.setActor(accounts.userB);
     const recovered = unwrap(await api.reconcileRoomMessages({
-      roomId: 'room-1', currentMessages: snapshots, updatedAfter: last.updatedAt, afterId: last.id,
+      roomId: 'room-1', currentMessages: snapshots, checkpoint: { updatedAt: last.updatedAt, id: last.id },
     }));
     expect(recovered.messages).toHaveLength(101);
     expect(recovered.messages.find((item) => item.id === old.id)).toMatchObject({ body: null, deletedAt: deleted.deletedAt });
-    expect(recovered.updatedAfter).toBe(deleted.updatedAt);
-    expect(recovered.afterId).toBe(old.id);
+    expect(recovered.checkpoint).toEqual({ updatedAt: deleted.updatedAt, id: old.id });
   });
 
   it('recovers every unseen message instead of truncating recovery to the latest 100', async () => {
     const api = createMockChatApi({ emptyMessages: true }); api.setActor(accounts.influencer);
     for (let index = 0; index < 101; index++) unwrap(await api.sendBroadcast(request(`방송 ${index}`)));
     api.setActor(accounts.userB);
-    expect(unwrap(await api.reconcileRoomMessages({ roomId: 'room-1', currentMessages: [] })).messages).toHaveLength(101);
+    expect(unwrap(await api.reconcileRoomMessages({ roomId: 'room-1', currentMessages: [], checkpoint: null })).messages).toHaveLength(101);
+  });
+});
+
+describe('mock isReplyToMe (contract 1.6)', () => {
+  it('marks an answer as mine only for the fan who asked, including cluster answers', async () => {
+    const api = createMockChatApi({ emptyMessages: true });
+    api.setActor(accounts.userA);
+    unwrap(await api.joinRoom({ requestId: crypto.randomUUID(), roomId: 'room-1' }));
+    const askedByA = unwrap(await api.submitMessage(request('팬 A 비거리 질문')));
+    api.setActor(accounts.userB);
+    const askedByB = unwrap(await api.submitMessage(request('팬 B 비거리 질문')));
+    if (askedByA.verdict !== 'pass' || askedByB.verdict !== 'pass') throw new Error('Expected pass');
+    api.setActor(accounts.influencer);
+    const cluster = unwrap(await api.clusterQuestions({ requestId: crypto.randomUUID(), roomId: 'room-1' })).clusters[0];
+    if (!cluster) throw new Error('Expected cluster');
+    const row = unwrap(await api.getRoomInbox({ roomId: 'room-1' })).items.find((item) => item.kind === 'cluster');
+    if (!row) throw new Error('Expected cluster row');
+    const answer = unwrap(await api.replyToMessage({ requestId: crypto.randomUUID(), roomId: 'room-1', replyTo: row.replyTo, expectedClusterId: row.expectedClusterId, expectedClusterVersion: row.expectedClusterVersion, body: '묶음 답변' }));
+    expect(answer.isReplyToMe).toBe(false);
+    for (const fan of [accounts.userA, accounts.userB]) {
+      api.setActor(fan);
+      const seen = unwrap(await api.getMessages({ roomId: 'room-1' })).items.find((item) => item.id === answer.id);
+      expect(seen?.isReplyToMe).toBe(true);
+    }
+    api.setActor(accounts.influencer);
+    const broadcast = unwrap(await api.sendBroadcast(request('전체 공지')));
+    api.setActor(accounts.userA);
+    const seenBroadcast = unwrap(await api.getMessages({ roomId: 'room-1' })).items.find((item) => item.id === broadcast.id);
+    expect(seenBroadcast?.isReplyToMe).toBe(false);
   });
 });

@@ -16,7 +16,7 @@ function harness() {
   const subscriptions: Array<Subscription & { unsubscribe: ReturnType<typeof vi.fn> }> = [];
   const getMessages = vi.fn<ChatApi['getMessages']>().mockResolvedValue(ok({ items: [message('10')], nextCursor: null }));
   const reconcile = vi.fn<ChatApi['reconcileRoomMessages']>().mockImplementation(async (input) => ok({
-    messages: [...input.currentMessages], updatedAfter: '2026-11-11T00:00:01.000Z', afterId: '10',
+    messages: [...input.currentMessages], checkpoint: { updatedAt: '2026-11-11T00:00:01.000Z', id: '10' },
   }));
   const subscribe = vi.fn<ChatApi['subscribeRoomMessages']>().mockImplementation((input) => {
     const unsubscribe = vi.fn(() => input.onStatus('CLOSED'));
@@ -137,7 +137,7 @@ describe('useRoomMessages lifecycle', () => {
     act(() => { h.latest().onStatus('CHANNEL_ERROR'); });
     await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
     expect(h.reconcile.mock.calls[1][0]).toMatchObject({
-      roomId: 'room-1', updatedAfter: '2026-11-11T00:00:01.000Z', afterId: '10',
+      roomId: 'room-1', checkpoint: { updatedAt: '2026-11-11T00:00:01.000Z', id: '10' },
     });
   });
 
@@ -222,12 +222,11 @@ describe('useRoomMessages lifecycle', () => {
     h.getMessages.mockResolvedValueOnce(ok({ items: [message('20', { roomId: 'room-2' })], nextCursor: null }));
     rerender({ roomId: 'room-2' });
     await act(async () => {
-      oldRecovery.resolve(ok({ messages: [message('99')], updatedAfter: '2026-11-11T01:00:00Z', afterId: '99' }));
+      oldRecovery.resolve(ok({ messages: [message('99')], checkpoint: { updatedAt: '2026-11-11T01:00:00Z', id: '99' } }));
     });
     await act(async () => { h.latest().onStatus('SUBSCRIBED'); });
     expect(result.current.messages).toEqual([message('20', { roomId: 'room-2' })]);
-    expect(h.reconcile.mock.calls[1][0]).not.toHaveProperty('afterId');
-    expect(h.reconcile.mock.calls[1][0]).not.toHaveProperty('updatedAfter');
+    expect(h.reconcile.mock.calls[1][0].checkpoint).toBeNull();
   });
 
   it.each(['ROOM_INACTIVE', 'FORBIDDEN', 'UNAUTHENTICATED'])(
@@ -285,7 +284,7 @@ describe('useRoomMessages lifecycle', () => {
     const removed = message('10', { body: null, deletedAt: '2026-11-11T00:00:02.000Z' });
     act(() => { h.latest().onMessage(removed); h.latest().onMessage(message('11')); });
     await act(async () => {
-      recovery.resolve(ok({ messages: [message('10')], updatedAfter: '2026-11-11T00:00:01.000Z', afterId: '10' }));
+      recovery.resolve(ok({ messages: [message('10')], checkpoint: { updatedAt: '2026-11-11T00:00:01.000Z', id: '10' } }));
     });
     expect(result.current.messages).toEqual([removed, message('11')]);
   });
@@ -295,7 +294,7 @@ describe('useRoomMessages lifecycle', () => {
       vi.useFakeTimers();
       const h = harness();
       h.getMessages.mockResolvedValueOnce({ ok: false, error: { code: 'NETWORK_ERROR', message: '', retryable: true } });
-      h.reconcile.mockResolvedValue(ok({ messages: [message('10')], updatedAfter: message('10').updatedAt, afterId: '10' }));
+      h.reconcile.mockResolvedValue(ok({ messages: [message('10')], checkpoint: { updatedAt: message('10').updatedAt, id: '10' } }));
       const { result } = h.mount();
       await act(async () => {});
       await act(async () => { h.latest().onStatus(status); });
@@ -314,7 +313,7 @@ describe('useRoomMessages lifecycle', () => {
     await act(async () => {});
     act(() => { h.latest().onStatus('SUBSCRIBED'); result.current.applyLocal(message('11')); });
     await act(async () => {
-      recovery.resolve(ok({ messages: [message('10')], updatedAfter: message('10').updatedAt, afterId: '10' }));
+      recovery.resolve(ok({ messages: [message('10')], checkpoint: { updatedAt: message('10').updatedAt, id: '10' } }));
     });
     expect(result.current.messages).toEqual([message('10'), message('11')]);
   });
@@ -329,7 +328,7 @@ describe('useRoomMessages lifecycle', () => {
     h.getMessages.mockResolvedValueOnce(ok({ items: [message('2')], nextCursor: null }));
     await act(async () => { await result.current.loadOlder(); });
     await act(async () => {
-      recovery.resolve(ok({ messages: [message('10')], updatedAfter: message('10').updatedAt, afterId: '10' }));
+      recovery.resolve(ok({ messages: [message('10')], checkpoint: { updatedAt: message('10').updatedAt, id: '10' } }));
     });
     expect(result.current.messages).toEqual([message('2'), message('10')]);
   });
@@ -345,7 +344,7 @@ describe('useRoomMessages lifecycle', () => {
     await act(async () => { await result.current.loadOlder(); });
     const removed = message('10', { body: null, deletedAt: '2026-11-11T00:00:02.000Z' });
     await act(async () => {
-      recovery.resolve(ok({ messages: [removed], updatedAfter: removed.updatedAt, afterId: '10' }));
+      recovery.resolve(ok({ messages: [removed], checkpoint: { updatedAt: removed.updatedAt, id: '10' } }));
     });
     expect(result.current.messages).toEqual([message('2'), removed]);
   });
@@ -392,7 +391,7 @@ describe('useRoomMessages lifecycle', () => {
     const h = harness();
     const history = deferred<Result<Page<Message>>>();
     h.getMessages.mockReturnValueOnce(history.promise);
-    h.reconcile.mockResolvedValue(ok({ messages: [message('10')], updatedAfter: message('10').updatedAt, afterId: '10' }));
+    h.reconcile.mockResolvedValue(ok({ messages: [message('10')], checkpoint: { updatedAt: message('10').updatedAt, id: '10' } }));
     const { result } = h.mount();
     act(() => { h.latest().onStatus('SUBSCRIBED'); });
     await act(async () => {

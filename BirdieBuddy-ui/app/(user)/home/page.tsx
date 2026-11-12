@@ -6,7 +6,7 @@ import {useSession} from '@/lib/session';
 import {gradeBadge,mockCards} from '../_mock/cards';
 
 // 샌드박스 목업 화면. design-system/sample/index.html 구성을 따른 가상 데이터이며,
-// 실제 홈(라운드 정보·라운드 완료→카드 뽑기)은 현호P 화면으로 교체한다. 경로(/home 또는 /draw)는 현호P와 확정 예정.
+// 실제 홈(라운드 정보·라운드 완료→발급 결과)은 현호P 화면으로 교체한다. 경로(/home 또는 /draw)는 현호P와 확정 예정.
 const icon=(children:ReactNode,size?:number)=><svg className="icon" style={size?{width:size,height:size}:undefined} viewBox="0 0 24 24" aria-hidden="true" focusable="false">{children}</svg>;
 const cardIcon=icon(<><rect x="5" y="5" width="14" height="16" rx="2"/><path d="M8 2h11a3 3 0 0 1 3 3v13M9 10h6M9 14h4"/></>);
 const arrow=icon(<path d="M7 17 17 7M7 7h10v10"/>);
