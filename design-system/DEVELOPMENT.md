@@ -1,5 +1,11 @@
 # 앱 개발 적용 방법
 
+> **실제 카드 이미지 인계:** [R2 CDN 주소·DB/프론트 적용 지침](../docs/card-assets.md), [36개 이미지 JSON 목록](../docs/assets/card-images.json)을 사용합니다. 선수 식별자 12개·3등급이며 최종 이미지는 R2 출처입니다. 기존 Supabase Storage URL 생성·스타일 기반 경로를 그대로 적용하지 않습니다. DB·SDK·화면 연결은 아직 별도 작업입니다.
+
+> **디자인 시스템 적용 인계:** 화면·공통 UI 작업 전 [에이전트 적용 가이드](./AGENT_GUIDE.md)를 확인합니다. 최신 원본·적용 상태·샘플 전용 구성·담당 경계와 검증 기준을 정리했습니다. 실제 API 연결을 보존하고 이전 카드 정의를 신규 요구사항으로 복제하지 않습니다.
+
+> **최신 카드 기준:** 스타일 없음 / `kpga·klpga·gtour·media` / `basic·rare·legend`. 최종 카드 path는 `<유형>-<선수명>-<레벨>.png`이며 레벨은 등급과 같습니다. [공통 변경 명세](../docs/card-spec.md)를 우선합니다. 아래 이전 등급·스타일 예시와 실제 UI 타입은 전환 전 상태이며 신규 계약으로 복제하지 않습니다.
+
 ## 파일과 적용 경계
 
 | 파일 | 사용처 |
@@ -25,7 +31,7 @@ import {CardArtwork, GradeBadge, StatusPanel} from '@/components/ui/card-artwork
 import {Icon} from '@/components/ui/icon';
 
 <CardArtwork name={template.influencerName} src={template.imageUrl} grade="rare" />
-<GradeBadge grade="special" />
+<GradeBadge grade="rare" />
 <StatusPanel tone="error" title="목록을 불러오지 못했어요" onRetry={reload}>
   연결을 확인한 후 다시 시도해 주세요.
 </StatusPanel>
@@ -34,7 +40,7 @@ import {Icon} from '@/components/ui/icon';
 </button>
 ```
 
-예시의 `template`과 `reload`는 호출 화면에서 제공하는 값입니다. 등급은 `common/rare/epic/special`을 사용합니다. 등급 배지는 이미지 밖에 표시합니다. 카드 영역은 2:3이며 이미지는 잘리지 않게 `contain`으로 표시합니다. URL 누락·로드 실패에는 코드 기반 실루엣이 나타나고 `unowned`는 이미지가 있어도 미보유 실루엣을 표시합니다. 최종 카드 디자인과 뽑기 연출은 포함하지 않습니다.
+예시의 `template`과 `reload`는 호출 화면에서 제공하는 값입니다. 현재 구현의 타입은 `common/rare/epic/special`이며 위 코드는 기존 구현 재사용 예시입니다. 신규 요구사항의 `basic/rare/legend` 지원은 SDK·공통 배지 전환 후 적용합니다. 이전 등급으로 임의 매핑하지 않습니다. 등급 배지는 이미지 밖에 표시합니다. 카드 영역은 2:3이며 이미지는 잘리지 않게 `contain`으로 표시합니다. URL 누락·로드 실패에는 코드 기반 실루엣이 나타나고 `unowned`는 이미지가 있어도 미보유 실루엣을 표시합니다. 최종 카드 디자인과 뽑기 연출은 포함하지 않습니다.
 
 `StatusPanel`의 `tone`은 `info/error/loading/empty`입니다. 오류는 alert, 나머지는 status로 알리고 loading 중 재시도 버튼은 표시하지 않습니다. 요청과 멱등 ID·권한 처리는 호출 화면과 SDK가 책임집니다. 의미 없는 정적 설명 전체를 live region으로 감싸지 않습니다.
 
@@ -44,7 +50,7 @@ import {Icon} from '@/components/ui/icon';
 - `.bb-button`, `.bb-button--secondary`: 기본·보조 버튼. 진행 중에는 실제 `disabled`와 `aria-busy`를 함께 지정합니다. 링크의 `aria-disabled`는 클릭을 차단하지 않으므로 비활성 행동에는 버튼을 사용합니다.
 - `.bb-field`: input·textarea·select. 별도 label, 오류 ID와 `aria-describedby`, `aria-invalid`를 연결합니다.
 - `.bb-badge[data-grade]`: 색상과 등급 텍스트를 함께 사용합니다.
-- `.bb-card-grid`, `.bb-card-art`: 2열 목록과 2:3 이미지 영역. 카드명·스타일·수량은 영역 밖에도 텍스트로 제공합니다.
+- `.bb-card-grid`, `.bb-card-art`: 2열 목록과 2:3 이미지 영역. 카드명·유형·등급·수량은 영역 밖에도 텍스트로 제공합니다. 스타일 표시는 최신 카드 명세에 따라 제거합니다.
 - `.bb-details`: details/summary 기반 질문 펼침. 실제 인박스 데이터와 묶음 버전 검증은 SDK 계약을 따릅니다.
 - `.bb-skeleton`: 정적인 로딩 자리표시자. 상위 영역에 읽을 수 있는 로딩 안내를 제공합니다.
 

@@ -1,5 +1,11 @@
 # BirdieBuddy
 
+> **실제 카드 이미지 인계:** [R2 CDN 주소·DB/프론트 적용 지침](docs/card-assets.md), [36개 이미지 JSON 목록](docs/assets/card-images.json)을 사용합니다. 선수 식별자 12개·3등급이며 최종 이미지는 R2 출처입니다. 기존 Supabase Storage URL 생성·스타일 기반 경로를 그대로 적용하지 않습니다. DB·SDK·화면 연결은 아직 별도 작업입니다.
+
+> **디자인 시스템 적용 인계:** 화면·공통 UI 작업 전 [에이전트 적용 가이드](design-system/AGENT_GUIDE.md)를 확인합니다. 최신 원본·적용 상태·샘플 전용 구성·담당 경계와 검증 기준을 정리했습니다. 실제 API 연결을 보존하고 이전 카드 정의를 신규 요구사항으로 복제하지 않습니다.
+
+> **에이전트·담당자 카드 작업 참고:** 최신 카드 기준은 스타일 없음, 유형 `kpga/klpga/gtour/media`, 등급 `basic/rare/legend`입니다. 최종 카드 path는 `<유형>-<선수명>-<레벨>.png`(예: `gtour-공태풍-basic.png`)이며 디자인 스타일은 사용하지 않습니다. 작업 전 [변경 명세와 담당별 인계](docs/card-spec.md), [현호P 계획](docs/현호P_plan.md)을 확인합니다. 기존 DB·SDK·화면은 이전 계약이 남아 있어 전환 작업이 필요합니다.
+
 앱용 공통 스타일과 에셋은 [디자인 시스템 개발 가이드](design-system/DEVELOPMENT.md)를 따릅니다. UI 테스트는 `npm run test:ui`로 실행하며, 실행기가 프로젝트 내부 `.tmp/`를 임시 경로로 사용합니다. `.tmp/`는 Git에서 제외됩니다.
 
 골프존 AI 해커톤 프로젝트입니다. 브라우저는 Supabase Auth, Data API, RPC, Edge Functions, Realtime, Storage를 직접 호출하고 서버 데이터 처리는 Supabase에 둡니다.
