@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>추가 화면 · BirdieBuddy 시안</title>
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<main class="page-wrap">
+  <header class="topline">
+    <a class="brand" href="../index.html"><span class="brand-mark">B</span>birdiebuddy<span style="color:var(--green-500)">.</span></a>
+    <nav class="toplinks" aria-label="디자인 샘플"><a href="index.html">홈</a><a href="collection.html">컬렉션</a><a href="chat.html">채팅방</a><a href="../index.html">컴포넌트</a></nav>
+  </header>
+  <div class="intro">
+    <h1>화면과 상태</h1>
+    <p>발급 결과부터 인박스와 운영 화면까지 공통 컴포넌트를 적용한 예시야.</p>
+    <p class="footnote">가상 데이터로 구성한 정적 시안이야. 버튼은 실제 발급·전송·저장을 하지 않아.</p>
+    <nav class="screen-list" aria-label="화면 바로가기"><a class="screen-link" href="#result">발급 결과</a><a class="screen-link" href="#upgrade">강화</a><a class="screen-link" href="#inbox">인박스</a><a class="screen-link" href="#states">상태·설정</a></nav>
+  </div>
+  <div class="sample-screens">
+    <section class="sample-screen" id="result">
+      <h2>발급 결과</h2>
+      <div class="phone"><div class="content sample-stack">
+        <p class="muted">라운드 완료</p><h3 class="page-title">새로운 카드를 만났어요</h3>
+        <div class="sample-result">
+          <div class="sample-card"><img src="../assets/card-placeholder.svg" alt="카드 이미지 자리표시자"></div>
+          <span class="badge">레어</span> <span class="badge gray">새 카드</span>
+          <h3>서윤 프로</h3><p>일러스트 · 1장 보유</p>
+        </div>
+        <div class="sample-panel"><h3>채팅방에 입장할 수 있어요</h3><p>카드를 모아 입장 자격을 얻었어요.</p></div>
+        <div class="sample-actions"><a class="button" href="collection.html">컬렉션 보기</a><a class="button outline" href="chat.html">채팅 보기</a></div>
+        <p class="footnote">뽑기 연출은 미정이며 서버가 확정한 결과만 예시로 표시해.</p>
+      </div></div>
+    </section>
+    <section class="sample-screen" id="upgrade">
+      <h2>강화 확인</h2>
+      <div class="phone"><div class="content sample-stack">
+        <p class="muted">나의 카드</p><h3 class="page-title">카드 강화</h3>
+        <div class="sample-panel"><div class="sample-meta"><span class="badge gray">일반</span><strong>서윤 프로 · 일러스트</strong></div>
+          <dl class="sample-spec"><dt>사용할 카드</dt><dd>일반 10장</dd><dt>받을 카드</dt><dd>레어 1장</dd><dt>강화 후 남는 카드</dt><dd>일반 1장</dd></dl>
+        </div>
+        <div class="sample-panel"><h3>강화하기 전에 확인해 주세요</h3><p>강화는 되돌릴 수 없어요. 채팅방 입장 자격과 보유 배지는 유지돼요.</p></div>
+        <button class="button" type="button" disabled>강화하기</button>
+        <p class="footnote">버튼은 시안에서 비활성화되어 있어. 비용과 수량은 실제 서버 설정과 응답을 사용해.</p>
+      </div></div>
+    </section>
+    <section class="sample-screen" id="inbox">
+      <h2>인박스</h2>
+      <div class="phone"><div class="content sample-stack">
+        <p class="muted">서윤 프로의 채팅방</p><h3 class="page-title">받은 질문</h3>
+        <article class="sample-panel"><div class="sample-meta"><span class="badge birdie">버디</span><span class="muted">개별 질문</span></div><h3>드라이버 연습은 어떻게 시작하면 좋을까요?</h3><button class="button outline" type="button" disabled>답변하기</button></article>
+        <article class="sample-panel"><div class="sample-meta"><span class="badge">묶인 질문</span><span class="muted">질문자 3명</span></div><h3>퍼팅 거리를 일정하게 맞추는 연습법이 궁금해요.</h3>
+          <details class="sample-details"><summary>원래 질문 보기</summary><ul><li>퍼팅 거리를 맞추는 연습을 알려 주세요.</li><li>롱 퍼팅 거리감은 어떻게 익히나요?</li><li>집에서도 거리 연습을 할 수 있나요?</li></ul></details>
+          <button class="button outline" type="button" disabled>묶음에 답변하기</button>
+        </article>
+        <div class="sample-status"><strong>질문 목록이 바뀌었어요</strong><p>목록을 다시 확인한 뒤 답변해 주세요. 작성 중인 답변은 유지돼요.</p></div>
+      </div></div>
+    </section>
+    <section class="sample-screen" id="states">
+      <h2>설정과 공통 상태</h2>
+      <div class="phone"><div class="content sample-stack">
+        <p class="muted">인플루언서 설정</p><h3 class="page-title">채팅방 설정</h3>
+        <div class="sample-panel"><h3>프로필 사진</h3><p>채팅방에 표시할 사진을 선택해 주세요.</p><button class="button outline" type="button" disabled>사진 선택</button></div>
+        <div class="sample-panel"><h3>자동 필터</h3><p>선택 필터를 설정하고 인사말을 관리해요.</p><button class="button outline" type="button" disabled>설정 보기</button></div>
+        <div class="sample-panel"><h3>인증 심사</h3><p>신청자의 정보와 심사 상태를 확인해요.</p><span class="badge gray">검토 대기</span></div>
+        <div class="sample-status"><strong>목록을 불러오지 못했어요</strong><p>연결을 확인한 후 다시 시도해 주세요.</p></div>
+        <div class="sample-panel"><h3>아직 받은 질문이 없어요</h3><p>새 질문이 도착하면 여기에 표시돼요.</p></div>
+      </div></div>
+    </section>
+  </div>
+</main>
+</body>
+</html>

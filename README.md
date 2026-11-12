@@ -1,5 +1,7 @@
 # BirdieBuddy
 
+앱용 공통 스타일과 에셋은 [디자인 시스템 개발 가이드](design-system/DEVELOPMENT.md)를 따릅니다. UI 테스트는 `npm run test:ui`로 실행하며, 실행기가 프로젝트 내부 `.tmp/`를 임시 경로로 사용합니다. `.tmp/`는 Git에서 제외됩니다.
+
 골프존 AI 해커톤 프로젝트입니다. 브라우저는 Supabase Auth, Data API, RPC, Edge Functions, Realtime, Storage를 직접 호출하고 서버 데이터 처리는 Supabase에 둡니다.
 
 ## 화면(Next.js) 로컬 실행
