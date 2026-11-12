@@ -176,21 +176,64 @@ export function createBackendApi(client: AnyClient): BackendApi {
     },
     subscribeRoomMessages: (input)=>{
       let active=true; let channel:RealtimeChannel;
-      const handler=async(payload:JsonRecord)=>{
-        if(!active||!payload.new||!payload.new.id_text) return;
-        let next=message(payload.new);
-        if(next.messageKind==='influencer_answer'){
-          const {data,error}=await client.rpc('get_my_answer_links',{p_room_id:input.roomId,p_answer_ids:[next.id]});
-          if(error){input.onStatus('CHANNEL_ERROR',error);return;}
-          const links=(data as JsonRecord)?.items??[]; next={...next,isReplyToMe:Boolean(links.find((x:JsonRecord)=>x.answerId===next.id)?.isReplyToMe)};
+      let retryTimer:ReturnType<typeof setTimeout>|undefined;
+      let enriching=false;
+      const pending=new Map<string,JsonRecord>();
+      const notifyEnrichmentError=(messageIds:string[])=>{
+        try { input.onMessageEnrichmentError?.(messageIds); } catch { /* Consumer notification must not stop recovery. */ }
+      };
+      const scheduleRetry=()=>{
+        if(!active||retryTimer||!pending.size)return;
+        retryTimer=setTimeout(()=>{retryTimer=undefined;void flushPending();},3000);
+      };
+      const flushPending=async()=>{
+        if(!active||enriching||!pending.size)return;
+        enriching=true;
+        let failed=false;
+        try{
+          while(active&&pending.size){
+            const batch=[...pending.entries()].slice(0,100);
+            const messageIds=batch.map(([id])=>id);
+            let result:{data:unknown;error:unknown};
+            try{
+              result=await client.rpc('get_my_answer_links',{p_room_id:input.roomId,p_answer_ids:messageIds});
+            }catch{
+              notifyEnrichmentError(messageIds);failed=true;break;
+            }
+            if(!active)break;
+            if(result.error){notifyEnrichmentError(messageIds);failed=true;break;}
+            const links=(result.data as JsonRecord|null)?.items??[];
+            const replyToMe=new Map<string,boolean>(links.map((row:JsonRecord)=>[String(row.answerId),Boolean(row.isReplyToMe)]));
+            for(const [id,row] of batch){
+              if(pending.get(id)!==row)continue;
+              pending.delete(id);
+              const next={...message(row),isReplyToMe:Boolean(replyToMe.get(id))};
+              if(active)input.onMessage(next);
+            }
+          }
+        }finally{
+          enriching=false;
+          if(active&&pending.size){
+            if(failed)scheduleRetry();
+            else queueMicrotask(()=>void flushPending());
+          }
         }
-        if(active) input.onMessage(next);
+      };
+      const handler=(payload:JsonRecord)=>{
+        if(!active||!payload.new||!payload.new.id_text) return;
+        const next=message(payload.new);
+        if(next.messageKind==='influencer_answer'){
+          pending.set(next.id,payload.new);
+          if(!retryTimer)void flushPending();
+          return;
+        }
+        if(active)input.onMessage(next);
       };
       channel=client.channel(`room-messages:${input.roomId}`)
-        .on('postgres_changes',{event:'*',schema:'public',table:'messages',filter:`room_id=eq.${input.roomId}`},(payload)=>{void handler(payload as JsonRecord);})
+        .on('postgres_changes',{event:'*',schema:'public',table:'messages',filter:`room_id=eq.${input.roomId}`},(payload)=>handler(payload as JsonRecord))
         .subscribe((status,error)=>{if(active) input.onStatus(status as any,error??undefined);});
       currentChannel=channel;
-      return ()=>{active=false;void client.removeChannel(channel);if(currentChannel===channel)currentChannel=null;};
+      return ()=>{active=false;if(retryTimer)clearTimeout(retryTimer);pending.clear();void client.removeChannel(channel);if(currentChannel===channel)currentChannel=null;};
     },
     getRoomInbox: (input)=>run(async()=>{
       const data=await rpc<JsonRecord>(client,'get_room_inbox',{p_room_id:input.roomId,p_include_answered:input.includeAnswered??false,p_cursor:decodeCursor(input.cursor),p_limit:input.limit??50});

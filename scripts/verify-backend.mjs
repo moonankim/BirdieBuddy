@@ -122,6 +122,7 @@ async function main(){
     body:JSON.stringify({requestId:'80000000-0000-4000-8000-000000000007',roomId,body:'안전한 질문입니다.'}),
   });
   check(unauthenticatedEdge.status===401,'Edge gateway rejects a request without a user JWT');
+  // The actor-scoped limiter allows five attempts per 10 seconds; spread fixture traffic across the two active users.
   const {data:{session:userSession}}=await a.auth.getSession();
   if(!userSession?.access_token)throw new Error('Local user session disappeared before Edge verification.');
   const directEdge=await fetch(`${url}/functions/v1/submit-message`,{
@@ -131,7 +132,7 @@ async function main(){
   const directEdgeBody=await directEdge.json().catch(()=>({}));
   check(directEdge.status===200&&directEdgeBody?.ok===true&&directEdgeBody?.data?.verdict==='pass','local AI fixture accepts an authenticated Edge request');
   const fixturePassBody='로컬 AI fixture 일반 통과 질문입니다.';
-  const fixturePass=await apiA.submitMessage({requestId:'83000000-0000-4000-8000-000000000002',roomId,body:fixturePassBody});
+  const fixturePass=await apiB.submitMessage({requestId:'83000000-0000-4000-8000-000000000002',roomId,body:fixturePassBody});
   check(fixturePass.ok&&fixturePass.data.verdict==='pass'&&fixturePass.data.message.qualityScore===50&&!fixturePass.data.passesAllFilters,'local AI fixture produces a clearly non-live quality-50 pass');
 
   const suggestionBody='[[fixture:suggest]] 표현을 부드럽게 바꾸는 질문입니다.';
@@ -143,8 +144,8 @@ async function main(){
   }
   check(Boolean(acceptedSuggestion?.ok&&acceptedSuggestion.data.verdict==='pass'),'local suggestion token accepts the exact rewritten body');
   const blockedBody='[[fixture:block]] 위협 차단 fixture 질문입니다.';
-  const blockedMessage=await apiA.submitMessage({requestId:'83000000-0000-4000-8000-000000000005',roomId,body:blockedBody});
-  const historyAfterModeration=await apiA.getMessages({roomId});
+  const blockedMessage=await apiB.submitMessage({requestId:'83000000-0000-4000-8000-000000000005',roomId,body:blockedBody});
+  const historyAfterModeration=await apiOwner.getMessages({roomId});
   check(blockedMessage.ok&&blockedMessage.data.verdict==='block'&&blockedMessage.data.message===null,'local AI fixture returns the mandatory block sample');
   check(historyAfterModeration.ok&&!historyAfterModeration.data.items.some((item)=>item.body===suggestionBody||item.body===blockedBody),'suggestion source and blocked text are not persisted');
 
@@ -201,7 +202,7 @@ async function main(){
 
   const clusterKey='localdemo';
   const clusterFirst=await apiA.submitMessage({requestId:'83000000-0000-4000-8000-000000000006',roomId,body:`[[fixture:cluster=${clusterKey}]] 퍼팅 거리 질문 하나입니다.`});
-  const clusterSecond=await apiA.submitMessage({requestId:'83000000-0000-4000-8000-000000000007',roomId,body:`[[fixture:cluster=${clusterKey}]] 퍼팅 거리 질문 둘입니다.`});
+  const clusterSecond=await apiB.submitMessage({requestId:'83000000-0000-4000-8000-000000000007',roomId,body:`[[fixture:cluster=${clusterKey}]] 퍼팅 거리 질문 둘입니다.`});
   const clusterResult=await apiOwner.clusterQuestions({requestId:'83000000-0000-4000-8000-000000000008',roomId});
   check(clusterFirst.ok&&clusterSecond.ok&&clusterResult.ok&&clusterResult.data.clusters.some((cluster)=>cluster.memberCount===2),'local AI fixture groups only explicitly marked sample questions');
   const summaryResult=await apiOwner.summarizeRoom({requestId:'83000000-0000-4000-8000-000000000009',roomId});

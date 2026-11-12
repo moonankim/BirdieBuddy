@@ -237,6 +237,7 @@ export type SubscribeRoomMessagesInput = {
   roomId: UUID;
   onMessage: (message: Message) => void;
   onStatus: (status: SubscribeRoomMessagesStatus, error?: Error) => void;
+  onMessageEnrichmentError?: (messageIds: readonly MessageId[]) => void;
 };
 
 export type BackendApi = {

@@ -505,11 +505,11 @@ SQL 업무 오류는 SQLSTATE P0001, MESSAGE=고정code, DETAIL=비기밀JSON. E
 | getOwnedCards() | security_invoker inventory_view, 본인·count>0 | `{items:OwnedCardItem[]}` |
 | getRooms() | security_invoker room_catalog, 본인 누적발급·멤버십·월 재입장 자격·현재 표시 이미지·카드 준비 상태 | `{items:RoomCatalogItem[]}` |
 | getMyInfluencerProfile() | get_my_influencer_profile, auth.uid()에 연결된 본인 정보 | `MyInfluencerProfile` |
-| getMyMembership(roomId) | room_members의 본인/방 1행 | Membership 또는 null |
+| getMyMembership({roomId}) | room_members의 본인/방 1행 | Membership 또는 null |
 | getMyRoundGaugeSummary() | auth.uid()의 유효 현재 월·전체 라운드 집계 | `RoundGaugeSummary` |
 | getMessages({roomId,beforeId?,afterId?,limit?}) | messages room_id + id keyset | Page<Message> |
 | getRoomMessageCheckpoint({roomId}) | messages room_id, SELECT RLS 범위에서 updated_at DESC,id DESC LIMIT 1, updated_at/id_text만 전송 | MessageChangeCursor 또는 null |
-| getMessageChanges({roomId,checkpoint?,through,cursor?,limit?}) | messages room_id + (updated_at,id) keyset, `(checkpoint,through]`의 변경. 최초 checkpoint 명시(null 허용), 후속은 cursor | Page<Message> |
+| getMessageChanges({roomId,checkpoint,through,cursor?,limit?}) | messages room_id + (updated_at,id) keyset, `(checkpoint,through]`의 변경. checkpoint는 필수이며 null 허용, 후속 page는 cursor | Page<Message> |
 | getRoomDailyBlockCount({roomId}) | private moderation_events를 직접 노출하지 않는 소유자 전용 집계 RPC | `{roomId,day,count}` / verified 방 소유 influencer |
 | getMyVerifications({cursor?,limit?}) | 본인 influencer 신청 | Page<Verification> |
 | getPendingVerifications({cursor?,limit?}) | admin, pending | Page<Verification> |
@@ -573,6 +573,7 @@ type SubscribeRoomMessagesInput = {
   roomId: UUID;
   onMessage: (message: Message) => void;
   onStatus: (status: SubscribeRoomMessagesStatus, error?: Error) => void;
+  onMessageEnrichmentError?: (messageIds: readonly MessageId[]) => void;
 };
 type ReconcileRoomMessagesInput = {
   roomId: UUID; currentMessages: readonly Message[];
@@ -771,6 +772,8 @@ interface AiAdapter {
 
 `stalking` 의미는 문환P 계획 §6.2와 일치시킨다. 공개되지 않은 시간 또는 장소 중 하나만 해당해도 필수 `block`이며, 공개 장소에서 사적인 시간에 목격했다는 내용도 포함한다. 이 분류 설명은 provider 판정 문맥에 전달하고, 홍주P 계층에서는 기존 `category='stalking'`·`verdict='block'` 계약을 검증해 저장한다. SDK/RPC 입력·반환 구조는 바뀌지 않는다.
 
+PR #18 우회 표기 대응은 기존 adapter 반환 계약을 바꾸지 않는다. `keywordHits`는 기호 제거본, 한글 자모·닮은꼴·NFKC 복원본(받침 결합 전·후), 영문 토큰을 대조해 폴백의 키워드 적중을 넓힌다. 정상 Jev 본경로에서는 변환본에서만 새로 드러난 금칙어별 적중 중 필수 `illegal_ad`만 점수를 최소 1로 올려 `decide`에 전달한다. 따라서 팬·인플루언서 메시지 및 `disabledFilters` 설정과 무관하게 우회 불법 광고는 차단하며, 다른 항목의 변환 적중이나 원문에 이미 드러난 단어만으로 Jev 점수를 덮어쓰지 않는다. 폴백은 기존대로 모든 항목의 키워드 적중을 판정하고 `passesAllFilters=false`를 반환한다. 예외 복합어와 금칙어 뒤 낱자 초성 처리는 오탐·누락을 줄이기 위한 대조 규칙이며 adapter 입력·저장 계약은 그대로다.
+
 ### 8.3 summarize-room·cluster-questions
 
 JWT 인증 **방 소유 influencer만**, admin 타방 호출도 불가. 브라우저의 임의 원문 배열을 받지 않고 DB에서 source를 읽는다. 두 작업 합쳐 방1회/분·actor3회/분, 같은 requestId 재시도 추가 차감 없음.
@@ -811,7 +814,7 @@ cluster 최종 반영 시 source 질문이 여전히 같은 방의 미답변 pas
 - `subscribeRoomMessages({roomId,onMessage,onStatus})`는 room_id 필터로 INSERT·UPDATE를 구독하고 `unsubscribe():void`를 반환한다. `onStatus(status,error?)`의 status는 Supabase Realtime 공식 `REALTIME_SUBSCRIBE_STATES` union인 `SUBSCRIBED | TIMED_OUT | CHANNEL_ERROR | CLOSED`다. 필터가 아닌 SELECT RLS가 권한 경계다. UPDATE는 삭제된 답변/전체 메시지를 `body=null`, `deletedAt`과 함께 전달한다.
 - `SUBSCRIBED`에서는 메시지 장애 복구용 3초 폴링을 멈추고 복구를 수행한다. 현재 화면이 구독을 유지하는 동안 `TIMED_OUT`, `CHANNEL_ERROR`, `CLOSED`를 받으면 `reconcileRoomMessages`를 3초 간격으로 호출한다. 명시적 unsubscribe·화면 정리 뒤의 CLOSED callback은 무시한다. 아래 상태 재조회 timer는 이 메시지 폴링과 독립적이다.
 - `reconcileRoomMessages({roomId,currentMessages,checkpoint})`는 §6.5의 SDK helper다. 고정 through까지 모든 변경 page를 읽어 id 기준 최신 updatedAt으로 upsert하고 id ASC로 정렬한 목록과 checkpoint를 반환한다. 화면은 복구 진행 중 live 이벤트를 별도 buffer에 모으고, 성공 결과와 buffer를 다시 같은 규칙으로 병합한 뒤 교체한다. 중간 실패에는 기존 목록/checkpoint를 유지하고 buffer 이벤트만 안전하게 반영한다. 복구를 중첩 실행하지 않으며 getMessageChanges 직접 호출로 화면 복구를 대체하지 않는다.
-- Realtime 답변의 get_my_answer_links 보강이 실패하면 raw 이벤트를 pending buffer에 보관하고 직전 checkpoint에서 직렬 reconcile을 요청한다. SUBSCRIBED여도 pending/복구 실패가 남아 있는 동안 3초 간격으로 재시도하며, 보강·복구 성공 또는 terminal 권한/퇴장 정리 후에만 pending을 지운다. 이를 채널 장애로 위장하지 않는다. 정상 live 수신이 진행돼도 미완료 checkpoint를 건너뛰지 않는다.
+- Realtime 답변의 get_my_answer_links 보강이 실패하면 SDK는 raw 이벤트를 pending buffer에 보관하고 100개 이하 묶음으로 직렬 재시도한다. 실패 중에는 `onMessageEnrichmentError(messageIds)`로 화면에 알리고 실제 채널 status로 위장하지 않는다. 화면은 직전 checkpoint에서 직렬 reconcile을 요청한다. SUBSCRIBED여도 pending/복구 실패가 남아 있는 동안 3초 간격으로 재시도하며, 보강·복구 성공 또는 terminal 권한/퇴장 정리 후에만 pending을 지운다. 정상 live 수신이 진행돼도 미완료 checkpoint를 건너뛰지 않는다.
 - 첫 연결은 Realtime 구독·buffer를 시작하면서 `getRoomMessageCheckpoint`를 호출한다. **checkpoint 조회 완료 후** 최초 history를 시작하고 그 응답에 buffer를 병합한다. history 완료와 SUBSCRIBED를 모두 확인한 뒤 앞서 캡처한 checkpoint로 reconcile한다. history page·buffer·화면 마지막 메시지로 초기 checkpoint를 다시 계산하지 않는다. 재연결은 직전 전체 복구 완료 checkpoint를 사용한다. 명시적 null은 처음부터 조회하는 의미이며, history 더보기는 checkpoint를 전진시키지 않는다.
 - 방 목록·팬 대화 화면이 보이는 동안 `getRooms()`를 3초 간격으로 재조회해 membership·재입장 자격·현재 사진 URL을 갱신한다. 게이지/월 라운드 패널은 `getMyRoundGaugeSummary()`도 같은 주기로 읽는다. 정상 SUBSCRIBED 중에도 이 상태 재조회를 유지한다. 인플루언서 인박스는 같은 주기로 getRoomInbox 첫 page를 읽어 활성 질문자 수·묶음 점수·revision을 갱신하며 revision이 바뀌면 기존 후속 page를 버린다. 인박스/설정 화면의 본인 사진은 getMyInfluencerProfile도 같은 주기로 읽어 다른 로그인 세션의 변경을 반영한다. SDK 읽기는 과거 응답을 영구 cache하지 않고 현재 RLS/집계값을 반환한다.
 - focus·pageshow·화면 복귀 및 해당 화면의 라운드 완료·입장·월 경과·답변·묶기·삭제·사진 업로드 성공 직후에도 관련 상태를 재조회한다. 한 화면의 상태 재조회는 중첩하지 않고, 숨김 상태에서는 주기를 멈췄다가 복귀 시 즉시 읽는다. 다른 세션의 상태 변경은 정상 네트워크에서 다음 3초 주기 응답에 반영하며 요청 실패 시 stale 상태와 재시도 안내를 제공한다.
@@ -1122,12 +1125,19 @@ cards는 현호P, rooms/chat/filters/verifications는 자성P가 사용한다. �
 
 2026-11-11 PR #14 본문에서 홍주P에게 요청한 SDK 타입 대조, 데모 계정 매핑, UI 패키지 결정을 현재 `lib/api`와 `npm run demo:setup` 기준으로 확인했다. 별도 리뷰 댓글·스레드는 없었다.
 
-- **패키지 결정:** 해커톤 기간에는 안 A를 사용한다. `BirdieBuddy-ui/`는 Next.js 16·TypeScript 5.9 패키지로 유지하고, 루트 Node 24·TypeScript 7 백엔드 도구 체인에 Next 의존성을 섞지 않는다. API 런타임과 타입의 단일 원본은 루트 `lib/api`다. 프론트 패키지에서 이 코드를 참조하는 방법과 Vercel 빌드 범위는 배포 전 확인한다. 현재 선택만으로 UI 통합·배포 완료를 뜻하지 않는다.
-- **타입 비교:** `UUID`, `MessageId`, `Result`, `Page`, `Membership`, `SupportBadge`, `RoomCatalogItem` 등 기본 타입은 대체로 일치한다. UI 목업의 `Message`에는 `isReplyToMe`가 빠져 있다. UI `InboxItem = Message & ...`는 SDK의 `question | cluster` 판별 union과 다르고 `InboxPage.revision`도 빠져 있다. `replyToMessage`는 SDK의 `expectedClusterId`·`expectedClusterVersion`을 전달해야 한다. 메시지 재조회는 `updatedAfter/afterId` 대신 SDK의 `checkpoint` 계약을 사용한다. `getMyMembership` 입력은 문자열이 아니라 `{roomId}`다. pass 결과의 `rewriteQuality`, `suggestionToken`, `expiresAt`은 SDK 타입에서 `null`로 포함된다. 구독 상태 문자열 값은 같으므로 UI 별칭을 둘 수 있다.
+- **패키지 결정 (당시):** PR #14 검토 시 `BirdieBuddy-ui/`를 별도 Next.js 16·TypeScript 5.9 패키지로 유지하고 루트 Node 24·TypeScript 7 도구 체계와 분리하기로 했다. 이 결정은 2026-11-12 사용자 지시에 따라 §13.10에서 갱신한다. API 런타임과 타입의 원본은 루트 `lib/api`이며, 기존 기록은 통합 완료 근거가 아니다.
+- **타입 비교 (2026-11-12 갱신):** PR #19에서 UI의 `InboxItem` question/cluster union, `InboxPage.revision`, 답변의 예상 cluster ID/version은 루트 SDK 계약과 맞춰졌다. 현재 남은 UI 목 계약 차이는 `Message.isReplyToMe`, `getMyMembership(roomId)` 대 SDK의 `{roomId}`, `reconcileRoomMessages(updatedAfter/afterId)` 대 SDK의 checkpoint 입력이다. UI는 아직 자체 도메인 타입·mock SDK를 보유한다.
 - **SDK 보완:** `advanceDemoMonth`의 구현 반환값은 계획·RPC 응답과 일치하지만 SDK에서 `Record<string, unknown>`으로만 선언돼 있었다. 이를 `AdvanceDemoMonthData`로 구체화했다. UI에서 이 반환 계약을 별도로 복사하지 않고 루트 SDK 타입을 사용한다.
 - **데모 계정 매핑:** `demo:setup`은 로컬 전용 Auth 사용자와 `profiles.role`을 만든다. `userA`는 `user`이며 샘플 카드/라운드 10건, 입장하지 않은 상태다. `userB`는 `user`이며 샘플 카드/라운드 5건과 첫 방 active 멤버십이 있다. `influencer`는 influencer UUID `20000000-0000-4000-8000-000000000001`에 연결된 인증 완료 인플루언서다. `pendingInfluencer`는 UUID `20000000-0000-4000-8000-000000000011`에 연결된 미승인 신청자이며 `profiles.role`은 역시 `influencer`다. `admin`은 admin이며 데모 월 경과 권한을 갖는다. setup에는 UI에서 요청한 다섯 계정 외 `influencerB`와 `outsider`도 있다.
 - **로그인 연결 규칙:** `demo:setup`이 발급하는 실제 Auth UUID는 로컬 재생성마다 결정된 상수로 보장되지 않으며 `.demo-passwords.json`에 로컬 전용으로 저장한다. UI의 mock `userA` 같은 문자열 ID를 실제 사용자 ID로 쓰지 않는다. 실제 로그인은 Supabase Auth 세션의 `user.id`를 쓰고, 역할/닉네임 표시 정보는 프로필에서 조회한다. 권한은 클라이언트 역할값으로 판단하지 않고 RLS/RPC에서 다시 확인한다. `user_metadata`를 인가 근거로 쓰지 않는다.
-- **프론트 후속 조건:** 중복 타입을 SDK import/`Pick<BackendApi, ...>`로 교체하고 묶음 revision/version과 복구 checkpoint 인자를 보존한다. `pendingInfluencer`는 역할만으로 승인 상태가 구별되지 않으므로 신청 조회 결과에 따라 화면 진입을 결정한다. 이 항목은 자성P 화면 구현 완료를 표시하지 않는다.
+- **프론트 후속 조건:** 루트 앱 통합 때 중복 타입·mock SDK를 root `lib/api` 사용으로 교체하고 `Message.isReplyToMe`, `getMyMembership({roomId})`, 복구 checkpoint 인자를 맞춘다. `pendingInfluencer`는 역할만으로 승인 상태가 구별되지 않으므로 신청 조회 결과에 따라 화면 진입을 결정한다. 화면 폴더 이동과 이 후속 항목은 자성P 소유이며 완료로 표시하지 않는다.
+
+### 13.10 2026-11-12 — 루트 Next.js 패키지 정합 및 화면 통합 요청
+
+- **사용자 방향:** 별도 `BirdieBuddy-ui/` 프로젝트를 최종 구조로 두지 않고 기존 목표대로 루트 `app/`, `components/`, `lib/api` 구조로 통합한다. 이번 홍주P 변경은 루트 manifest/lockfile과 본 계획·공통 아키텍처에 한정하며, 화면 소스와 자성P 소유 manifest·lockfile은 수정하지 않는다.
+- **루트 도구 정합:** 루트 package에 화면 프로젝트의 Next.js 16.4.6·React 19.3.1·Tailwind 4.3.5·TypeScript 5.9.3 및 UI 검사 도구 버전을 맞추고, 기존 Node 24 runtime과 Supabase/backend dependencies를 보존한다. Backend TypeScript 설정은 `tsconfig.backend.json`으로 유지하며 `package-lock.json`과 `deno.lock`은 공통 manifest 의존성을 고정한다. 단일 패키지 구조·화면 이동은 아직 완료되지 않았다.
+- **담당 인계:** 자성P에게 `BirdieBuddy-ui/app`, `components`, 화면 전용 설정과 테스트를 루트 구조로 옮기고, 루트 package/lockfile 하나를 기준으로 정리하며 root `lib/api` 타입·호출을 사용하는 통합을 요청한다. 본문에 남은 Message·membership·checkpoint 차이를 함께 해결한다. 이번 커밋 본문에 요청을 남기며 외부 메시지는 보내지 않는다.
+- **검증 경계:** 루트 TypeScript 5.9 도구로 backend 및 기존 UI의 정적 typecheck를 확인한다. UI source 이동, browser flow, production build/deployment, 실제 Supabase·Auth 연동은 이 작업의 완료 범위에 포함하지 않는다.
 
 ## 14. 진행·완료 보고
 
@@ -1186,7 +1196,7 @@ cards는 현호P, rooms/chat/filters/verifications는 자성P가 사용한다. �
 | B-10 | filters/version/rate-limit/metadata cleanup 구현 | latest fixture 이후 회귀 검증, 운영 cron 실제 실행 관찰 |
 | B-11 | 이전 기록에서 migrations·Functions 반영, recovery 절차 문서화 | 이번 main 병합분의 hosted 적용 여부 재조회, exact Auth/CORS origin, user JWT/Storage/Realtime smoke |
 | B-12 | source/lease/commit RPC, Edge wrappers와 main에 병합된 Jev/Claude adapter | live provider 품질/안전 회귀 및 hosted 실행 검증 |
-| B-13 | 현재 local Node 3·Deno 113·pgTAP 113·typecheck·DB lint와 A-09 distribution/integration checks 통과 | demo-data 쓰기형 `verify:backend`, 브라우저·Realtime·Storage·실AI·production smoke |
+| B-13 | 현재 local Node 3·Deno 113·pgTAP 113·typecheck·DB lint와 A-09 distribution/integration checks 통과. `verify:backend`의 R12 actor 분산 수정은 반영했으나 full rerun은 미실행 | demo-data 쓰기형 `verify:backend` 전체, 브라우저·Realtime·Storage·실AI·production smoke |
 | B-14 | bucket/RLS/photo RPC와 SDK upload flow 구현 | 실제 browser File→WebP, 재시도·복구·과거 메시지 갱신 smoke |
 | B-15 | greeting read/update Edge·RPC와 first-entry snapshot 구현 | 자성P 설정/첫 입장 UI 통합 |
 | B-16 | influencer broadcast Edge/RPC·SDK 구현 | 자성P compose/수신 화면·Realtime 통합 |
@@ -1319,3 +1329,16 @@ docs/홍주P_plan.md 계약 1.6의 §§6~9·12·15와 내 담당 *_plan.md를 �
 - 영향 확인: `jev.ts`는 `CATEGORIES` 설명을 Jev 요청에 직접 사용한다. 팬 전송은 기본 `user`, 인플루언서 전송은 `senderType:'influencer'`로 같은 판정 adapter에 전달한다. `validateModeration`은 `stalking`을 필수 카테고리로 허용하고 이 경우 `block`만 받는다. 따라서 병합된 설명이 두 발신 경로에 적용되며 SDK/RPC·DB 구조 변경은 필요하지 않다.
 - 문서 반영: §8.2에 시간 또는 장소 중 하나가 비공개인 경우와 공개 장소의 사적 시간 목격을 명시했다. 공통 architecture의 PR 병합 현황 및 검증 한계를 갱신했다.
 - 검증 범위: 소스·계약 정적 대조 및 `git diff --check`. 문환P 계획 §7.2에 기록된 upstream Deno 회귀는 71/71·73/73이지만 이번 홍주P 브랜치에서 재실행하지 않았다. 홍주P Edge 경로 실호출, hosted AI, 원격 적용은 미확인이고 B-06 통합 확인으로 처리하지 않는다.
+
+### 15.8 2026-11-12 — PR #21 R12 로컬 검증 rate limit 대응
+
+- 확인: PR #21은 홍주P 소유 `scripts/verify-backend.mjs`가 userA로 10초 안에 submit-message를 6회 예약해 다섯 번째 이후 요청이 `RATE_LIMITED`되는 원인을 보고했다. actor별 10초 5건 제한은 제품 계약이므로 완화하지 않는다.
+- 변경: pass/block 및 cluster fixture 제출을 이미 해당 방을 읽는 userB와 userA에 분산했다. userA는 최대 5회, userB는 최대 3회로 유지한다. 묶음 fixture 질문은 서로 다른 두 활성 계정이 제출해 `memberCount=2` 검증을 유지한다. 차단/제안 본문 미저장은 두 계정 모두 볼 수 있는 방 owner 이력으로 확인한다.
+- 미검증: full `npm run verify:backend`는 local demo/Auth 데이터를 변경하므로 실행하지 않았다. R12 수정은 스크립트 정적 검토와 Node 문법 검사까지만 확인하며, local end-to-end 전체 통과는 별도 실행 전까지 완료로 보지 않는다. 원격 Supabase에는 접속하지 않았다.
+
+### 15.9 2026-11-12 — origin/main 병합 및 담당 계약 대조
+
+- 병합: `origin/main`의 `4263860`을 `feature/hongjoo`에 merge commit `78bdaff`로 반영했다. PR #18~#22와 후속 문서 커밋이 포함됐다. merge는 충돌 없이 완료됐다.
+- 홍주P AI 경로: PR #18의 `deobfuscate`·키워드별 우회 적중과 Jev 본경로 `illegal_ad` 승격을 검토했다. §8.2와 공통 architecture에 실제 코드 경계를 기록했다. adapter 반환 형식·Edge 저장/RPC 경계 변경은 필요하지 않았다.
+- 홍주P API와 UI: PR #19 인박스 화면의 페이지 `revision`, question/cluster 항목, 예상 cluster ID/version 답변 입력을 `lib/api`의 `getRoomInbox`·`replyToMessage`·`clusterQuestions` 계약과 대조했다. 백엔드 API 추가 변경은 필요하지 않았다. PR #21의 R12 제한 대응은 앞선 `a01f482`에 반영된 상태로 보존됐다.
+- 검증: 병합 후 소스·계약 정적 대조와 `git diff --check`를 수행했다. 테스트와 `npm run verify:backend`는 실행하지 않았으며, 이 병합으로 hosted·실사용자 경로가 검증된 것으로 처리하지 않는다.
