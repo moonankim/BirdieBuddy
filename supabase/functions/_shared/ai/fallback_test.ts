@@ -76,3 +76,32 @@ Deno.test("우회 표기 금칙어는 정규화본으로 적중, 예외 단어�
 Deno.test("예외 단어 뒤 낱자 초성은 우회 적중을 만들지 않음", () => {
   for (const text of ["토토로ㅋ", "토토로ㅎ", "홀덤으로ㅋ"]) assertEquals(evasionHits(text), [], text);
 });
+
+Deno.test("금칙어 바로 뒤 낱자 초성이 금칙어를 지우지 않음", () => {
+  const r = fallbackModerate("토토ㅋ", []);
+  assertEquals([r.verdict, r.category], ["block", "illegal_ad"]);
+  const p = fallbackModerate("존나ㅋ 웃기네", []);
+  assertEquals([p.verdict, p.category], ["suggest", "profanity"]);
+  for (const text of ["섹스ㅎ", "카지노ㅋ", "바카라 ㅋ 하자", "꽁머니ㅋ 지급", "토토 ㄱ"]) {
+    assertEquals(fallbackModerate(text, []).verdict !== "pass", true, text);
+  }
+});
+
+Deno.test("우회 표기에 낱자 초성이 붙어도 evasionHits가 잡음", () => {
+  for (const text of ["ㅂr카라ㅋ 첫충", "카ㅈ1노ㅎ 오픈", "ㅌㅗㅌㅗ ㅋ", "꽁머ㄴlㅋ 지급"]) {
+    assertEquals(evasionHits(text).includes("illegal_ad"), true, text);
+  }
+});
+
+Deno.test("원문에 흔한 금칙어가 섞여도 우회 금칙어는 금칙어 단위로 잡음", () => {
+  const mixed = [
+    "ㅋr지노 먹튀 없는 곳",
+    "ⓒⓐⓢⓘⓝⓞ 먹튀 없음",
+    "ㅌㅗㅌㅗ 먹튀검증",
+    "ㅂr카라 TOTO 가입",
+    "ㅂr카라 슬롯 첫충",
+    "카ㅈ1노 slot 이벤트",
+  ];
+  for (const text of mixed) assertEquals(evasionHits(text).includes("illegal_ad"), true, text);
+  for (const text of ["카지노 로얄 영화", "TOTO 비데처럼", "홀 덤으로 하나 더"]) assertEquals(evasionHits(text), [], text);
+});

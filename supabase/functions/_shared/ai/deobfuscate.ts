@@ -23,7 +23,7 @@ const L2T: Record<number, number> = {
 const isLead = (c: number) => c >= 0x1100 && c <= 0x1112;
 const isVowel = (c: number) => c >= 0x1161 && c <= 0x1175;
 
-/** 기호·공백 제거와 소문자화만 한 문자열. keywords.ts의 normalize와 같은 규칙이다. */
+/** 기호·공백 제거와 소문자화만 한 문자열. keywords.ts가 evasionHits의 비교 기준으로 쓴다. */
 export function plainForm(text: string): string {
   return text.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
 }
@@ -31,8 +31,10 @@ export function plainForm(text: string): string {
 /**
  * 대조용 문자열(소문자, 문자·숫자만). 단계 순서가 결과를 바꾸므로 바꾸지 않는다.
  * 닮은꼴 표 → NFKC → 기호 제거 → 초성 뒤 모음 닮은꼴 → NFC → 받침 붙이기 → 소문자화.
+ * attachFinals=false면 받침 붙이기만 건너뛴다. 금칙어 바로 뒤의 낱자 초성(토토ㅋ)이 금칙어의 마지막
+ * 음절에 붙어 금칙어를 지우는 것을 keywords.ts가 이 형태와 대조해 잡는다.
  */
-export function deobfuscate(text: string, protect: readonly string[] = []): string {
+export function deobfuscate(text: string, protect: readonly string[] = [], attachFinals = true): string {
   let s = [...text].map((c) => CHAR_MAP[c] ?? c).join("").normalize("NFKC");
   s = s.replace(/[^\p{L}\p{N}]/gu, "");
   const cs = [...s];
@@ -43,6 +45,7 @@ export function deobfuscate(text: string, protect: readonly string[] = []): stri
   // 보호 단어(금칙어 예외)는 받침 붙이기 전에 비문자 자리표시자로 바꾼다. 그렇지 않으면 "토토로ㅋ"가
   // "토토롴"이 되어 예외가 깨진다. 결과에 "_"가 남는 것은 이 경우뿐이다.
   for (const word of protect) s = s.replaceAll(word, "_");
+  if (!attachFinals) return s.toLowerCase();
 
   // 받침 없는 음절 뒤의 낱자 초성은 종성으로 붙인다. 단 뒤가 모음이면 다음 음절의 초성이고,
   // 뒤가 또 낱자 초성이면 ㄹㅇ·ㅁㅊ 같은 초성체이므로 붙이지 않는다(붙이면 시바 ㄹㅇ→시발, 한나 ㅁㅊ→한남).

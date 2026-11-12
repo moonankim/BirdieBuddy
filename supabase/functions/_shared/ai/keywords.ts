@@ -24,31 +24,54 @@ export const KEYWORD_EXCEPTIONS: readonly string[] = ["출시발", "시발점", 
 // \p{L}·\p{N}이 아니라서 정규화 결과와 섞이지 않고, 어떤 금칙어에도 들어 있지 않다.
 const MASK = "_";
 
-export function normalize(text: string): string {
-  return plainForm(text);
-}
-
-function hits(matching: string, tokens: string[]): FilterCategory[] {
+function maskExceptions(matching: string): string {
   let masked = matching;
   for (const exception of KEYWORD_EXCEPTIONS) masked = masked.replaceAll(exception, MASK);
-  return CATEGORY_KEYS.filter((key) =>
-    KEYWORDS[key]?.some((word) => masked.includes(word)) ||
-    LATIN_KEYWORDS[key]?.some((word) => tokens.some((t) => t.includes(word)))
-  );
+  return masked;
 }
 
-/** 우회 표기를 되돌린 정규화본과 영문 토큰 기준 적중. 폴백이 쓴다. */
+/** 적중한 금칙어 문자열(항목별). 한글은 정규화본, 영문은 토큰 기준이다. */
+function hitWords(matching: string, tokens: string[]): Map<FilterCategory, Set<string>> {
+  const masked = maskExceptions(matching);
+  const found = new Map<FilterCategory, Set<string>>();
+  for (const key of CATEGORY_KEYS) {
+    const words = new Set<string>();
+    for (const word of KEYWORDS[key] ?? []) if (masked.includes(word)) words.add(word);
+    for (const word of LATIN_KEYWORDS[key] ?? []) if (tokens.some((t) => t.includes(word))) words.add(word);
+    if (words.size) found.set(key, words);
+  }
+  return found;
+}
+
+// 변환 대조본: 원문 기호 제거본(plain)은 evasionHits의 비교 기준으로 따로 둔다.
+// 받침 붙이기 전·후 두 형태를 모두 대는 이유는 deobfuscate의 attachFinals 설명 참고.
+function transformedHits(text: string): Map<FilterCategory, Set<string>>[] {
+  const tokens = latinTokens(text);
+  return [
+    hitWords(deobfuscate(text, KEYWORD_EXCEPTIONS, false), tokens),
+    hitWords(deobfuscate(text, KEYWORD_EXCEPTIONS), tokens),
+  ];
+}
+
+function plainHits(text: string): Map<FilterCategory, Set<string>> {
+  return hitWords(plainForm(text), latinTokens(text, false));
+}
+
+/** 원문 기호 제거본, 받침 붙이기 전 복원본, 받침까지 붙인 복원본, 영문 토큰 기준 적중의 합집합. 폴백이 쓴다. */
 export function keywordHits(text: string): FilterCategory[] {
-  return hits(deobfuscate(text, KEYWORD_EXCEPTIONS), latinTokens(text));
+  const forms = [plainHits(text), ...transformedHits(text)];
+  return CATEGORY_KEYS.filter((key) => forms.some((f) => f.has(key)));
 }
 
-/** 기호·공백 제거와 소문자화만 한 기준 적중(우회 복원 없음). evasionHits의 비교 기준이다. */
-export function plainKeywordHits(text: string): FilterCategory[] {
-  return hits(plainForm(text), latinTokens(text, false));
-}
-
-/** 우회 복원을 해야만 드러나는 적중. */
+/**
+ * 변환을 거쳐야만 드러나는 적중. 항목 단위가 아니라 금칙어 단위로 비교한다:
+ * 항목의 어떤 금칙어가 변환본에서는 적중하는데 원문 기호 제거본에서는 적중하지 않으면 그 항목을 돌려준다.
+ * ("ㅋr지노 먹튀"처럼 원문에 흔한 금칙어가 섞여 있어도 우회 금칙어를 놓치지 않기 위해서다.)
+ */
 export function evasionHits(text: string): FilterCategory[] {
-  const plain = new Set(plainKeywordHits(text));
-  return keywordHits(text).filter((key) => !plain.has(key));
+  const plain = plainHits(text);
+  const transformed = transformedHits(text);
+  return CATEGORY_KEYS.filter((key) =>
+    transformed.some((f) => [...(f.get(key) ?? [])].some((word) => !plain.get(key)?.has(word)))
+  );
 }

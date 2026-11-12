@@ -117,6 +117,14 @@ Deno.test("원문 적중·예외·다른 항목의 우회 적중은 본경로에
   }
 });
 
+Deno.test("낱자 초성이 붙거나 흔한 금칙어가 섞인 우회 광고도 본경로에서 block", async () => {
+  for (const body of ["ㅂr카라ㅋ 첫충", "ㅋr지노 먹튀 없는 곳", "카ㅈ1노 slot 이벤트"]) {
+    const s = setup({ jev: [out()] });
+    const r = await moderateAndScore(input({ body }), s.deps);
+    assertEquals([r.verdict, r.category], ["block", "illegal_ad"], body);
+  }
+});
+
 Deno.test("Jev privacy 0.9 + 우회 illegal_ad → block, category는 점수 높은 illegal_ad", async () => {
   const s = setup({ jev: [out({ privacy: 0.9 })] });
   const r = await moderateAndScore(input({ body: "ㅂr카라" }), s.deps);
