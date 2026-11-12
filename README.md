@@ -26,7 +26,7 @@ npm run dev        # http://localhost:3000
 | 관리자 (admin) | `/admin` | 데모 월 경과, 인증 심사 |
 
 - 목 모드 데이터는 브라우저 탭 안에만 있다. 팬 ↔ 인플루언서 주고받기는 같은 탭에서 계정을 전환해 확인한다.
-- 모바일 화면(390px) 기준이다. `/home`·`/collection`·`/draw`는 현호P 화면이 들어올 자리의 목업이다(`app/(user)/_mock/cards.ts`).
+- 모바일 화면(390px) 기준이다. `/home`(이번 달 라운드·나의 카드·라운드 완료), `/collection`(컬렉션·보유 카드), `/draw`(발급 결과)는 SDK(`getMyRoundGaugeSummary`·`getOwnedCards`·`getCollection`·`completeRound`)에 연결돼 있고, 디자인·연출·강화는 현호P가 보강한다.
 - 화면 타입은 루트 `lib/api/types.ts`를 그대로 쓴다. `app/design-system.css`는 `design-system/styles.css`(디자인 시스템 0.2)를 옮긴 사본이다.
 
 ```bash
