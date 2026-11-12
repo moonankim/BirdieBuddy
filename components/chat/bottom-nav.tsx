@@ -13,6 +13,6 @@ const items=[
 export function BottomNav(){
   const pathname=usePathname()??'';
   return <nav aria-label="주요 메뉴" className="bottom-nav !fixed !left-1/2 w-full max-w-[480px] -translate-x-1/2 !rounded-b-none">
-    {items.map(item=>{const active=pathname===item.href||pathname.startsWith(item.href+'/');return <Link key={item.href} href={item.href} aria-current={active?'page':undefined} className={`nav-item no-underline ${active?'active':''}`} style={{color:active?'var(--nav-active)':'var(--nav-muted)'}}><b>{item.icon}</b>{item.label}</Link>;})}
+    {items.map(item=>{const active=pathname===item.href||pathname.startsWith(item.href+'/');return <Link key={item.href} href={item.href} aria-current={active?'page':undefined} className={`nav-item no-underline ${active?'active':''}`}><b>{item.icon}</b>{item.label}</Link>;})}
   </nav>;
 }
