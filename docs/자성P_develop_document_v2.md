@@ -37,6 +37,15 @@
 
 ### 3.2 실제 SDK 연동 (홍주P 확인 필요)
 
+**계약 1.6 차이 (2026-11-12 `lib/api/types.ts` 대조).** 실제 SDK로 바꾸기 전에 목 SDK 타입과 화면을 먼저 맞춘다.
+
+- [x] ① 인박스 목록 구조: `getRoomInbox`가 `InboxPage`(`items` + `nextCursor` + `revision`)를 돌려주고, 항목은 `kind: 'question' | 'cluster'` 유니온이다(`inboxKey`·`priority`·`tieMessageId`·`replyTo`·`answered`·`replyId` 공통). 묶음은 인박스 목록 안의 항목으로 온다 → F-08·F-09 화면 재구성
+- [x] ② 답변 전송: `replyToMessage`에 `expectedClusterId`·`expectedClusterVersion`을 함께 보낸다(질문 항목은 `null`). 묶음이 바뀌었으면 오류 → 목록 재조회
+  - 2026-11-12 완료: 목 SDK·인박스 화면·테스트를 계약 1.6 형태로 변경. SOURCE_CHANGED는 목록을 다시 읽고 작성 중인 답변은 보존, 같은 ID 재시도 대신 새 전송. vitest 156건 통과, lint 오류 0
+- [ ] ③ 누락 메시지 복구: `reconcileRoomMessages`가 `updatedAfter`/`afterId` 대신 `checkpoint: MessageChangeCursor | null`을 주고받는다 → F-05 `use-room-messages`
+- [ ] ④ 본인 답변 표시: `Message.isReplyToMe`를 그대로 쓴다(질문 ID·묶음 ID 비교 제거) → F-05
+- [ ] ⑤ `getMyMembership(roomId)` → `getMyMembership({ roomId })` → F-04
+
 - [ ] 루트 `lib/api/types.ts`와 `BirdieBuddy-ui/components/chat/api/types.ts` 차이 비교, 다르면 실제 타입 기준으로 화면 수정
 - [ ] `ChatApiProvider` 주입을 더미 → `createBackendApi(client)`로 교체(더미는 테스트용으로 유지)
 - [ ] `lib/session`을 Supabase Auth 로그인/로그아웃으로 교체, 데모 계정 5종(userA·userB·influencer·pendingInfluencer·admin) 매핑은 `npm run demo:setup` 결과 기준
