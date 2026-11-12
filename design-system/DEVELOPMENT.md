@@ -5,6 +5,7 @@
 | 파일 | 사용처 |
 | --- | --- |
 | `tokens.css` | 색상·간격·서체·상태 토큰의 공통 원본. 정적 시안과 앱에서 직접 import |
+| `club.css` | 앱·시안이 공유하는 카드 중심 배너·원본 카드 표시 규칙 |
 | `app.css` | 프레임워크와 무관한 앱 구성요소. `bb-` 접두사, `components` 레이어 사용 |
 | `assets/icons.json` | 24×24 viewBox·1.75 선 굵기용 SVG path 목록 |
 | `assets/card-placeholder.svg` | 정적 HTML 등에서 사용하는 2:3 자리표시자 |
@@ -30,7 +31,7 @@ import {Icon} from '@/components/ui/icon';
 </button>
 ```
 
-예시의 `template`과 `reload`는 호출 화면에서 제공하는 값입니다. 등급은 `common/rare/epic/special`을 사용합니다. 카드 영역은 2:3이며 이미지는 잘리지 않게 `contain`으로 표시합니다. URL 누락·로드 실패에는 코드 기반 실루엣이 나타나고 `unowned`는 이미지가 있어도 미보유 실루엣을 표시합니다. 최종 카드 디자인과 뽑기 연출은 포함하지 않습니다.
+예시의 `template`과 `reload`는 호출 화면에서 제공하는 값입니다. 등급은 `common/rare/epic/special`을 사용합니다. 등급 배지는 이미지 밖에 표시합니다. 카드 영역은 2:3이며 이미지는 잘리지 않게 `contain`으로 표시합니다. URL 누락·로드 실패에는 코드 기반 실루엣이 나타나고 `unowned`는 이미지가 있어도 미보유 실루엣을 표시합니다. 최종 카드 디자인과 뽑기 연출은 포함하지 않습니다.
 
 `StatusPanel`의 `tone`은 `info/error/loading/empty`입니다. 오류는 alert, 나머지는 status로 알리고 loading 중 재시도 버튼은 표시하지 않습니다. 요청과 멱등 ID·권한 처리는 호출 화면과 SDK가 책임집니다. 의미 없는 정적 설명 전체를 live region으로 감싸지 않습니다.
 

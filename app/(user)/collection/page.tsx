@@ -16,8 +16,8 @@ function Collection(){
   const cards=mockCards.filter(c=>grade==='전체'||c.grade===grade);
   const showUnowned=tab==='all'&&grade==='전체';
   return <div>
-    <p className="eyebrow mt-2">MY COLLECTION</p>
-    <h1 className="page-title mt-1">차곡차곡, 나의 버디</h1>
+    <p className="eyebrow mt-2">나의 카드 앨범</p>
+    <h1 className="page-title mt-1">라운드로 채운 컬렉션</h1>
     <div className="statline mt-4 mb-2 flex justify-between text-[length:var(--type-caption)] text-[var(--text-secondary)]">수집한 카드 템플릿 <strong className="text-[var(--text-accent)]">{mockCards.length} / {TOTAL_TEMPLATES}</strong></div>
     <div className="progress" role="progressbar" aria-label="카드 템플릿 수집 현황" aria-valuenow={mockCards.length} aria-valuemin={0} aria-valuemax={TOTAL_TEMPLATES}><span style={{width:`${mockCards.length/TOTAL_TEMPLATES*100}%`}}/></div>
     <div className="tabs" aria-label="카드 보기">

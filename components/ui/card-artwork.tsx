@@ -13,15 +13,14 @@ export function GradeBadge({grade}:{grade:CardGrade}) {
 export function CardArtwork({src,name,grade,unowned=false}:{src?:string|null;name:string;grade?:CardGrade;unowned?:boolean}) {
   const [failedSrc,setFailedSrc]=useState<string|null>(null);
   const showImage=Boolean(src)&&src!==failedSrc&&!unowned;
-  return <div className="bb-card-art" data-state={unowned?'unowned':showImage?'image':'placeholder'}>
+  return <div className="bb-card-figure"><div className="bb-card-art" data-state={unowned?'unowned':showImage?'image':'placeholder'}>
     {showImage ? <Image unoptimized src={src!} alt={`${name} 카드`} fill sizes="(max-width: 480px) 45vw, 200px" onError={()=>setFailedSrc(src!)}/> :
       <svg className="bb-card-placeholder" viewBox="0 0 200 300" role="img" aria-label={unowned?'미보유 카드':`${name} 카드 이미지 준비 중`}>
         <path d="M0 230Q80 180 200 225V300H0Z" fill="var(--border-subtle)"/>
         <circle cx="100" cy="115" r="28" fill="var(--text-secondary)"/>
         <path d="M50 235c0-53 17-82 50-82s50 29 50 82" fill="var(--text-secondary)"/>
       </svg>}
-    {grade&&<GradeBadge grade={grade}/>}
-  </div>;
+  </div>{grade&&<div className="bb-card-grade"><GradeBadge grade={grade}/></div>}</div>;
 }
 
 export function StatusPanel({title,children,tone='info',onRetry,retryLabel='다시 시도'}:{title:string;children?:ReactNode;tone?:'info'|'error'|'loading'|'empty';onRetry?:()=>void;retryLabel?:string}) {
