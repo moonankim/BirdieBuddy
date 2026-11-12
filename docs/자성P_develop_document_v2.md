@@ -1,7 +1,7 @@
 # BirdieBuddy — 자성P 프론트엔드 개발 정의서 v2
 
 - 작성일: 2026-11-11
-- 기준 문서: `prd.md`, `architecture.md`, `홍주P_plan.md`(SDK 계약 §6~9), `현호P_plan.md`, `design-system/README.md`
+- 기준 문서: `prd.md`, `architecture.md`, `홍주P_plan.md`(SDK 계약 §6~9), `현호P_plan.md`, `design.md`, `design-system/README.md`
 - 상세 화면 스펙·오류 처리·더미 SDK 규칙은 v1(`자성P_develop_document.md`)을 그대로 따른다. v2는 **현재 상태와 남은 작업**만 다룬다.
 
 ## 1. 현재 상태 요약
@@ -37,6 +37,15 @@
 
 ### 3.2 실제 SDK 연동 (홍주P 확인 필요)
 
+**계약 1.6 차이 (2026-11-12 `lib/api/types.ts` 대조).** 실제 SDK로 바꾸기 전에 목 SDK 타입과 화면을 먼저 맞춘다.
+
+- [x] ① 인박스 목록 구조: `getRoomInbox`가 `InboxPage`(`items` + `nextCursor` + `revision`)를 돌려주고, 항목은 `kind: 'question' | 'cluster'` 유니온이다(`inboxKey`·`priority`·`tieMessageId`·`replyTo`·`answered`·`replyId` 공통). 묶음은 인박스 목록 안의 항목으로 온다 → F-08·F-09 화면 재구성
+- [x] ② 답변 전송: `replyToMessage`에 `expectedClusterId`·`expectedClusterVersion`을 함께 보낸다(질문 항목은 `null`). 묶음이 바뀌었으면 오류 → 목록 재조회
+  - 2026-11-12 완료: 목 SDK·인박스 화면·테스트를 계약 1.6 형태로 변경. SOURCE_CHANGED는 목록을 다시 읽고 작성 중인 답변은 보존, 같은 ID 재시도 대신 새 전송. vitest 156건 통과, lint 오류 0
+- [ ] ③ 누락 메시지 복구: `reconcileRoomMessages`가 `updatedAfter`/`afterId` 대신 `checkpoint: MessageChangeCursor | null`을 주고받는다 → F-05 `use-room-messages`
+- [ ] ④ 본인 답변 표시: `Message.isReplyToMe`를 그대로 쓴다(질문 ID·묶음 ID 비교 제거) → F-05
+- [ ] ⑤ `getMyMembership(roomId)` → `getMyMembership({ roomId })` → F-04
+
 - [ ] 루트 `lib/api/types.ts`와 `BirdieBuddy-ui/components/chat/api/types.ts` 차이 비교, 다르면 실제 타입 기준으로 화면 수정
 - [ ] `ChatApiProvider` 주입을 더미 → `createBackendApi(client)`로 교체(더미는 테스트용으로 유지)
 - [ ] `lib/session`을 Supabase Auth 로그인/로그아웃으로 교체, 데모 계정 5종(userA·userB·influencer·pendingInfluencer·admin) 매핑은 `npm run demo:setup` 결과 기준
@@ -52,11 +61,12 @@
 
 ### 3.4 현호P 화면 교체 (현호P와 합의)
 
-- [ ] 홈 경로 확정: `/home` 별도(라운드 완료 → `/draw` 연출) 또는 `/draw` 하나로 겸용. 정해지면 하단 바·로그인 후 첫 화면(`homeFor`, 현재 팬은 `/chat`)을 맞춘다
+- [ ] 홈 경로 확정: `/home` 별도(라운드 완료 → `/draw` 결과) 또는 `/draw` 하나로 겸용. 정해지면 하단 바·로그인 후 첫 화면(`homeFor`, 현재 팬은 `/chat`)을 맞춘다. 뽑기 연출은 미정이다.
 - [ ] `/home`·`/collection`·`/draw` 목업과 `_mock/cards.ts`를 현호P 화면으로 교체
 - [ ] 뽑기 결과의 "입장 가능" 안내에서 `/chat/[roomId]`로 이동하는 링크 합의
 - [ ] 홈 라운드 정보에 "이번 달 라운드 N회 남음, 소진 전까지 남은 기간" 포함(PRD 4절 "게임 시작 전" 알림)
 - [ ] 디자인 시스템 원본이 바뀌면 `app/design-system.css` 재동기화
+- [ ] 앱 화면은 `design.md`와 디자인 시스템을 따르고 카드 표시 영역은 2:3으로 준비한다. 최종 카드 디자인은 별도 프로젝트에서 전달받는다.
 
 ### 3.5 남은 기능 보강 (P2 후순위)
 

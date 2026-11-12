@@ -1,4 +1,4 @@
-// 회귀 스크립트(문환P_plan 6.8). 사용법: regress.ts <fallback|rooms|full> [--data=<dir>] [--validate]
+// 회귀 스크립트(문환P_plan 6.8). 사용법: regress.ts <fallback|rooms|full|obfuscation> [--data=<dir>] [--validate]
 // fallback은 키를 읽지 않는다(--allow-env 없이 실행). rooms·full은 유료 호출이다.
 import { CATEGORIES, FLAG_THRESHOLD, JEV_CONTEXT, type FilterCategory } from "../../../supabase/functions/_shared/ai/categories.ts";
 import { CLAUDE_MODEL, createClaudeCreate } from "../../../supabase/functions/_shared/ai/claude.ts";
@@ -6,7 +6,8 @@ import { clusterQuestions } from "../../../supabase/functions/_shared/ai/cluster
 import { decide, toQuality } from "../../../supabase/functions/_shared/ai/decide.ts";
 import { type AiDeps, envDeps } from "../../../supabase/functions/_shared/ai/deps.ts";
 import { callJev, JevError } from "../../../supabase/functions/_shared/ai/jev.ts";
-import { KEYWORDS } from "../../../supabase/functions/_shared/ai/keywords.ts";
+import { fallbackModerate } from "../../../supabase/functions/_shared/ai/fallback.ts";
+import { evasionHits, KEYWORDS } from "../../../supabase/functions/_shared/ai/keywords.ts";
 import { moderateAndScore } from "../../../supabase/functions/_shared/ai/moderate.ts";
 import { buildSummaryRequest, summarize } from "../../../supabase/functions/_shared/ai/summarize.ts";
 
@@ -22,6 +23,7 @@ type ModRow = {
 type EvalRow = { text: string; category: string };
 type InfRow = { text: string; expected_verdict: Verdict; category: string };
 type DemoRow = InfRow & { disabledFilters: string[] };
+type ObfRow = { text: string; category: string; expected_verdict: Verdict; rule: string; split: "tune" | "validate" };
 type Room = { messages: { id: number; nickname: string; text: string }[] };
 
 const mode = Deno.args.find((a) => !a.startsWith("--"));
@@ -106,6 +108,23 @@ async function writeResults(name: string, data: unknown) {
   console.log(`결과 파일: results/${name}-${stamp}.{json,md}`);
 }
 
+// 우회 세트 보고. split별 판정 일치 수와 불일치 행을 출력한다. detail은 행마다 덧붙일 설명(점수 등)이다.
+type ObfActual = { verdict: Verdict; category: string | null; detail: string };
+function reportObfuscation(title: string, rows: ObfRow[], actual: ObfActual[]) {
+  out(`\n## ${title}`);
+  for (const split of ["tune", "validate"] as const) {
+    const idx = rows.flatMap((r, i) => (r.split === split ? [i] : []));
+    const ok = idx.filter((i) => actual[i].verdict === rows[i].expected_verdict);
+    const blockIdx = idx.filter((i) => rows[i].expected_verdict === "block");
+    const blockOk = blockIdx.filter((i) => actual[i].verdict === "block");
+    out(`- ${split}: 일치 ${ok.length}/${idx.length}, block 기대 일치 ${blockOk.length}/${blockIdx.length}, pass 기대 일치 ${ok.length - blockOk.length}/${idx.length - blockIdx.length}, 정상 행 오차단(block) ${idx.filter((i) => rows[i].expected_verdict === "pass" && actual[i].verdict === "block").length}`);
+    for (const i of idx) {
+      if (actual[i].verdict === rows[i].expected_verdict) continue;
+      out(`  - 불일치 기대 ${rows[i].expected_verdict}/${rows[i].category} 실제 ${actual[i].verdict}/${actual[i].category ?? "none"}${actual[i].detail} ${cut(rows[i].text)}`);
+    }
+  }
+}
+
 // ---------------------------------------------------------------- fallback
 async function runFallback() {
   const logs: string[] = [];
@@ -163,6 +182,22 @@ async function runFallback() {
   out(`\n## 고정값 검증`);
   out(`- 모든 결과 passesAllFilters=false, quality=50, rewrite=null: ${allFixed}`);
   out(`- 로그 ${logs.length}줄 / 호출 ${calls}회, no_key 외 로그 ${badLogs.length}줄`);
+
+  const obfRows = await loadJson<ObfRow[]>("obfuscation-set.json");
+  const obfActual = obfRows.map((r): ObfActual => {
+    const m = fallbackModerate(r.text, []);
+    return { verdict: m.verdict, category: m.category, detail: "" };
+  });
+  reportObfuscation("우회 세트 (폴백 키워드, 정보용: 종료 코드에 반영하지 않는다)", obfRows, obfActual);
+  // 본경로가 Jev 점수 위에 올리는 것은 evasionHits의 illegal_ad뿐이다(moderate.ts).
+  out(`\n## 우회 세트 본경로 반영 수 (evasionHits의 illegal_ad)`);
+  for (const split of ["tune", "validate"] as const) {
+    const reflected = (expected: Verdict) =>
+      obfRows.filter((r) => r.split === split && r.expected_verdict === expected && evasionHits(r.text).includes("illegal_ad"));
+    const blockRows = obfRows.filter((r) => r.split === split && r.expected_verdict === "block");
+    const passRows = obfRows.filter((r) => r.split === split && r.expected_verdict === "pass");
+    out(`- ${split}: block 기대 ${reflected("block").length}/${blockRows.length}, pass 기대(정상 행) ${reflected("pass").length}/${passRows.length}`);
+  }
 
   await writeResults("fallback", { fp, keywordResults, allFixed, logLines: logs.length, calls, badLogs: badLogs.length });
   if (!allFixed || badLogs.length > 0 || logs.length !== calls || fp["quality"].length > 0 || keywordMismatch > 0) Deno.exit(1);
@@ -248,6 +283,47 @@ async function runRooms() {
 // 우리 모듈이 만든 오류만 메시지를 보인다. SDK 오류 메시지는 출력하지 않는다.
 function safeMessage(e: unknown, prefix: string): string {
   return e instanceof Error && e.message.startsWith(prefix) ? e.message : "provider_error";
+}
+
+// ---------------------------------------------------------------- obfuscation
+// Jev 원문 판정(judge)과 최종 판정(moderateAndScore, evasionHits 포함)을 둘 다 잰다. 둘을 비교해 우회 대응 코드의 효과를 본다.
+async function judgeObfuscation(rows: ObfRow[], deps: AiDeps) {
+  const judged = await pool(rows, 3, (r) => judge(r.text, deps));
+  const actual = judged.map((j): ObfActual => ({ verdict: j.verdict, category: j.category, detail: ` (${violations(j.scores)})` }));
+  return { judged, actual };
+}
+
+// 본경로 전체 판정. suggest이면 수정 문장 생성에 Claude를 부르므로 행마다 한 번만 호출한다.
+async function moderateObfuscation(rows: ObfRow[], deps: AiDeps) {
+  const results = await pool(rows, 3, (r) => moderateAndScore({ body: r.text, disabledFilters: [], signal, senderType: "user" }, deps));
+  const actual = results.map((r): ObfActual => ({ verdict: r.verdict, category: r.category, detail: "" }));
+  return { results, actual };
+}
+
+async function measureObfuscation(rows: ObfRow[], deps: AiDeps, logs: string[]) {
+  const jev = await judgeObfuscation(rows, deps);
+  const final = await moderateObfuscation(rows, deps);
+  assertNoFallback("우회 세트 최종 판정", logs);
+  reportObfuscation("우회 세트 (Jev 원문 판정)", rows, jev.actual);
+  reportObfuscation("우회 세트 (최종 판정 moderateAndScore)", rows, final.actual);
+  return {
+    rows: rows.map((r, i) => ({
+      ...r,
+      jev: { verdict: jev.judged[i].verdict, category: jev.judged[i].category, scores: jev.judged[i].scores },
+      final: { verdict: final.results[i].verdict, category: final.results[i].category },
+    })),
+  };
+}
+
+async function runObfuscation() {
+  const logs: string[] = [];
+  const deps = requireKeyedDeps(logs);
+  const rows = await loadJson<ObfRow[]>("obfuscation-set.json");
+  out(`# obfuscation 모드 (${new Date().toISOString()})`);
+  const result = await measureObfuscation(rows, deps, logs);
+  out(`\n## 행별 판정`);
+  result.rows.forEach((r, i) => out(`- [${r.split}] Jev ${r.jev.verdict}/${r.jev.category ?? "none"} 최종 ${r.final.verdict}/${r.final.category ?? "none"} 기대 ${rows[i].expected_verdict}/${rows[i].category} ${cut(r.text)}`));
+  await writeResults("obfuscation", result);
 }
 
 // ---------------------------------------------------------------- full
@@ -458,13 +534,20 @@ async function runFull() {
     out(`- 일치 ${ok}/${evalRows.length}`);
   }
 
-  await writeResults("full", { matrix, groupStat, blockToPass, effectiveBlockToPass, effectiveTotal, mismatches: mismatches.length, rewriteSamples, infResults, demoResults, validateResults });
+  let obfuscationResult: Awaited<ReturnType<typeof measureObfuscation>> | null = null;
+  if (validate) {
+    const obfRows = await loadJson<ObfRow[]>("obfuscation-set.json");
+    obfuscationResult = await measureObfuscation(obfRows, deps, logs);
+  }
+
+  await writeResults("full", { matrix, groupStat, blockToPass, effectiveBlockToPass, effectiveTotal, mismatches: mismatches.length, rewriteSamples, infResults, demoResults, validateResults, obfuscation: obfuscationResult });
 }
 
 if (mode === "fallback") await runFallback();
 else if (mode === "rooms") await runRooms();
 else if (mode === "full") await runFull();
+else if (mode === "obfuscation") await runObfuscation();
 else {
-  console.log("사용법: regress.ts <fallback|rooms|full> [--data=<dir>] [--validate]");
+  console.log("사용법: regress.ts <fallback|rooms|full|obfuscation> [--data=<dir>] [--validate]");
   Deno.exit(1);
 }

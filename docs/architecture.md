@@ -77,7 +77,7 @@ BirdieBuddy/
 │  └─ *_plan.md                        # 담당자별 실행 계획
 ├─ app/                                # CSR 화면·라우팅
 │  ├─ (user)/
-│  │  ├─ draw/                         # 뽑기 연출·결과 — 현호P
+│  │  ├─ draw/                         # 발급 결과 — 현호P, 뽑기 연출 미정
 │  │  ├─ collection/                   # 컬렉션·강화 — 현호P
 │  │  │  ├─ owned/                     # 보유 카드 — 현호P (P1), /collection/owned
 │  │  │  └─ upgrade/                   # 보유 카드 강화 — 현호P (P1), /collection/upgrade
@@ -85,7 +85,7 @@ BirdieBuddy/
 │  ├─ inbox/                           # 인플루언서 인박스 — 자성P
 │  └─ admin/                           # 인증 심사·관리 화면 — 자성P
 ├─ components/
-│  ├─ card/                            # 카드·카드팩·등급 효과 — 현호P
+│  ├─ card/                            # 카드·등급 표시 — 현호P
 │  ├─ chat/                            # 메시지·게이지·배지 — 자성P
 │  │  └─ use-room-messages.ts          # SDK 구독 helper 연결 — 자성P
 │  └─ ui/                              # 공통 UI — 자성P 셋업·현호P 디자인
@@ -280,13 +280,13 @@ Node 스크립트는 로컬 준비·테스트 도구이며 새로운 런타임 �
 | 자성P | 채팅 중심 프론트 | 프로젝트 셋업·방/채팅·인박스·관리자 화면·SDK 구독 연결 | F-01~F-16 | [자성P_plan.md](./자성P_plan.md) |
 | 홍주P | Supabase 백엔드·SDK | schema/RLS/RPC·시드·채팅/게임/인증·인사말·전체 메시지·삭제·프로필 사진·Edge 전송 계층·검증·배포 절차 | B-01~B-17 | [홍주P_plan.md](./홍주P_plan.md) |
 | 문환P | AI 활용 | 의사결정 모델(jev)·필터/품질·묶기/요약·금칙어 fallback·테스트 세트·카드 발급 함수 | A-01~A-05, A-07~A-09 | [문환P_plan.md](./문환P_plan.md) |
-| 현호P | 카드 UI·디자인 | 뽑기/컬렉션/강화·전체 디자인·프레임·배지·카드 이미지 생성 | D-01~D-11, A-06 | [현호P_plan.md](./현호P_plan.md) |
+| 현호P | 카드 UI·디자인 | 발급 결과/컬렉션/강화·전체 디자인·프레임·배지·별도 카드 디자인 프로젝트 연계. 뽑기 연출은 미정 | D-01~D-11, A-06 | [현호P_plan.md](./현호P_plan.md) |
 | 미정 | 시연·발표 | 대본·발표 자료 | U-01 | [anonymous-plan.md](./anonymous-plan.md) |
 
 - 카드: 홍주P cards SDK → 현호P 연출·컬렉션 화면.
 - 채팅: 홍주P rooms/chat SDK·구독 helper → 자성P 화면·use-room-messages.ts.
 - AI: 문환P 실제 adapter → 홍주P JWT 인증 Edge Function → service-only 저장 RPC.
-- 이미지: 현호P 아트 디렉션(D-02)·생성(A-06) → 홍주P card-assets/seed 연결(B-02).
+- 이미지: 별도 카드 디자인 프로젝트의 2:3 카드(D-02·A-06) → 홍주P card-assets/seed 연결(B-02). 앱 전반의 기준은 [디자인 가이드](./design.md)를 따른다.
 - 설정·인증: 홍주P 권한 검증 RPC/SDK → 자성P 관리자 화면.
 
 실제 AI·이미지·화면을 기다리는 동안에는 홍주P 계획 §3의 가상 인물·placeholder·fixture·SDK 테스트를 사용한다. 백엔드 코드·로컬 완료와 팀 전체 데모 완료를 구분한다.

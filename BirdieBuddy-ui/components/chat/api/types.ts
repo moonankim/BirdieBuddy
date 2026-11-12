@@ -13,7 +13,12 @@ export type RoomGreeting = {roomId:UUID;text:string;isDefault:boolean;maxLength:
 export type RoomDailyBlockCount = {roomId:UUID;day:string;count:number};
 export type MyInfluencerProfile = {influencerId:UUID;influencerName:string;verifiedAt:string;profileImageUrl:string|null;fallbackImageUrl:string|null};
 export type Verification = {id:UUID;influencerId:UUID;type:InfluencerType;evidenceUrl:string;status:'pending'|'approved'|'rejected';createdAt:string;reviewedAt:string|null;rejectionReason:string|null};
-export type InboxItem = Message & {answered:boolean;replyId:MessageId|null;passesAllFilters:boolean};
+// 홍주P 계약 1.6 §6.1 (lib/api/types.ts와 동일 형태)
+export type InboxItemBase = {inboxKey:string;priority:number;tieMessageId:MessageId;replyTo:MessageId;answered:boolean;replyId:MessageId|null};
+export type InboxItem =
+  | (InboxItemBase & {kind:'question';expectedClusterId:null;expectedClusterVersion:null;question:Message})
+  | (InboxItemBase & {kind:'cluster';expectedClusterId:UUID;expectedClusterVersion:number;clusterId:UUID;representative:string;memberCount:number;activeMessageIds:MessageId[]});
+export type InboxPage = Page<InboxItem> & {revision:string};
 export type SubmitMessageData = {verdict:'pass';message:Message;category:null;reason:null;rewrite:null;passesAllFilters:boolean}|{verdict:'suggest';message:null;category:string;reason:string;rewrite:string|null;rewriteQuality:number|null;suggestionToken:string|null;expiresAt:string|null;passesAllFilters:false}|{verdict:'block';message:null;category:string;reason:string;rewrite:null;rewriteQuality:null;suggestionToken:null;expiresAt:null;passesAllFilters:false};
 export type SubscribeStatus = 'SUBSCRIBED'|'TIMED_OUT'|'CHANNEL_ERROR'|'CLOSED';
 export type ReconcileRoomMessagesData = {messages:Message[];updatedAfter:string|null;afterId:MessageId|null};

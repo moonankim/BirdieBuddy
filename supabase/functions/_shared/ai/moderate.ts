@@ -5,6 +5,7 @@ import { decide, toQuality } from "./decide.ts";
 import type { AiDeps } from "./deps.ts";
 import { fallbackModerate } from "./fallback.ts";
 import { JevError } from "./jev.ts";
+import { evasionHits } from "./keywords.ts";
 
 const TOTAL_MS = 8000;
 const JEV_MS = 4000;
@@ -46,7 +47,12 @@ export async function moderateAndScore(input: Input, deps: AiDeps): Promise<Mode
     return fallback(e instanceof JevError ? e.reason : "provider_error");
   }
 
-  const decision = decide(judged.scores, input.disabledFilters);
+  // Jev는 원문만 보므로 기호·자모·닮은꼴로 숨긴 불법 광고를 놓친다. 정규화본에서만 드러나는 illegal_ad만 올린다.
+  // 다른 항목의 우회 적중은 오탐 위험이 커서 본경로에 반영하지 않는다. illegal_ad는 항상 차단 항목이다.
+  const scores = evasionHits(input.body).includes("illegal_ad")
+    ? { ...judged.scores, illegal_ad: Math.max(judged.scores.illegal_ad, 1) }
+    : judged.scores;
+  const decision = decide(scores, input.disabledFilters);
   const result: ModerationResult = {
     verdict: decision.verdict,
     category: decision.category,

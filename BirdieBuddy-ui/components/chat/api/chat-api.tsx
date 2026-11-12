@@ -1,14 +1,14 @@
 'use client';
 import {createContext,useContext,useEffect,useMemo,useRef,type ReactNode} from 'react';
-import type {Membership,Message,Page,Result,RoomCatalogItem,RoundGaugeSummary,SubmitMessageData,SubscribeStatus,ReconcileRoomMessagesData,Verification,InfluencerType,InboxItem,RoomDailyBlockCount,RoomGreeting,MyInfluencerProfile} from './types';
+import type {Membership,Message,Page,Result,RoomCatalogItem,RoundGaugeSummary,SubmitMessageData,SubscribeStatus,ReconcileRoomMessagesData,Verification,InfluencerType,InboxPage,RoomDailyBlockCount,RoomGreeting,MyInfluencerProfile} from './types';
 export type ChatApi = {
  getMyVerifications(input?:{cursor?:string;limit?:number}):Promise<Result<Page<Verification>>>;
  getPendingVerifications(input?:{cursor?:string;limit?:number}):Promise<Result<Page<Verification>>>;
  requestVerification(input:{requestId:string;type:InfluencerType;evidenceUrl:string}):Promise<Result<{verification:Verification}>>;
  approveVerification(input:{requestId:string;verificationId:string;decision:'approved'|'rejected';reason?:string}):Promise<Result<{verification:Verification;verifiedAt:string|null}>>;
- getRoomInbox(input:{roomId:string;includeAnswered?:boolean;cursor?:string;limit?:number}):Promise<Result<Page<InboxItem>>>;
+ getRoomInbox(input:{roomId:string;includeAnswered?:boolean;cursor?:string|null;limit?:number}):Promise<Result<InboxPage>>;
  getRoomDailyBlockCount(input:{roomId:string}):Promise<Result<RoomDailyBlockCount>>;
- replyToMessage(input:{requestId:string;roomId:string;replyTo:string;body:string}):Promise<Result<Message>>;
+ replyToMessage(input:{requestId:string;roomId:string;replyTo:string;expectedClusterId:string|null;expectedClusterVersion:number|null;body:string}):Promise<Result<Message>>;
  sendBroadcast(input:{requestId:string;roomId:string;body:string}):Promise<Result<Message>>;
  deleteInfluencerMessage(input:{requestId:string;roomId:string;messageId:string}):Promise<Result<{message:Message}>>;
  advanceDemoMonth(input:{requestId:string;targetMonth:string}):Promise<Result<{closedMonth:string;currentMonth:string;applied:boolean;members:{roomId:string;userId:string;roundCount:number;previousGauge:number;gauge:number;status:'active'|'left'}[]}>>;
