@@ -68,5 +68,15 @@
   {"text":"홀 덤으로 하나 더 치고 갈게요","category":"none","expected_verdict":"pass","rule":"공백 이어 붙임","split":"validate"},
   {"text":"H 아이언 대신 유틸 쓰세요","category":"none","expected_verdict":"pass","rule":"영문 닮은꼴","split":"validate"},
   {"text":"ㅎㅎ 바 카운터 앞에서 사인 받았어요","category":"none","expected_verdict":"pass","rule":"정상어","split":"validate"},
-  {"text":"TOTO 비데처럼 깔끔한 스윙이네요","category":"none","expected_verdict":"pass","rule":"영문 브랜드","split":"validate"}
+  {"text":"TOTO 비데처럼 깔끔한 스윙이네요","category":"none","expected_verdict":"pass","rule":"영문 브랜드","split":"validate"},
+  {"text":"ㅂr카라ㅋ 첫충","category":"illegal_ad","expected_verdict":"block","rule":"최종 리뷰 근거: 금칙어 뒤 낱자 초성","split":"tune"},
+  {"text":"카ㅈ1노ㅎ 오픈","category":"illegal_ad","expected_verdict":"block","rule":"최종 리뷰 근거: 금칙어 뒤 낱자 초성","split":"tune"},
+  {"text":"ㅌㅗㅌㅗ ㅋ 픽방","category":"illegal_ad","expected_verdict":"block","rule":"최종 리뷰 근거: 금칙어 뒤 낱자 초성","split":"tune"},
+  {"text":"꽁머ㄴlㅋ 지급","category":"illegal_ad","expected_verdict":"block","rule":"최종 리뷰 근거: 금칙어 뒤 낱자 초성","split":"tune"},
+  {"text":"ㅋr지노 먹튀 없는 곳","category":"illegal_ad","expected_verdict":"block","rule":"최종 리뷰 근거: 섞인 메시지","split":"tune"},
+  {"text":"ⓒⓐⓢⓘⓝⓞ 먹튀 없음","category":"illegal_ad","expected_verdict":"block","rule":"최종 리뷰 근거: 섞인 메시지","split":"tune"},
+  {"text":"ㅂr카라 슬롯 첫충","category":"illegal_ad","expected_verdict":"block","rule":"최종 리뷰 근거: 섞인 메시지","split":"tune"},
+  {"text":"카ㅈ1노 slot 이벤트","category":"illegal_ad","expected_verdict":"block","rule":"최종 리뷰 근거: 섞인 메시지","split":"tune"},
+  {"text":"토토로ㅋ 다시 봤어요","category":"none","expected_verdict":"pass","rule":"최종 리뷰 근거: 금칙어 뒤 낱자 초성","split":"tune"},
+  {"text":"홀덤으로ㅎ 한 홀 더 쳤어요","category":"none","expected_verdict":"pass","rule":"최종 리뷰 근거: 금칙어 뒤 낱자 초성","split":"tune"}
 ]

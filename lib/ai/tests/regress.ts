@@ -117,7 +117,7 @@ function reportObfuscation(title: string, rows: ObfRow[], actual: ObfActual[]) {
     const ok = idx.filter((i) => actual[i].verdict === rows[i].expected_verdict);
     const blockIdx = idx.filter((i) => rows[i].expected_verdict === "block");
     const blockOk = blockIdx.filter((i) => actual[i].verdict === "block");
-    out(`- ${split}: 일치 ${ok.length}/${idx.length}, block 기대 일치 ${blockOk.length}/${blockIdx.length}, pass 기대 일치 ${ok.length - blockOk.length}/${idx.length - blockIdx.length}`);
+    out(`- ${split}: 일치 ${ok.length}/${idx.length}, block 기대 일치 ${blockOk.length}/${blockIdx.length}, pass 기대 일치 ${ok.length - blockOk.length}/${idx.length - blockIdx.length}, 정상 행 오차단(block) ${idx.filter((i) => rows[i].expected_verdict === "pass" && actual[i].verdict === "block").length}`);
     for (const i of idx) {
       if (actual[i].verdict === rows[i].expected_verdict) continue;
       out(`  - 불일치 기대 ${rows[i].expected_verdict}/${rows[i].category} 실제 ${actual[i].verdict}/${actual[i].category ?? "none"}${actual[i].detail} ${cut(rows[i].text)}`);
@@ -286,11 +286,33 @@ function safeMessage(e: unknown, prefix: string): string {
 }
 
 // ---------------------------------------------------------------- obfuscation
-// 원문을 그대로 Jev에 보내는 본경로 판정만 잰다. 우회 대응 코드가 생기면 이 모드가 그 효과를 비교하는 기준선이다.
+// Jev 원문 판정(judge)과 최종 판정(moderateAndScore, evasionHits 포함)을 둘 다 잰다. 둘을 비교해 우회 대응 코드의 효과를 본다.
 async function judgeObfuscation(rows: ObfRow[], deps: AiDeps) {
   const judged = await pool(rows, 3, (r) => judge(r.text, deps));
   const actual = judged.map((j): ObfActual => ({ verdict: j.verdict, category: j.category, detail: ` (${violations(j.scores)})` }));
   return { judged, actual };
+}
+
+// 본경로 전체 판정. suggest이면 수정 문장 생성에 Claude를 부르므로 행마다 한 번만 호출한다.
+async function moderateObfuscation(rows: ObfRow[], deps: AiDeps) {
+  const results = await pool(rows, 3, (r) => moderateAndScore({ body: r.text, disabledFilters: [], signal, senderType: "user" }, deps));
+  const actual = results.map((r): ObfActual => ({ verdict: r.verdict, category: r.category, detail: "" }));
+  return { results, actual };
+}
+
+async function measureObfuscation(rows: ObfRow[], deps: AiDeps, logs: string[]) {
+  const jev = await judgeObfuscation(rows, deps);
+  const final = await moderateObfuscation(rows, deps);
+  assertNoFallback("우회 세트 최종 판정", logs);
+  reportObfuscation("우회 세트 (Jev 원문 판정)", rows, jev.actual);
+  reportObfuscation("우회 세트 (최종 판정 moderateAndScore)", rows, final.actual);
+  return {
+    rows: rows.map((r, i) => ({
+      ...r,
+      jev: { verdict: jev.judged[i].verdict, category: jev.judged[i].category, scores: jev.judged[i].scores },
+      final: { verdict: final.results[i].verdict, category: final.results[i].category },
+    })),
+  };
 }
 
 async function runObfuscation() {
@@ -298,12 +320,10 @@ async function runObfuscation() {
   const deps = requireKeyedDeps(logs);
   const rows = await loadJson<ObfRow[]>("obfuscation-set.json");
   out(`# obfuscation 모드 (${new Date().toISOString()})`);
-  const { judged, actual } = await judgeObfuscation(rows, deps);
-  reportObfuscation("우회 세트 (Jev 원문 판정)", rows, actual);
+  const result = await measureObfuscation(rows, deps, logs);
   out(`\n## 행별 판정`);
-  rows.forEach((r, i) => out(`- [${r.split}] ${actual[i].verdict}/${actual[i].category ?? "none"}${actual[i].detail} 기대 ${r.expected_verdict}/${r.category} ${cut(r.text)}`));
-  assertNoFallback("우회 세트", logs);
-  await writeResults("obfuscation", { rows: rows.map((r, i) => ({ ...r, verdict: judged[i].verdict, actualCategory: judged[i].category, scores: judged[i].scores })) });
+  result.rows.forEach((r, i) => out(`- [${r.split}] Jev ${r.jev.verdict}/${r.jev.category ?? "none"} 최종 ${r.final.verdict}/${r.final.category ?? "none"} 기대 ${rows[i].expected_verdict}/${rows[i].category} ${cut(r.text)}`));
+  await writeResults("obfuscation", result);
 }
 
 // ---------------------------------------------------------------- full
@@ -514,13 +534,13 @@ async function runFull() {
     out(`- 일치 ${ok}/${evalRows.length}`);
   }
 
+  let obfuscationResult: Awaited<ReturnType<typeof measureObfuscation>> | null = null;
   if (validate) {
     const obfRows = await loadJson<ObfRow[]>("obfuscation-set.json");
-    const obf = await judgeObfuscation(obfRows, deps);
-    reportObfuscation("우회 세트 (Jev 원문 판정)", obfRows, obf.actual);
+    obfuscationResult = await measureObfuscation(obfRows, deps, logs);
   }
 
-  await writeResults("full", { matrix, groupStat, blockToPass, effectiveBlockToPass, effectiveTotal, mismatches: mismatches.length, rewriteSamples, infResults, demoResults, validateResults });
+  await writeResults("full", { matrix, groupStat, blockToPass, effectiveBlockToPass, effectiveTotal, mismatches: mismatches.length, rewriteSamples, infResults, demoResults, validateResults, obfuscation: obfuscationResult });
 }
 
 if (mode === "fallback") await runFallback();
