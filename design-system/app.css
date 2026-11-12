@@ -1,0 +1,37 @@
+/* 앱용 구성요소. 시안의 .phone/.page-wrap 레이아웃에는 의존하지 않는다. */
+@import './tokens.css';
+
+@layer components {
+  .bb-stack { display: grid; gap: var(--space-4); min-width: 0; }
+  .bb-panel { padding: var(--space-4); background: var(--surface-raised); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); overflow-wrap: anywhere; }
+  .bb-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .bb-button { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: var(--touch-target); padding: var(--space-3) var(--space-4); border: 1px solid transparent; border-radius: var(--radius-sm); background: var(--action-primary); color: var(--text-inverse); font: 700 var(--type-label)/1.5 var(--font); text-decoration: none; cursor: pointer; touch-action: manipulation; }
+  .bb-button--secondary { background: var(--surface-raised); color: var(--text-accent); border-color: var(--border-input); }
+  .bb-button:disabled, .bb-button[aria-disabled="true"] { background: var(--action-disabled); color: var(--text-disabled); cursor: not-allowed; }
+  .bb-button:not(:disabled):not([aria-disabled="true"]):active { background: var(--action-pressed); color: var(--text-inverse); }
+  .bb-button:focus-visible, .bb-field:focus-visible, .bb-details summary:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
+  .bb-field { display: block; width: 100%; min-width: 0; min-height: 48px; padding: var(--space-3); border: 1px solid var(--border-input); border-radius: var(--radius-sm); background: var(--surface-raised); color: var(--text-primary); font: var(--type-body)/var(--line-body) var(--font); }
+  textarea.bb-field { min-height: 120px; resize: vertical; }
+  .bb-field[aria-invalid="true"] { border-color: var(--status-error); }
+  .bb-field:disabled { background: var(--action-disabled); color: var(--text-disabled); }
+  .bb-icon { display: inline-block; width: 24px; height: 24px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; }
+  .bb-badge { display: inline-flex; align-items: center; gap: var(--space-1); padding: var(--space-1) var(--space-2); border-radius: var(--radius-pill); background: var(--surface-neutral); color: var(--text-secondary); font: 700 var(--type-caption)/1.5 var(--font); }
+  .bb-badge[data-grade="rare"] { background: var(--surface-subtle); color: var(--text-accent); }
+  .bb-badge[data-grade="epic"] { background: var(--surface-epic); color: var(--text-epic); }
+  .bb-badge[data-grade="special"] { background: var(--surface-special); color: var(--text-special); }
+  .bb-card-art { position: relative; isolation: isolate; width: 100%; aspect-ratio: 2 / 3; overflow: hidden; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); background: var(--surface-subtle); }
+  .bb-card-art > img, .bb-card-placeholder { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+  .bb-card-art[data-state="unowned"] { background: var(--surface-neutral); }
+  .bb-card-art .bb-badge { position: absolute; z-index: 1; top: var(--space-2); left: var(--space-2); }
+  .bb-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+  .bb-card-grid > * { min-width: 0; overflow-wrap: anywhere; }
+  .bb-state { display: grid; gap: var(--space-2); padding: var(--space-4); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--surface-raised); overflow-wrap: anywhere; }
+  .bb-state[data-tone="error"] { border-color: var(--status-error); background: var(--surface-error); }
+  .bb-state p { margin: 0; color: var(--text-secondary); font-size: var(--type-label); }
+  .bb-state .bb-button { justify-self: start; }
+  .bb-details summary { display: list-item; min-height: var(--touch-target); padding: var(--space-3) 0; color: var(--text-accent); cursor: pointer; }
+  .bb-skeleton { min-height: 1em; border-radius: var(--radius-sm); background: var(--surface-neutral); }
+}
+@media (hover: hover) {
+  .bb-button:not(:disabled):not([aria-disabled="true"]):hover { background: var(--action-hover); color: var(--text-inverse); }
+}
