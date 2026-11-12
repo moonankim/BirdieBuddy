@@ -1,0 +1,18 @@
+/* 공통 상태 표현. 로딩의 의미는 회전 대신 함께 제공하는 텍스트로 전달한다. */
+.bb-spinner { display: inline-block; width: var(--icon-md); height: var(--icon-md); flex: 0 0 auto; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; color: var(--action-primary); animation: bb-spin var(--motion-loading) linear infinite; }
+.bb-spinner--small { width: var(--icon-sm); height: var(--icon-sm); }
+.button .bb-spinner, .bb-button .bb-spinner { color: inherit; }
+.bb-loading { display: flex; align-items: center; justify-content: center; gap: var(--space-3); color: var(--text-secondary); }
+.bb-status-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-4); min-height: 400px; padding: var(--space-8) var(--space-5); text-align: center; }
+.bb-status-screen h3 { font-size: var(--type-page); font-weight: 800; letter-spacing: var(--tracking-heading); }
+.bb-status-screen p { max-width: 28ch; color: var(--text-secondary); }
+.bb-status-screen .sample-actions { align-self: stretch; margin-top: var(--space-2); }
+.bb-status-art { display: block; width: 160px; height: 120px; }
+.bb-status-code { color: var(--action-primary); font: 800 72px/1 var(--font-display); letter-spacing: var(--tracking-heading); }
+.bb-profile-example { display: flex; align-items: center; gap: var(--space-3); }
+.bb-profile-default { display: block; width: 44px; height: 44px; flex: 0 0 auto; border-radius: 50%; }
+.bb-profile-default--small { width: 32px; height: 32px; }
+.bb-profile-default--large { width: 72px; height: 72px; }
+.bb-loading-card { aspect-ratio: 2 / 3; border: 1px solid var(--border-subtle); border-radius: var(--card-radius); background: var(--surface-neutral); }
+@keyframes bb-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .bb-spinner { animation: none; } }

@@ -15,11 +15,14 @@ function Collection(){
   useEffect(()=>{if(new URLSearchParams(window.location.search).get('tab')==='owned')setTab('owned');},[]);
   const cards=mockCards.filter(c=>grade==='전체'||c.grade===grade);
   const showUnowned=tab==='all'&&grade==='전체';
-  return <div>
+  return <div className="bb-album">
     <p className="eyebrow mt-2">나의 카드 앨범</p>
     <h1 className="page-title mt-1">라운드로 채운 컬렉션</h1>
-    <div className="statline mt-4 mb-2 flex justify-between text-[length:var(--type-caption)] text-[var(--text-secondary)]">수집한 카드 템플릿 <strong className="text-[var(--text-accent)]">{mockCards.length} / {TOTAL_TEMPLATES}</strong></div>
-    <div className="progress" role="progressbar" aria-label="카드 템플릿 수집 현황" aria-valuenow={mockCards.length} aria-valuemin={0} aria-valuemax={TOTAL_TEMPLATES}><span style={{width:`${mockCards.length/TOTAL_TEMPLATES*100}%`}}/></div>
+    <section className="bb-album-summary" aria-label="카드 수집 현황">
+      <p>수집한 카드 템플릿</p>
+      <strong className="bb-album-count">{mockCards.length} <small>/ {TOTAL_TEMPLATES}</small></strong>
+      <div className="progress" role="progressbar" aria-label="카드 템플릿 수집 현황" aria-valuenow={mockCards.length} aria-valuemin={0} aria-valuemax={TOTAL_TEMPLATES}><span style={{width:`${mockCards.length/TOTAL_TEMPLATES*100}%`}}/></div>
+    </section>
     <div className="tabs" aria-label="카드 보기">
       <button className={`tab ${tab==='all'?'active':''}`} type="button" aria-pressed={tab==='all'} onClick={()=>setTab('all')}>컬렉션</button>
       <button className={`tab ${tab==='owned'?'active':''}`} type="button" aria-pressed={tab==='owned'} onClick={()=>setTab('owned')}>보유 카드</button>

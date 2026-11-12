@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>로딩·오류·기본 프로필 · BirdieBuddy 시안</title>
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<main class="page-wrap">
+  <header class="topline">
+    <a class="brand" href="../index.html"><span class="brand-mark">B</span>birdiebuddy</a>
+    <nav class="toplinks" aria-label="디자인 샘플"><a href="index.html">홈</a><a href="collection.html">컬렉션</a><a href="screens.html">추가 화면</a><a href="../foundation.html">파운데이션</a></nav>
+  </header>
+  <div class="intro">
+    <h1>기다리는 순간에도,<br>다음 행동이 보이게.</h1>
+    <p>딥그린·아이보리 스타일에 맞춘 로딩, 오류와 기본 프로필 예시입니다.</p>
+    <p class="footnote">정적 샘플입니다. 로딩은 종료되지 않으며 재시도는 비활성 상태입니다. 앱의 실제 오류 처리와 프로필 대체 동작에는 아직 연결하지 않았습니다.</p>
+    <nav class="screen-list" aria-label="상태 바로가기"><a class="screen-link" href="#loading">로딩</a><a class="screen-link" href="#error">연결 오류</a><a class="screen-link" href="#not-found">404</a><a class="screen-link" href="#profile">기본 프로필</a></nav>
+  </div>
+  <div class="sample-screens">
+    <section class="sample-screen" id="loading" aria-labelledby="loading-title">
+      <h2 id="loading-title">화면 로딩</h2>
+      <div class="phone"><div class="content sample-stack">
+        <h3 class="page-title">나의 컬렉션</h3>
+        <div class="bb-loading" role="status"><span class="bb-spinner" aria-hidden="true"></span><span>카드를 불러오고 있어요</span></div>
+        <div class="card-grid" aria-hidden="true"><div class="bb-loading-card"></div><div class="bb-loading-card"></div></div>
+        <p class="footnote">카드 비율 2:3을 확보해 로딩 전후의 화면 이동을 줄입니다.</p>
+        <div class="sample-panel"><h3>버튼 처리 중</h3><button class="button" type="button" disabled aria-busy="true"><span class="bb-spinner bb-spinner--small" aria-hidden="true"></span>저장 중</button><p>처리 중에는 중복 요청을 막습니다. 동작 줄이기 설정에서는 회전을 멈추고 안내 문구를 유지합니다.</p></div>
+      </div></div>
+    </section>
+    <section class="sample-screen" id="error" aria-labelledby="error-title">
+      <h2 id="error-title">연결 오류</h2>
+      <div class="phone"><div class="bb-status-screen">
+        <img class="bb-status-art" src="../assets/connection-error.svg" width="160" height="120" alt="">
+        <h3>카드를 불러오지 못했어요</h3>
+        <p>인터넷 연결을 확인한 후 다시 시도해 주세요.</p>
+        <div class="sample-actions"><button class="button" type="button" disabled>다시 시도</button><a class="button outline" href="index.html">홈으로</a></div>
+        <p class="footnote">재시도 버튼은 시안에서 비활성 상태입니다. 실제 앱에서는 조회를 다시 요청합니다.</p>
+      </div></div>
+    </section>
+    <section class="sample-screen" id="not-found" aria-labelledby="not-found-title">
+      <h2 id="not-found-title">페이지를 찾을 수 없음</h2>
+      <div class="phone"><div class="bb-status-screen">
+        <span class="bb-status-code" aria-hidden="true">404</span>
+        <h3>페이지를 찾을 수 없어요</h3>
+        <p>주소가 바뀌었거나 존재하지 않는 페이지예요. 홈에서 다시 시작해 주세요.</p>
+        <a class="button" href="index.html">홈으로</a>
+      </div></div>
+    </section>
+    <section class="sample-screen" id="profile" aria-labelledby="profile-title">
+      <h2 id="profile-title">기본 프로필</h2>
+      <div class="phone"><div class="content sample-stack">
+        <h3 class="page-title">사진이 없어도 자연스럽게</h3>
+        <div class="sample-panel"><div class="bb-profile-example"><img class="bb-profile-default bb-profile-default--large" src="../../public/assets/avatar-default.svg" width="72" height="72" alt="기본 프로필"><div><h3>프로필 설정</h3><p>72px · 사진 등록 전</p></div></div></div>
+        <div class="sample-panel"><div class="bb-profile-example"><img class="bb-profile-default" src="../../public/assets/avatar-default.svg" width="44" height="44" alt=""><div><h3>서윤 프로</h3><p>44px · 채팅방 목록</p></div></div></div>
+        <div class="message"><img class="bb-profile-default bb-profile-default--small" src="../../public/assets/avatar-default.svg" width="32" height="32" alt=""><div><p class="message-name">서윤 프로</p><div class="bubble">오늘 라운드는 어떠셨나요?</div></div></div>
+        <p class="footnote">32px · 메시지 프로필. 이름이 옆에 있으면 이미지는 장식으로 숨깁니다. 사진 미등록·삭제·로드 실패에 같은 에셋을 사용합니다.</p>
+      </div></div>
+    </section>
+  </div>
+</main>
+</body>
+</html>

@@ -1,6 +1,7 @@
 /* 앱용 구성요소. 시안의 .phone/.page-wrap 레이아웃에는 의존하지 않는다. */
 @import './tokens.css';
 @import './club.css';
+@import './states.css';
 
 @layer components {
   .bb-stack { display: grid; gap: var(--space-4); min-width: 0; }

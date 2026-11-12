@@ -18,7 +18,7 @@ const MOCK_MONTH={rounds:1,target:3};
 function Home(){
   const session=useSession();
   const nickname=session.status==='signedIn'?session.user.nickname:'버디';
-  return <div>
+  return <div className="bb-home">
     <p className="muted text-[length:var(--type-caption)]">반가워요, {nickname}님</p>
     <h1 className="page-title mt-1 mb-[18px]">오늘도 좋은 라운드!</h1>
     <section className="bb-feature" aria-label="카드 디자인 미리보기">
@@ -29,7 +29,7 @@ function Home(){
         <Link className="bb-feature-link" href="/collection">컬렉션 보기</Link>
       </div>
       <figure>
-        <Image src="/cards/gong-tae-pung-basic.png" alt="공태풍 G투어 카드 디자인 미리보기" width={1024} height={1536} sizes="(max-width: 359px) 200px, 180px" priority/>
+        <Link className="bb-feature-art" href="/collection" aria-label="공태풍 카드 디자인과 컬렉션 보기"><Image src="/cards/gong-tae-pung-basic.png" alt="공태풍 G투어 카드 디자인 미리보기" width={1024} height={1536} sizes="(max-width: 359px) 200px, 220px" priority/></Link>
         <figcaption>공태풍 · 디자인 미리보기</figcaption>
       </figure>
     </section>
@@ -44,7 +44,7 @@ function Home(){
       <Link className="quick no-underline" href="/collection?tab=owned"><b>{cardIcon}</b>보유 카드</Link>
       <Link className="quick no-underline" href="/chat"><b>{icon(<><path d="M21 11a8 8 0 0 1-8 8H7l-4 3V11a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8Z"/><path d="M7 10h10M7 14h6"/></>)}</b>채팅</Link>
     </div>
-    <div className="section-head"><h2 style={{fontSize:'var(--type-body)'}}>나의 카드</h2><Link href="/collection" className="no-underline">전체 보기 {arrow}</Link></div>
+    <div className="section-head"><h2>나의 카드</h2><Link href="/collection" className="no-underline">전체 보기 {arrow}</Link></div>
     <div className="card-grid">
       {mockCards.slice(0,2).map(c=><div key={c.id} className="card-tile">
         <CardArtwork name={c.name} grade={gradeKeys[c.grade]}/>

@@ -5,6 +5,9 @@
 | 파일 | 사용처 |
 | --- | --- |
 | `tokens.css` | 색상·간격·서체·상태 토큰의 공통 원본. 정적 시안과 앱에서 직접 import |
+| `states.css` | 공통 스피너·상태 화면·기본 프로필 스타일. 앱과 시안에서 직접 import |
+| `../public/assets/avatar-default.svg` | 기본 프로필 단일 원본. 앱에서는 `/assets/avatar-default.svg`로 참조 |
+| `assets/connection-error.svg` | 오류 화면의 장식용 일러스트 |
 | `club.css` | 앱·시안이 공유하는 카드 중심 배너·원본 카드 표시 규칙 |
 | `app.css` | 프레임워크와 무관한 앱 구성요소. `bb-` 접두사, `components` 레이어 사용 |
 | `assets/icons.json` | 24×24 viewBox·1.75 선 굵기용 SVG path 목록 |
@@ -46,3 +49,15 @@ import {Icon} from '@/components/ui/icon';
 - `.bb-skeleton`: 정적인 로딩 자리표시자. 상위 영역에 읽을 수 있는 로딩 안내를 제공합니다.
 
 아이콘은 장식용으로 숨기며 아이콘만 있는 조작에는 접근 가능한 이름을 부여합니다. 이 파일들은 게임 규칙·인증·SDK 데이터를 정의하지 않습니다. 실제 적용 예시는 기존 컬렉션 화면에서 확인할 수 있습니다.
+
+## 카드 전시 구성
+
+홈 컨테이너는 `.bb-home`, 컬렉션 컨테이너는 `.bb-album`을 사용합니다. `.bb-feature`는 배너, `.bb-feature-art`는 컬렉션으로 이동하는 카드 링크이며 `.bb-album-summary`와 `.bb-album-count`는 수집 현황을 표시합니다. 코스 등고선은 `assets/course-contours.svg`를 CSS 장식 배경으로 참조합니다. 그림자는 카드와 수집 패널에 한정하며 동작 줄이기 설정에서는 카드 변형과 전환을 제거합니다.
+
+## 로딩·오류·프로필 샘플
+
+`sample/states.html`에 화면 로딩, 버튼 처리 중, 연결 오류, 404와 프로필 예시가 있습니다. 실제 앱의 Spinner·Avatar·오류 라우트 적용은 별도입니다.
+
+- `.bb-spinner`: 24px CSS 스피너. 버튼 안에서는 `.bb-spinner--small`로 16px을 사용합니다. 스피너는 `aria-hidden="true"`, 안내 컨테이너는 `role="status"`로 제공하며 읽을 수 있는 문구를 함께 둡니다. 중복 요청을 막을 버튼에는 `disabled`와 `aria-busy`를 사용합니다.
+- `.bb-status-screen`: 오류·404 샘플 레이아웃. 실제 비동기 오류 안내에는 적절한 alert를 제공하되 정적 샘플 전체를 live region으로 감싸지 않습니다.
+- `.bb-profile-default`: 44px, `--small`은 32px, `--large`는 72px입니다. 옆에 이름이 있으면 `alt=""`, 독립적인 프로필 예시에는 `alt="기본 프로필"`을 사용합니다. 향후 이미지 누락·삭제·로드 실패에 같은 에셋을 적용합니다. 기본 이미지 자체가 실패할 때의 반복 재시도는 막아야 합니다.
