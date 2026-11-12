@@ -4,6 +4,10 @@ out/
 .env
 .env.*
 !.env.example
+!/.env
+!/.env.production
+.env.local
+.env.*.local
 supabase/.temp/
 supabase/functions/.env
 .demo-passwords.json

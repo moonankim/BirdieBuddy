@@ -1,6 +1,6 @@
 # BirdieBuddy — 전체 시스템 아키텍처
 
-**최종 갱신:** 2026-11-12 — PR #16 moderation 정책 변경을 백엔드 계약에 대조
+**최종 갱신:** 2026-11-12 — 루트 패키지와 Next.js 화면 통합 방향 반영
 
 > 제품 규칙은 [prd.md](./prd.md)를 기준으로 한다. 이 문서는 공통 아키텍처와 담당 경계를 설명하고, Supabase 백엔드의 상세 데이터·권한·SDK/RPC/Edge 계약과 구현 순서는 [홍주P_plan.md](./홍주P_plan.md)를 따른다.
 >
@@ -10,7 +10,7 @@
 
 ## 1. 전체 시스템과 데이터 흐름
 
-서비스 목표는 유저 웹·인플루언서 인박스·관리자 화면을 하나의 Next.js 앱에서 제공하는 것이다. 해커톤 동안 PR #14의 화면 미리보기는 Next.js 16·TypeScript 5.9를 쓰는 별도 `BirdieBuddy-ui/` 패키지로 유지한다. 루트 백엔드는 Node 24·TypeScript 7 도구 체계를 유지한다. 실제 데이터 연동 시 브라우저가 루트 `lib/api` SDK를 통해 Supabase를 직접 호출하며, PR #14 미리보기는 현재 더미 SDK 상태다. 실제 골프존 회원·라운드·결제 연동은 하지 않고 라운드 완료 버튼과 실제 Auth 데모 계정 전환으로 대체한다.
+서비스 목표는 유저 웹·인플루언서 인박스·관리자 화면을 루트의 단일 Next.js 앱에서 제공하는 것이다. 현재 화면 미리보기는 `BirdieBuddy-ui/`에 별도 프로젝트로 남아 있지만, 루트 `package.json`의 Next.js·React·Tailwind·TypeScript 도구 버전을 미리 맞춰 통합을 준비한다. 루트 런타임은 Node 24를 유지하고 백엔드 TypeScript 설정은 `tsconfig.backend.json`으로 분리한다. 화면 소스 이동과 하위 패키지 정리는 화면 담당자 후속 작업으로 요청하며 이번 변경에서는 건드리지 않는다. 실제 데이터 연동 시 브라우저가 루트 `lib/api` SDK를 통해 Supabase를 직접 호출하고, 현재 preview는 더미 SDK 상태다. 실제 골프존 회원·라운드·결제 연동은 하지 않고 라운드 완료 버튼과 실제 Auth 데모 계정 전환으로 대체한다.
 
 ```mermaid
 flowchart LR
@@ -121,7 +121,8 @@ BirdieBuddy/
 │  └─ verify-backend.mjs               # local roles·messages·inbox·cursor·RPC checks
 ├─ tests/backend/                      # cursor·Edge adapter contract tests
 ├─ deno.json                           # Edge Function 전용 고정 의존성·검사 설정
-├─ package.json                        # pinned local backend toolchain and scripts
+├─ deno.lock                           # Deno/공통 package.json 기반 npm·jsr 해석 고정
+├─ package.json                        # Next.js UI + pinned backend toolchain and scripts
 ├─ tsconfig.backend.json               # Node/SDK 검사, Edge는 Deno로 별도 검사
 └─ .env.example                        # 공개 placeholder만 포함, 실제 연결값 없음
 ```
@@ -148,11 +149,11 @@ lib/api는 브라우저 SDK이며 서버 구현 위치가 아니다. 클라이�
 4. actor는 검증한 세션에서 얻는다. 브라우저 userId·role·quality·verdict·보유량을 신뢰하지 않는다. messages의 bigint ID는 전송 전 문자열로 보존한다.
 5. 지금까지 검증한 migration·SDK·Edge 경계·local-only 흐름을 구분해 기록한다. 사용자 JWT를 통한 화면·실제 AI·원격 동작은 별도 검증 전까지 완료로 보지 않는다.
 
-### PR #14 해커톤 화면 패키지 결정
+### PR #14 해커톤 화면 통합 방향 (2026-11-12 갱신)
 
-- 해커톤 동안 안 A를 적용한다. `BirdieBuddy-ui/`를 독립 Next.js 패키지로 두고 루트 백엔드 패키지에 Next 의존성이나 프론트 TypeScript 설정을 추가하지 않는다.
-- UI와 백엔드가 공유하는 API 타입·호출 구현은 루트 `lib/api`가 단일 원본이다. 화면 패키지 안에서 서비스 타입을 복제하지 않고 SDK 타입을 가져다 쓴다.
-- `BirdieBuddy-ui/`에서 루트 `lib/api`/`lib/supabase`를 해석하는 패키지 경계와 Vercel 빌드 루트는 아직 배포 검증 전이다. 이를 확인하기 전까지는 별도 패키지 선택을 프론트 배포 완료로 취급하지 않는다.
+- 현재 `BirdieBuddy-ui/` 소스·manifest·lockfile은 별도 디렉터리에 남아 있다. 루트 manifest에는 Next.js 16.4.6, React 19.3.1, Tailwind 4.3.5, TypeScript 5.9.3 등 UI lockfile의 해석 버전을 맞춘다. 루트 `package-lock.json`과 Deno의 `deno.lock`도 공통 manifest 변경에 맞춰 갱신한다. 이는 dependency alignment이며 화면 이동이나 단일 패키지 통합 완료를 뜻하지 않는다.
+- 목표는 `app/`, `components/` 등 화면 구조를 루트로 옮기고 루트 `package.json`·`package-lock.json`을 단일 설치 기준으로 사용하는 것이다. 기존 백엔드 설정은 `tsconfig.backend.json`으로 유지하며 Edge 검사는 Deno로 분리한다. 화면 담당자인 자성P가 이동·UI 전용 설정 정리·공유 타입 연결을 후속 처리하도록 요청한다.
+- 백엔드 SDK 타입·호출의 원본은 루트 `lib/api`다. 통합 시 UI 목 타입·목 SDK를 실제 `lib/api` 사용으로 바꾸고 로그인·데모 세션·inbox revision/version·Realtime checkpoint 계약을 유지한다. 현재 두 package lock으로 Next workspace root 추론 경고가 보고됐다. 루트 source 이동·Vercel 빌드 및 실제 화면 흐름은 별도 통합 확인 전까지 완료로 보지 않는다.
 
 ## 3. 데이터 모델과 권한
 
@@ -182,7 +183,7 @@ lib/api는 브라우저 SDK이며 서버 구현 위치가 아니다. 클라이�
 - user는 본인 카드·라운드와 자기 질문, 본인의 입장 구간에 게시된 influencer 답변/전체 메시지/인사말만 읽는다. 입장 전·퇴장 기간 메시지는 숨기고 퇴장 중에는 방을 열 수 없다. 재입장 시 과거 입장 구간 대화는 복구하며, 퇴장 기간에 달린 본인 질문의 답변은 예외로 읽는다. greeting은 수신자 본인만 읽는다. 다른 팬 질문 행은 Data API와 Realtime에서 모두 숨기며 `message_clusters`는 방 소유자만 읽는다. 팬 화면은 답변의 `reply_context`와 SDK가 보강한 `isReplyToMe`를 이용한다. influencer는 본인 인증 신청과 매핑된 본인 방의 전체 대화·인박스·필터·인사말 설정·AI 기능을 사용한다. admin은 인증 심사·설정·카드 자산·허용된 데모를 관리한다. admin이라는 이유로 타인 카드·대화·인박스를 읽거나 influencer 명의로 답변하지 못한다.
 - submit_moderated_message·submit_influencer_message 등 내부 저장 RPC는 Edge의 service-only 호출만 허용한다. 인증·멤버십 기간·필터 version은 최종 저장 시 DB에서 재검사하고 점수를 계산한다. 유효한 수정 제안 token의 검증·소비·메시지·operations 성공은 최종 저장 RPC의 한 트랜잭션으로 처리한다.
 - messages에는 block/suggest 원문을 저장하지 않는다. private moderation_events에는 판정 metadata만 7일 보관하며 rewrite·원문·JWT·키를 DB 감사 기록이나 로그에 복사하지 않는다.
-- Realtime에는 messages INSERT와 influencer 답변/전체 메시지의 삭제 UPDATE를 전달한다. 방 필터 조건이 아니라 SELECT RLS가 이벤트 권한 경계다. 팬은 본인 질문과 현재 수신 자격이 있는 influencer 메시지만 받고 방 주인은 방 전체를 받는다. SDK는 live cache와 분리한 조회 완료 checkpoint와 고정 through로 오래된 행의 soft delete도 복구한다. 최초 checkpoint는 history보다 먼저 읽고 실패한 page는 checkpoint를 전진시키지 않는다. 답변의 Message.isReplyToMe는 get_my_answer_links로 본인 여부만 보강하며 private 링크/다른 팬 질문 ID를 내보내지 않는다. 보강 실패는 pending buffer·직렬 재시도로 복구한다.
+- Realtime에는 messages INSERT와 influencer 답변/전체 메시지의 삭제 UPDATE를 전달한다. 방 필터 조건이 아니라 SELECT RLS가 이벤트 권한 경계다. 팬은 본인 질문과 현재 수신 자격이 있는 influencer 메시지만 받고 방 주인은 방 전체를 받는다. SDK는 live cache와 분리한 조회 완료 checkpoint와 고정 through로 오래된 행의 soft delete도 복구한다. 최초 checkpoint는 history보다 먼저 읽고 실패한 page는 checkpoint를 전진시키지 않는다. 답변의 Message.isReplyToMe는 get_my_answer_links로 본인 여부만 보강하며 private 링크/다른 팬 질문 ID를 내보내지 않는다. 보강 실패는 pending buffer·직렬 재시도로 복구하며 실제 채널 status로 위장하지 않는다.
 - influencer 답변은 원 질문의 passesAllFilters가 참일 때만 원문을 닉네임 없이 reply context로 보존한다. 거짓이면 질문 관계만 유지하고 팬 화면은 본인의 질문 행을 사용한다. 묶음 답변은 모든 필터를 통과한 대표 질문을 전달하며 “내 질문에 대한 답변” 표시는 불변 답변 링크로 보강된 isReplyToMe를 사용한다. 현재 cluster_id 일치만으로 본인 여부를 추론하지 않는다.
 - 답변·전체 메시지를 삭제하면 body를 null로 지우고 삭제 시각을 기록한다. 팬 화면에는 "삭제된 메시지"를 보이며 답변 삭제는 해당 질문 또는 묶음을 다시 미답변으로 연다. 팬 질문·인사말은 삭제할 수 없다.
 
@@ -255,7 +256,7 @@ B-01은 첫 단계에서 `package.json`·`package-lock.json`, backend toolchain�
 
 AiAdapter 타입의 유일한 상세 기준은 홍주P 계획 §8.1이다. 여기서 다른 함수 시그니처를 중복 정의하지 않는다. ownScore·priority는 AI 모듈이 아니라 DB helper/저장 RPC에서 계산한다.
 
-로컬 fixture는 전송·권한·응답 형식 연결을 확인하는 샘플이다. 일반 로컬 문장은 quality=50, `passesAllFilters=false`로 통과하며, `[[fixture:suggest]]`, `[[fixture:block]]`, 공통 id를 가진 `[[fixture:cluster=<id>]]`로 각 응답 샘플을 고른다. 요약문은 메시지 내용을 평가하지 않고 개수만 표시한다. 이것은 안전 판정이나 실제 AI 품질을 제공하지 않으며 운영·hosted 프로젝트에서는 선택되지 않는다. Jev/Claude provider adapter source는 main에 병합됐고 local fixture selector는 명시적 local host/flag 경계를 유지한다. Provider unit tests는 모의 응답을 쓰며 live AI 동작은 별도 확인이 필요하다. 실제 adapter의 Jev/Claude fallback 규칙, 시간 제한, `passesAllFilters` 계약은 홍주P 계획 §8을 따른다. 유효하지 않은 최종 adapter 반환값·예외·fallback 불가에는 `FILTER_UNAVAILABLE`로 응답하고 저장하지 않는다. cluster/summary Edge는 25초 signal과 29초 lease를 사용하고 자동 재시도와 fallback이 없다. 답변·전체 메시지·인사말은 influencer sender type으로 선택 필터를 적용하지 않고 필수 차단 7개(threat, stalking, sexual_harassment, privacy, hate, illegal_ad, spam)를 적용한다. 상세 token·멱등성·저장 규칙은 홍주P 계획 §§7~8을 따른다.
+로컬 fixture는 전송·권한·응답 형식 연결을 확인하는 샘플이다. 일반 로컬 문장은 quality=50, `passesAllFilters=false`로 통과하며, `[[fixture:suggest]]`, `[[fixture:block]]`, 공통 id를 가진 `[[fixture:cluster=<id>]]`로 각 응답 샘플을 고른다. 요약문은 메시지 내용을 평가하지 않고 개수만 표시한다. 이것은 안전 판정이나 실제 AI 품질을 제공하지 않으며 운영·hosted 프로젝트에서는 선택되지 않는다. Jev/Claude provider adapter source는 main에 병합됐고 local fixture selector는 명시적 local host/flag 경계를 유지한다. Provider unit tests는 모의 응답을 쓰며 live AI 동작은 별도 확인이 필요하다. PR #18의 정규화 키워드 대조는 폴백의 우회 표기 적중을 넓히고, 정상 Jev 본경로에서는 변환으로만 드러난 필수 `illegal_ad`만 보강한다. 실제 adapter의 Jev/Claude fallback 규칙, 시간 제한, `passesAllFilters` 계약은 홍주P 계획 §8을 따른다. 유효하지 않은 최종 adapter 반환값·예외·fallback 불가에는 `FILTER_UNAVAILABLE`로 응답하고 저장하지 않는다. cluster/summary Edge는 25초 signal과 29초 lease를 사용하고 자동 재시도와 fallback이 없다. 답변·전체 메시지·인사말은 influencer sender type으로 선택 필터를 적용하지 않고 필수 차단 7개(threat, stalking, sexual_harassment, privacy, hate, illegal_ad, spam)를 적용한다. 상세 token·멱등성·저장 규칙은 홍주P 계획 §§7~8을 따른다.
 
 ## 6. 초기화·환경·배포
 

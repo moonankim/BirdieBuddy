@@ -27,6 +27,14 @@ export function buildSummaryRequest(messages: { body: string; sender: string }[]
   return { system: SYSTEM, user: `<chat>\n${chat}\n</chat>` };
 }
 
+// 요약은 마크다운 없는 평문이 계약이다(문환P_plan 6.7). 프롬프트가 금지해도 모델이 목록 기호를 써서(상한 입력 실측 3/3, 2026-11-12) 코드로 지운다.
+// 줄 머리의 기호는 뒤에 공백이 있을 때만 지운다: "-3언더", "10.5도" 같은 본문을 지키기 위해서다.
+const LIST_MARKER = /^[ \t]*(?:#{1,6}|[-*•]|\d{1,2}[.)])[ \t]+/gm;
+
+export function stripMarkdown(text: string): string {
+  return text.replace(LIST_MARKER, "").replaceAll("**", "");
+}
+
 export function truncateSummary(text: string, max = MAX_CODE_POINTS): string {
   const points = [...text];
   if (points.length <= max) return text;
@@ -68,7 +76,7 @@ export async function summarize(input: Input, deps: AiDeps): Promise<string> {
   }
   checkLive();
 
-  const trimmed = text?.trim() ?? "";
+  const trimmed = stripMarkdown(text ?? "").trim();
   if (trimmed === "") throw fail("no_result");
   return truncateSummary(trimmed);
 }

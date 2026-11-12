@@ -1,7 +1,7 @@
 import { assert, assertEquals, assertRejects } from "jsr:@std/assert@1";
 import type { ClaudeCreate } from "./claude.ts";
 import type { AiDeps } from "./deps.ts";
-import { buildSummaryRequest, summarize, truncateSummary } from "./summarize.ts";
+import { buildSummaryRequest, stripMarkdown, summarize, truncateSummary } from "./summarize.ts";
 
 const SECRET = "시크릿본문입니다";
 
@@ -101,6 +101,41 @@ Deno.test("summarize: trim 후 truncate", async () => {
   assertEquals(await run(setup({ text: "  \n요약.\n " })), "요약.");
   const long = await run(setup({ text: "가".repeat(1999) + ". " + "나".repeat(100) }));
   assertEquals(long, "가".repeat(1999) + ".");
+});
+
+Deno.test("stripMarkdown: 줄 머리 목록·번호·제목 기호와 굵게 표시를 지운다", () => {
+  // rooms-max 실측(2026-11-12)에서 나온 형태: "- 화제", "1. 질문"
+  const raw = [
+    "## 전체 흐름",
+    "팬들은 **슬라이스** 교정을 많이 물었다.",
+    "- 아이언 거리 늘리기",
+    "  * 시타 이벤트",
+    "• 업로드 주기",
+    "1. 필드에서도 슬라이스가 나나요?",
+    "2) 레슨 신청은 어떻게 하나요?",
+  ].join("\n");
+  assertEquals(
+    stripMarkdown(raw),
+    [
+      "전체 흐름",
+      "팬들은 슬라이스 교정을 많이 물었다.",
+      "아이언 거리 늘리기",
+      "시타 이벤트",
+      "업로드 주기",
+      "필드에서도 슬라이스가 나나요?",
+      "레슨 신청은 어떻게 하나요?",
+    ].join("\n"),
+  );
+});
+
+Deno.test("stripMarkdown: 줄 가운데의 기호와 기호 뒤 공백 없는 표현은 그대로 둔다", () => {
+  const plain = "드라이버 -10야드, 3.5타 줄였다.\n-3언더로 마쳤다.\n2026년 일정은 미정이다.\n10.5도 로프트가 맞나요?";
+  assertEquals(stripMarkdown(plain), plain);
+});
+
+Deno.test("summarize: 마크다운 기호를 지운 뒤 trim·truncate", async () => {
+  assertEquals(await run(setup({ text: "흐름입니다.\n- 화제 하나\n1. 질문 하나?\n" })), "흐름입니다.\n화제 하나\n질문 하나?");
+  await assertRejects(() => run(setup({ text: "- \n**" })), Error, "summarize_failed");
 });
 
 Deno.test("null → 예외, 공백만 → 예외, end_turn 아님 → 예외", async () => {

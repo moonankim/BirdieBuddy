@@ -1,5 +1,5 @@
-// 회귀 스크립트(문환P_plan 6.8). 사용법: regress.ts <fallback|rooms|full|obfuscation> [--data=<dir>] [--validate]
-// fallback은 키를 읽지 않는다(--allow-env 없이 실행). rooms·full은 유료 호출이다.
+// 회귀 스크립트(문환P_plan 6.8). 사용법: regress.ts <fallback|rooms|rooms-max|full|obfuscation> [--data=<dir>] [--validate]
+// fallback은 키를 읽지 않는다(--allow-env 없이 실행). rooms·rooms-max·full은 유료 호출이다.
 import { CATEGORIES, FLAG_THRESHOLD, JEV_CONTEXT, type FilterCategory } from "../../../supabase/functions/_shared/ai/categories.ts";
 import { CLAUDE_MODEL, createClaudeCreate } from "../../../supabase/functions/_shared/ai/claude.ts";
 import { clusterQuestions } from "../../../supabase/functions/_shared/ai/cluster.ts";
@@ -280,6 +280,79 @@ async function runRooms() {
   await writeResults("rooms", result);
 }
 
+// ---------------------------------------------------------------- rooms-max
+// A-04·A-05 상한(100건·20,000자) 확인용. rooms.json 메시지는 평균 28자라 100건이 약 4,000자이므로,
+// 세 방의 연속 메시지를 이어 붙여 입력을 만든다. 화제가 섞이므로 품질은 참고만 한다.
+// 214자는 이 데이터에서 100건을 채우면서 총량이 가장 20,000자에 가까운 값이다(100건·19,640자).
+const MAX_BODY = 214;
+const MAX_TOTAL = 20000;
+
+async function runRoomsMax() {
+  const logs: string[] = [];
+  const deps = requireKeyedDeps(logs);
+  const rooms = await loadJson<Room[]>("rooms.json");
+  const messages: { id: string; body: string; sender: string }[] = [];
+  let chars = 0;
+  let parts: string[] = [];
+  let sender = "";
+  const flush = () => {
+    const body = parts.join(" ");
+    const len = [...body].length;
+    if (len > 0 && messages.length < 100 && chars + len <= MAX_TOTAL) {
+      messages.push({ id: String(messages.length + 1), body, sender });
+      chars += len;
+    }
+    parts = [];
+  };
+  for (const room of rooms) {
+    for (const m of [...room.messages].sort((a, b) => a.id - b.id)) {
+      if (parts.length === 0) sender = m.nickname;
+      if ([...[...parts, m.text].join(" ")].length > MAX_BODY) {
+        flush();
+        sender = m.nickname;
+      }
+      parts.push(m.text);
+    }
+    flush();
+  }
+  const lens = messages.map((m) => [...m.body].length);
+  out(`# rooms-max 모드 (${new Date().toISOString()})`);
+  out(`입력 ${messages.length}건, ${chars}자 (메시지 길이 최소 ${Math.min(...lens)}·중앙값 ${fmt(median(lens))}·최대 ${Math.max(...lens)}자)`);
+
+  const result: Record<string, unknown> = { input: { count: messages.length, chars } };
+  const started = performance.now();
+  try {
+    const clusters = await clusterQuestions({ messages, signal }, deps);
+    const ms = Math.round(performance.now() - started);
+    out(`\n## 묶기: ${clusters.length}묶음, ${ms}ms`);
+    for (const c of clusters) out(`- ${c.messageIds.length}건, 대표 질문 ${[...c.representative].length}자`);
+    result.cluster = {
+      ms,
+      groups: clusters.map((c) => ({ size: c.messageIds.length, len: [...c.representative].length, representative: c.representative, messageIds: c.messageIds })),
+    };
+  } catch (e) {
+    out(`\n## 묶기 실패: ${safeMessage(e, "cluster_failed")} (${Math.round(performance.now() - started)}ms)`);
+    result.cluster = { error: safeMessage(e, "cluster_failed") };
+  }
+
+  const runs: { ms: number; len: number; text: string }[] = [];
+  for (let i = 0; i < 3; i++) {
+    const t = performance.now();
+    try {
+      const text = await summarize({ messages, signal }, deps);
+      runs.push({ ms: Math.round(performance.now() - t), len: [...text].length, text });
+    } catch (e) {
+      out(`- 요약 ${i + 1}회 실패: ${safeMessage(e, "summarize_failed")} (${Math.round(performance.now() - t)}ms)`);
+    }
+  }
+  out(`\n## 요약(운영 설정): 성공 ${runs.length}/3`);
+  runs.forEach((r, i) => out(`- ${i + 1}회: ${r.ms}ms, ${r.len}자`));
+  out(`- 중앙값: ${fmt(median(runs.map((r) => r.ms)))}ms, ${fmt(median(runs.map((r) => r.len)))}자`);
+  result.summary = runs;
+  assertNoFallback("rooms-max", logs);
+  await writeResults("rooms-max", result);
+}
+
 // 우리 모듈이 만든 오류만 메시지를 보인다. SDK 오류 메시지는 출력하지 않는다.
 function safeMessage(e: unknown, prefix: string): string {
   return e instanceof Error && e.message.startsWith(prefix) ? e.message : "provider_error";
@@ -545,9 +618,10 @@ async function runFull() {
 
 if (mode === "fallback") await runFallback();
 else if (mode === "rooms") await runRooms();
+else if (mode === "rooms-max") await runRoomsMax();
 else if (mode === "full") await runFull();
 else if (mode === "obfuscation") await runObfuscation();
 else {
-  console.log("사용법: regress.ts <fallback|rooms|full|obfuscation> [--data=<dir>] [--validate]");
+  console.log("사용법: regress.ts <fallback|rooms|rooms-max|full|obfuscation> [--data=<dir>] [--validate]");
   Deno.exit(1);
 }
