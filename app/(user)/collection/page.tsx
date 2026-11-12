@@ -1,7 +1,9 @@
 'use client';
 import {useEffect,useState} from 'react';
 import {Guard} from '@/components/chat/shell';
-import {gradeBadge,mockCards,TOTAL_TEMPLATES,type Grade} from '../_mock/cards';
+import {mockCards,TOTAL_TEMPLATES,type Grade} from '../_mock/cards';
+import {CardArtwork,StatusPanel,type CardGrade} from '@/components/ui/card-artwork';
+const gradeKeys:Record<Grade,CardGrade>={일반:'common',레어:'rare',에픽:'epic',스페셜:'special'};
 
 // 샌드박스 목업 화면. design-system/sample/collection.html 구성을 따른 가상 데이터이며,
 // 실제 컬렉션·보유 카드·강화는 현호P 화면(app/(user)/collection/**)으로 교체한다.
@@ -28,16 +30,16 @@ function Collection(){
     <div className="section-mini"><div className="section-head"><h2>{tab==='all'?'나의 컬렉션':'보유 카드'}</h2><span>가상 데이터</span></div>
     <div className="card-grid">
       {cards.map(c=><article key={c.id} className="card-tile">
-        <div className={`card-picture ${c.art}`}><span className={gradeBadge[c.grade]}>{c.grade}</span><div className="portrait" aria-hidden="true"/></div>
+        <CardArtwork name={c.name} grade={gradeKeys[c.grade]}/>
         <h3>{c.name}</h3><p>{c.style}</p><strong>{c.count}장 보유</strong>
       </article>)}
       {showUnowned&&<article className="card-tile">
-        <div className="card-picture empty"><span style={{fontSize:40,marginBottom:48}} aria-hidden="true">?</span></div>
+        <CardArtwork name="미보유" unowned/>
         <h3>미보유 카드</h3><p>아직 만나지 못했어요</p>
       </article>}
     </div>
     </div>
-    {cards.length===0&&<p className="muted mt-3 text-[length:var(--type-caption)]">조건에 맞는 카드가 없어요. 필터를 바꿔 보세요.</p>}
+    {cards.length===0&&<StatusPanel tone="empty" title="조건에 맞는 카드가 없어요" onRetry={()=>setGrade('전체')} retryLabel="필터 초기화">필터를 바꿔 보세요.</StatusPanel>}
   </div>;
 }
 export default function CollectionPage(){return <Guard role="user"><Collection/></Guard>;}

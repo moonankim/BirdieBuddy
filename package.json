@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint app components lib/session tests/ui",
     "typecheck:ui": "tsc --noEmit -p tsconfig.json",
-    "test:ui": "vitest run",
+    "test:ui": "node scripts/test-ui.mjs",
     "test:e2e": "playwright test",
     "local:start": "node scripts/prepare-local-env.mjs --start",
     "local:env": "node scripts/prepare-local-env.mjs",
