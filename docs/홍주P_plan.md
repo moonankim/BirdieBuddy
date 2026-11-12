@@ -505,11 +505,11 @@ SQL 업무 오류는 SQLSTATE P0001, MESSAGE=고정code, DETAIL=비기밀JSON. E
 | getOwnedCards() | security_invoker inventory_view, 본인·count>0 | `{items:OwnedCardItem[]}` |
 | getRooms() | security_invoker room_catalog, 본인 누적발급·멤버십·월 재입장 자격·현재 표시 이미지·카드 준비 상태 | `{items:RoomCatalogItem[]}` |
 | getMyInfluencerProfile() | get_my_influencer_profile, auth.uid()에 연결된 본인 정보 | `MyInfluencerProfile` |
-| getMyMembership(roomId) | room_members의 본인/방 1행 | Membership 또는 null |
+| getMyMembership({roomId}) | room_members의 본인/방 1행 | Membership 또는 null |
 | getMyRoundGaugeSummary() | auth.uid()의 유효 현재 월·전체 라운드 집계 | `RoundGaugeSummary` |
 | getMessages({roomId,beforeId?,afterId?,limit?}) | messages room_id + id keyset | Page<Message> |
 | getRoomMessageCheckpoint({roomId}) | messages room_id, SELECT RLS 범위에서 updated_at DESC,id DESC LIMIT 1, updated_at/id_text만 전송 | MessageChangeCursor 또는 null |
-| getMessageChanges({roomId,checkpoint?,through,cursor?,limit?}) | messages room_id + (updated_at,id) keyset, `(checkpoint,through]`의 변경. 최초 checkpoint 명시(null 허용), 후속은 cursor | Page<Message> |
+| getMessageChanges({roomId,checkpoint,through,cursor?,limit?}) | messages room_id + (updated_at,id) keyset, `(checkpoint,through]`의 변경. checkpoint는 필수이며 null 허용, 후속 page는 cursor | Page<Message> |
 | getRoomDailyBlockCount({roomId}) | private moderation_events를 직접 노출하지 않는 소유자 전용 집계 RPC | `{roomId,day,count}` / verified 방 소유 influencer |
 | getMyVerifications({cursor?,limit?}) | 본인 influencer 신청 | Page<Verification> |
 | getPendingVerifications({cursor?,limit?}) | admin, pending | Page<Verification> |
@@ -573,6 +573,7 @@ type SubscribeRoomMessagesInput = {
   roomId: UUID;
   onMessage: (message: Message) => void;
   onStatus: (status: SubscribeRoomMessagesStatus, error?: Error) => void;
+  onMessageEnrichmentError?: (messageIds: readonly MessageId[]) => void;
 };
 type ReconcileRoomMessagesInput = {
   roomId: UUID; currentMessages: readonly Message[];
@@ -811,7 +812,7 @@ cluster 최종 반영 시 source 질문이 여전히 같은 방의 미답변 pas
 - `subscribeRoomMessages({roomId,onMessage,onStatus})`는 room_id 필터로 INSERT·UPDATE를 구독하고 `unsubscribe():void`를 반환한다. `onStatus(status,error?)`의 status는 Supabase Realtime 공식 `REALTIME_SUBSCRIBE_STATES` union인 `SUBSCRIBED | TIMED_OUT | CHANNEL_ERROR | CLOSED`다. 필터가 아닌 SELECT RLS가 권한 경계다. UPDATE는 삭제된 답변/전체 메시지를 `body=null`, `deletedAt`과 함께 전달한다.
 - `SUBSCRIBED`에서는 메시지 장애 복구용 3초 폴링을 멈추고 복구를 수행한다. 현재 화면이 구독을 유지하는 동안 `TIMED_OUT`, `CHANNEL_ERROR`, `CLOSED`를 받으면 `reconcileRoomMessages`를 3초 간격으로 호출한다. 명시적 unsubscribe·화면 정리 뒤의 CLOSED callback은 무시한다. 아래 상태 재조회 timer는 이 메시지 폴링과 독립적이다.
 - `reconcileRoomMessages({roomId,currentMessages,checkpoint})`는 §6.5의 SDK helper다. 고정 through까지 모든 변경 page를 읽어 id 기준 최신 updatedAt으로 upsert하고 id ASC로 정렬한 목록과 checkpoint를 반환한다. 화면은 복구 진행 중 live 이벤트를 별도 buffer에 모으고, 성공 결과와 buffer를 다시 같은 규칙으로 병합한 뒤 교체한다. 중간 실패에는 기존 목록/checkpoint를 유지하고 buffer 이벤트만 안전하게 반영한다. 복구를 중첩 실행하지 않으며 getMessageChanges 직접 호출로 화면 복구를 대체하지 않는다.
-- Realtime 답변의 get_my_answer_links 보강이 실패하면 raw 이벤트를 pending buffer에 보관하고 직전 checkpoint에서 직렬 reconcile을 요청한다. SUBSCRIBED여도 pending/복구 실패가 남아 있는 동안 3초 간격으로 재시도하며, 보강·복구 성공 또는 terminal 권한/퇴장 정리 후에만 pending을 지운다. 이를 채널 장애로 위장하지 않는다. 정상 live 수신이 진행돼도 미완료 checkpoint를 건너뛰지 않는다.
+- Realtime 답변의 get_my_answer_links 보강이 실패하면 SDK는 raw 이벤트를 pending buffer에 보관하고 100개 이하 묶음으로 직렬 재시도한다. 실패 중에는 `onMessageEnrichmentError(messageIds)`로 화면에 알리고 실제 채널 status로 위장하지 않는다. 화면은 직전 checkpoint에서 직렬 reconcile을 요청한다. SUBSCRIBED여도 pending/복구 실패가 남아 있는 동안 3초 간격으로 재시도하며, 보강·복구 성공 또는 terminal 권한/퇴장 정리 후에만 pending을 지운다. 정상 live 수신이 진행돼도 미완료 checkpoint를 건너뛰지 않는다.
 - 첫 연결은 Realtime 구독·buffer를 시작하면서 `getRoomMessageCheckpoint`를 호출한다. **checkpoint 조회 완료 후** 최초 history를 시작하고 그 응답에 buffer를 병합한다. history 완료와 SUBSCRIBED를 모두 확인한 뒤 앞서 캡처한 checkpoint로 reconcile한다. history page·buffer·화면 마지막 메시지로 초기 checkpoint를 다시 계산하지 않는다. 재연결은 직전 전체 복구 완료 checkpoint를 사용한다. 명시적 null은 처음부터 조회하는 의미이며, history 더보기는 checkpoint를 전진시키지 않는다.
 - 방 목록·팬 대화 화면이 보이는 동안 `getRooms()`를 3초 간격으로 재조회해 membership·재입장 자격·현재 사진 URL을 갱신한다. 게이지/월 라운드 패널은 `getMyRoundGaugeSummary()`도 같은 주기로 읽는다. 정상 SUBSCRIBED 중에도 이 상태 재조회를 유지한다. 인플루언서 인박스는 같은 주기로 getRoomInbox 첫 page를 읽어 활성 질문자 수·묶음 점수·revision을 갱신하며 revision이 바뀌면 기존 후속 page를 버린다. 인박스/설정 화면의 본인 사진은 getMyInfluencerProfile도 같은 주기로 읽어 다른 로그인 세션의 변경을 반영한다. SDK 읽기는 과거 응답을 영구 cache하지 않고 현재 RLS/집계값을 반환한다.
 - focus·pageshow·화면 복귀 및 해당 화면의 라운드 완료·입장·월 경과·답변·묶기·삭제·사진 업로드 성공 직후에도 관련 상태를 재조회한다. 한 화면의 상태 재조회는 중첩하지 않고, 숨김 상태에서는 주기를 멈췄다가 복귀 시 즉시 읽는다. 다른 세션의 상태 변경은 정상 네트워크에서 다음 3초 주기 응답에 반영하며 요청 실패 시 stale 상태와 재시도 안내를 제공한다.
