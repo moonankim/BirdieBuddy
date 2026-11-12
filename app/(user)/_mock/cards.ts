@@ -21,8 +21,9 @@ export const mockCollectionTemplates:CollectionTemplate[]=manifest.assets.flatMa
 // 홈·이전 미리보기 URL에서 사용하는 대표 카드. 보유 데이터로 취급하지 않는다.
 export const mockCards=mockCollectionTemplates.filter(t=>templateTotal(t)>0).map(t=>cardFromTemplate(t,highestOwnedLevel(t)!));
 export type Grade=CardLevel;
+export function findMockTemplate(id:string){return mockCollectionTemplates.find(t=>t.id===id);}
 export function findMockCard(id:string,grade?:string|string[]){
-  const template=mockCollectionTemplates.find(t=>t.id===id);
+  const template=findMockTemplate(id);
   if(!template)return undefined;
   const selected=grade??highestOwnedLevel(template)??'basic';
   if(selected!=='basic'&&selected!=='rare'&&selected!=='legend')return undefined;

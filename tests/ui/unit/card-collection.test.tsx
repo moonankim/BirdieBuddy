@@ -19,11 +19,17 @@ describe('기획 기준의 카드 목록 목업',()=>{
     expect(screen.getByRole('progressbar',{name:'예시 카드 수집 현황'})).toHaveAttribute('value','3');
     expect(screen.getByRole('progressbar')).toHaveAttribute('max','12');
     expect(screen.getByText('화면 확인용 예시')).toBeInTheDocument();
-    expect(container.querySelector('img')).toBeNull();
+    // 보유 카드만 공통 CDN 디폴트 이미지를 사용하고 미보유는 실루엣을 유지한다.
+    const images=[...container.querySelectorAll('img')];
+    expect(images).toHaveLength(3);
+    images.forEach(img=>expect(img).toHaveAttribute('src','https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/default-card-at.png'));
+    expect(screen.queryByText('아직 모은 카드가 없어요')).toBeNull();
   });
   it('미보유만 있어도 수집 현황을 배열 길이로 세지 않는다',()=>{
     render(<CardCollection templates={mockCollectionTemplates.map(t=>({...t,counts:{basic:0,rare:0,legend:0}}))}/>);
     expect(screen.getByRole('progressbar')).toHaveAttribute('value','0');
+    expect(screen.getByText('아직 모은 카드가 없어요')).toBeInTheDocument();
+    expect(screen.getByRole('link',{name:'라운드 완료'})).toHaveAttribute('href','/draw');
     expect(screen.getAllByRole('article')).toHaveLength(12);
   });
   it('동일 선수의 등급별 수량과 상세 경로를 보존한다',()=>{
