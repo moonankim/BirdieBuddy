@@ -1,6 +1,10 @@
 # BirdieBuddy — 전체 시스템 아키텍처
 
-**최종 갱신:** 2026-11-12 — PR #30 카드 SDK 대조·시연 초기화 인계
+> **실제 카드 이미지 인계:** [R2 CDN 주소·DB/프론트 적용 지침](./card-assets.md), [36개 이미지 JSON 목록](./assets/card-images.json)을 사용합니다. 선수 식별자 12개·3등급이며 최종 이미지는 R2 출처입니다. 기존 Supabase Storage URL 생성·스타일 기반 경로를 그대로 적용하지 않습니다. DB·SDK·화면 연결은 아직 별도 작업입니다.
+
+> **카드 기준 변경 · 2026-11-12:** 디자인 스타일 없음, 카드 유형 `kpga / klpga / gtour / media`, 등급 `basic / rare / legend`가 최신 사용자 확정 사항입니다. 최종 카드 path는 `<유형>-<선수명>-<레벨>.png`이며 레벨은 `basic/rare/legend`, MIME은 `image/png`입니다. 스타일 기반 WebP 경로를 신규 규칙으로 사용하지 않습니다. [카드 변경 명세·담당자 인계](./card-spec.md)를 먼저 읽습니다. 이 문서의 이전 3스타일·4등급·30종 계약보다 최신 명세를 우선하며, DB·SDK·화면 전환 완료를 의미하지 않습니다. 미확정 확률·데이터 이관을 임의로 정하지 않습니다.
+
+**최종 갱신:** 2026-11-13 — main 최신 UI 병합 및 홍주P 백엔드 후속 점검
 
 > 제품 규칙은 [prd.md](./prd.md)를 기준으로 한다. 이 문서는 공통 아키텍처와 담당 경계를 설명하고, Supabase 백엔드의 상세 데이터·권한·SDK/RPC/Edge 계약과 구현 순서는 [홍주P_plan.md](./홍주P_plan.md)를 따른다.
 >
@@ -61,7 +65,7 @@ flowchart LR
 | DB | Supabase Postgres + migrations | 모든 공개 테이블 RLS, 명시적 grants, 조회 view는 security_invoker |
 | AI | Edge Functions + _shared AI adapter | 문환P 모델 로직, 홍주P 인증·전송·저장·실패 처리 |
 | 실시간 | Realtime Postgres Changes | messages INSERT/UPDATE, SELECT RLS 범위. 연결 장애 시 3초 폴링 |
-| 이미지 | Supabase Storage card-assets / influencer-profiles | 카드 10명×3스타일=30개. 카드 이미지는 공개 읽기·관리자 쓰기, 프로필 사진은 공개 읽기·인증된 본인 인플루언서의 WebP 업로드 전용. 교체 시 새 객체 경로 사용 |
+| 이미지 | 카드: 현재 구형 Supabase Storage 계약, 신규 기준은 R2 CDN / 프로필 사진: Supabase Storage | 기존 카드 DB·SDK는 UUID/style WebP 경로를 사용한다. 신규 카드 기준은 12개 player slug×3등급 PNG이며 R2 URL 연결은 미구현이다. 프로필 사진은 공개 읽기·인증된 본인 인플루언서의 WebP 업로드 전용이며 교체 시 새 객체 경로를 사용한다. |
 | 실행·검증 | Node.js 24, Deno 2, Supabase CLI, Docker 호환 런타임 | Node/SDK와 Deno/Edge 검사 분리 |
 | 배포 | Supabase CLI + Vercel | DB/Functions는 Supabase, 프론트는 Vercel |
 | 키 | 브라우저 publishable key + 사용자 JWT | 관리·LLM·Supabase secret key는 브라우저에 노출하지 않음 |
@@ -150,18 +154,20 @@ lib/api는 브라우저 SDK이며 서버 구현 위치가 아니다. 클라이�
 4. actor는 검증한 세션에서 얻는다. 브라우저 userId·role·quality·verdict·보유량을 신뢰하지 않는다. messages의 bigint ID는 전송 전 문자열로 보존한다.
 5. 지금까지 검증한 migration·SDK·Edge 경계·local-only 흐름을 구분해 기록한다. 사용자 JWT를 통한 화면·실제 AI·원격 동작은 별도 검증 전까지 완료로 보지 않는다.
 
-### PR #26–29 루트 Next.js 화면 통합 상태 (2026-11-12 갱신)
+### PR #26–32 루트 Next.js 화면 통합 상태 (2026-11-13 갱신)
 
 - PR #26에서 화면 소스가 루트 `app/`, `components/`, `tests/ui/`로 이동했고 중복 `BirdieBuddy-ui/` manifest·lockfile은 제거됐다. 단일 설치 기준은 루트 `package.json`·`package-lock.json`이며 기존 backend 설정은 `tsconfig.backend.json`, Edge 검사는 Deno를 사용한다.
 - `components/chat/api/chat-api.tsx`는 `BackendApi`에서 화면 메서드 타입을 선택하고, 화면이 사용하는 도메인 타입도 루트 `lib/api/types.ts`를 가져온다. 정적 대조 결과 `Message.isReplyToMe`, `getMyMembership({roomId})`, `reconcileRoomMessages({roomId,currentMessages,checkpoint})`, `InboxPage.revision`, question/cluster 답변 version 계약이 현재 SDK와 맞아 홍주P SDK 타입 수정은 필요하지 않았다.
 - PR #29는 `lib/session`을 Supabase Auth 세션 복원·이메일 로그인과 `profiles` 본인 행의 역할/닉네임 조회에 연결하고, `components/chat/providers.tsx`의 실제 모드를 `createBackendApi()`로 바꿨다. 목 로그인과 목 SDK는 E2E·미리보기용으로 남아 있다. 클라이언트 역할은 화면 분기에만 쓰고 권한은 RLS/RPC가 다시 검사한다.
-- 실제 사용자 브라우저 로그인·다중 브라우저 Realtime·Storage 흐름과 Vercel 배포는 아직 검증되지 않았다. 관리자 데모 월 화면은 현재 KST 월과 오류 details를 사용한다. 홍주P SDK에는 서버의 데모 시계를 읽는 `getAdminDemoMonth()`를 추가했으며, 화면 연결은 자성P 담당이다.
+- PR #30은 main `4003863`에 병합됐다. `/home`·`/draw`는 기존 4등급 BackendApi를 사용하고, 새 3등급 `/collection/**`는 목업이다. PR #32의 상세·강화 화면도 목업 데이터와 비용을 표시한다.
+- 실제 사용자 브라우저 로그인·다중 브라우저 Realtime·Storage 흐름과 Vercel 배포는 아직 검증되지 않았다. 관리자 화면은 아직 KST 초기 월을 사용한다. 홍주P 브랜치에는 admin 권한과 `can_advance_month`를 재검사하는 `get_admin_demo_month()` migration 및 `getAdminDemoMonth()` SDK가 있지만 main 반영과 화면 연결은 완료되지 않았다.
 
-### PR #30 카드 화면 검토와 시연 데이터 (open PR 기준)
+### PR #30/#32 병합 및 카드 데이터 계약 후속
 
-- PR #30 head `3b36523`은 `/home`·`/collection`·`/draw`를 기존 카드·월 요약 SDK에 연결한다. 계약을 대조했으며 새 백엔드 RPC/schema는 필요하지 않다. 이번 작업에서 해당 open PR을 로컬 또는 원격으로 병합하지 않았다.
-- 실제 모드의 라운드 완료는 연결 프로젝트의 데이터를 변경한다. 공유 hosted 프로젝트를 기본 개발 환경으로 유지하고 기존 시연 데이터를 남겨 둔 채 새 팬 계정으로 시연을 시작한다. 로컬 전체 재현은 `demo:reset`의 계획 확인 후 `--apply`로 실행한다. `demo:setup`은 재초기화 명령이 아니다. 로컬 도구는 기존 원격 브라우저 환경값을 보존하므로 화면의 실제 연결 대상은 별도로 확인한다.
-- `getAdminDemoMonth` SDK/migration은 홍주P 브랜치에 있으며 main 반영·대상 DB 적용과 자성P 관리자 UI 연결이 남아 있다. PR #30의 응답 유실 후 재발급, 계정 간 마지막 결과 공유, 고정 입장 장수 문구는 자성P·현호P 수정 인계로 [홍주P 계획 §13.13](./홍주P_plan.md#1313-2026-11-12--pr-30-카드-화면-연동과-시연-초기화-인계)에 기록했다. 정적 발견을 실제 사용자 브라우저 재현으로 처리하지 않는다.
+- PR #30 head `3b36523`은 main에 병합됐고 홈·발급 결과의 일부 SDK 연결이 들어왔다. 실제 현재 코드를 대조하면 `/home`·`/draw`의 SDK 계약은 스타일·4등급이며, `/collection/**`는 별도 신규 3등급 목업이다. 새 DB RPC/schema가 불필요하다는 기존 판단은 옛 계약에만 해당한다.
+- PR #32의 목록·상세·강화도 UI 목업이다. 새 카드 기준은 [card-spec.md](./card-spec.md)와 [CDN manifest](./assets/card-images.json)에 기록돼 있다. DB의 `card_style`, `card_grade`, `card_templates.image_path`, 발급·강화 RPC, seed/config와 SDK는 기존 스타일·4등급·Supabase Storage 계약을 사용하므로 데이터 전환 전에 계약 결정과 migration이 필요하다. 유형 4개를 기존 계정의 `influencer_type`에 대입하지 않는다.
+- 3등급 발급 확률, 기존 카드·등급 데이터 이관, manifest의 playerSlug와 DB 인물 UUID 연결, 스타일 기반 보상·배지 제거/대체는 미확정이다. 이 결정 없이 schema·seed·RPC를 바꾸거나 원격 데이터를 이관하지 않는다. 필요한 담당자 확인과 백엔드 작업 순서는 [홍주P 계획 §13.14](./홍주P_plan.md)에 기록했다.
+- 실제 모드의 라운드 완료는 연결 프로젝트의 데이터를 변경한다. 공유 hosted 프로젝트를 기본 개발 환경으로 유지하고 기존 시연 데이터를 남겨 둔 채 새 팬 계정으로 시연한다. 로컬 전체 재현은 `demo:reset`의 계획 확인 후 `--apply`로 실행한다. `demo:setup`은 재초기화 명령이 아니며 로컬 도구는 브라우저 환경값을 보존한다.
 
 ## 3. 데이터 모델과 권한
 

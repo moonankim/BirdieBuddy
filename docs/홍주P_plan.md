@@ -1,5 +1,13 @@
 # BirdieBuddy — 홍주P 백엔드 개발 실행 계획
 
+> **카드 UI 후속 인계:** [목록·상세·강화 변경과 담당자별 연결 사항](./card-ui-handoff.md)을 먼저 확인합니다. 사용자 지시로 이번 단계의 API 연결은 제외했습니다. 장수·수집 현황·강화 결과는 목업이며 실제 데이터나 서버 성공으로 취급하지 않습니다.
+
+> **실제 카드 이미지 인계:** [R2 CDN 주소·DB/프론트 적용 지침](./card-assets.md), [36개 이미지 JSON 목록](./assets/card-images.json)을 사용합니다. 선수 식별자 12개·3등급이며 최종 이미지는 R2 출처입니다. 기존 Supabase Storage URL 생성·스타일 기반 경로를 그대로 적용하지 않습니다. DB·SDK·화면 연결은 아직 별도 작업입니다.
+
+> **디자인 시스템 적용 인계:** 화면·공통 UI 작업 전 [에이전트 적용 가이드](../design-system/AGENT_GUIDE.md)를 확인합니다. 최신 원본·적용 상태·샘플 전용 구성·담당 경계와 검증 기준을 정리했습니다. 실제 API 연결을 보존하고 이전 카드 정의를 신규 요구사항으로 복제하지 않습니다.
+
+> **카드 기준 변경 · 2026-11-12:** 디자인 스타일 없음, 카드 유형 `kpga / klpga / gtour / media`, 등급 `basic / rare / legend`가 최신 사용자 확정 사항입니다. 최종 카드 path는 `<유형>-<선수명>-<레벨>.png`이며 레벨은 `basic/rare/legend`, MIME은 `image/png`입니다. 스타일 기반 WebP 경로를 신규 규칙으로 사용하지 않습니다. [카드 변경 명세·담당자 인계](./card-spec.md)를 먼저 읽습니다. 이 문서의 이전 3스타일·4등급·30종 계약보다 최신 명세를 우선하며, DB·SDK·화면 전환 완료를 의미하지 않습니다. 미확정 확률·데이터 이관을 임의로 정하지 않습니다.
+
 **담당:** Supabase 백엔드·채팅 서비스·브라우저 호출 SDK
 
 **계약 버전:** 1.7 / 2026-11-12
@@ -1183,6 +1191,26 @@ npm run demo:reset -- --apply
 | 현호P·자성P (입장 안내/디자인) | PR head `/draw`의 “5장” 고정 문구를 이미 조회하는 `getRooms().requiredCards` 또는 숫자 없는 문구로 바꾼다. 입장 기준은 게임 설정이며 누적 발급 기준이다. 카드 상세·`upgradeCard`·연출·최종 이미지·홈 경로 결정은 현호P 소유 작업을 유지한다. |
 
 담당자 인계는 이 문서와 README에 기록하며 GitHub 댓글이나 외부 메시지를 보내지 않는다. 검증은 Deno의 Node 호환 backend 13건(초기화 도구 7건 포함), 로컬 `complete_round` pgTAP 17건, backend typecheck·plan checker·diff check를 통과했다. 초기화 테스트는 fake runner와 격리 파일시스템의 CLI stub을 사용하며 실제 `--apply` reset·setup, PR #30 UI·브라우저·원격 변경은 실행하지 않았다. 현재 PATH에 Node/npm이 없어 Node 24/npm 실행 결과로 보고하지 않는다. 상세 명령과 환경별 한계는 로컬 검증 기록 `harness/verification-log.md`에 남겼다.
+
+### 13.14 2026-11-13 — main PR #30/#32 반영 및 홍주P 백엔드 후속 점검
+
+- **동기화:** `git fetch origin main`에서 확인한 최신 main은 `4003863` (PR #30, #31, #32 포함)이다. 이를 `feature/hongjoo`에 병합했다. 기존 변경은 앞선 `fb333a1`에서 별도 커밋했으며, merge 결과와 본 절은 이 작업의 병합 커밋에 포함한다. PR을 push하거나 hosted Supabase에 변경을 적용하지 않았다.
+- **PR #30 실제 계약:** `/home`·`/draw`의 라운드 요약·완료·최근 카드 조회는 기존 4등급 BackendApi를 쓴다. `/collection/**`는 신규 3등급·4유형 UI 목업이므로 실제 보유 정보로 보면 안 된다. main PR #32가 추가한 상세·강화도 예시 수량과 비용을 표시하며 API 호출·보유량 변경을 하지 않는다.
+- **홍주P 로컬 개발:** `demo:reset`과 `prepare-local-env.mjs --backend-only`를 `fb333a1`에 커밋했다. 이 도구는 기본 계획 출력, `--apply`에서만 loopback 로컬 Supabase를 초기화한다. 공유 hosted DB와 브라우저 env 파일은 변경하지 않는다.
+- **B-07 관리자 시계:** `get_admin_demo_month()` migration 및 `getAdminDemoMonth()`는 이전 `79d2c90`에 구현되어 현재 feature branch에 남아 있다. 이번 main 병합은 이 변경을 main 또는 DB에 적용하지 않는다. 관리자 화면은 계속 KST 초기값으로 시작하며 자성P가 성공 응답 월을 읽고 오류/재시도 경계를 연결해야 한다. hosted migration 적용은 별도 환경 요청·검증 뒤 진행한다.
+- **신규 카드 기준과 백엔드 차이:** main의 [card-spec.md](./card-spec.md)는 `kpga/klpga/gtour/media`, `basic/rare/legend`, 12개 `playerSlug`×3등급 PNG 및 R2 경로를 확정한다. 현재 `card_style`, 4등급 enum, `(influencer_id,style)` 템플릿 키, Storage WebP 경로, 발급·강화 RPC, seed/config, SDK는 구 계약이다. 새 카드 전환 migration이나 매핑은 이번 변경에서 만들지 않았다.
+
+데이터 전환 전에 필요한 결정:
+
+| 확인 항목 | 담당 및 필요한 결정 |
+| --- | --- |
+| manifest의 12개 `playerSlug` ↔ 카드 인물/DB UUID, 실제 발급 대상과 기존 30개 템플릿 처리 | 현호P가 인물·유형 목록을 확정하고 홍주P가 DB UUID·기존 데이터 영향과 대조 |
+| BASIC/RARE/LEGEND 발급 확률·강화 비용/조건·기존 등급별 보유량 이관 | 문환P가 게임 규칙을 확정하고 홍주P가 migration/RPC 적용안을 작성 |
+| 스타일 제거 이후 점수·배지·입장 조건과 카드용 유형/채팅 계정 유형 분리 | 자성P·문환P가 화면/보상 규칙을 확인하고 홍주P가 별도 카드 유형 계약을 설계 |
+| R2 base URL 환경 설정과 SDK의 등급별 이미지 반환 계약 | 홍주P가 URL/SDK 계약을 정리하고 자성P가 렌더링 오류·대체 이미지 흐름을 연결 |
+
+- **PR #30 UI 후속(타 담당):** 홈의 retryable 오류 상태에서도 새 requestId의 기본 발급이 가능해 응답 유실 후 중복 지급 위험이 있다. `birdiebuddy-last-draw` sessionStorage 키는 계정 구분이 없고 `/draw` 안내는 5장을 고정한다. 자성P·현호P가 요청 재사용/계정 분리/설정값 안내를 수정한다. 이는 코드 정적 대조 결과이며 브라우저 재현은 아니다.
+- **이번 확인 범위:** main 코드와 백엔드 migration·SDK·seed 및 담당 문서를 정적으로 대조했다. 새 카드 확률·인물 UUID·기존 데이터 매핑이 확정되지 않아 schema/RPC/seed 변경은 보류했다. 테스트·typecheck·build·browser smoke·hosted 조회/변경은 실행하지 않았다.
 
 ## 14. 진행·완료 보고
 
