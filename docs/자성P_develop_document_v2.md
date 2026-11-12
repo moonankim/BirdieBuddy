@@ -72,7 +72,7 @@
 - [ ] 홈 경로 확정: `/home` 별도(라운드 완료 → `/draw` 결과) 또는 `/draw` 하나로 겸용. 정해지면 하단 바·로그인 후 첫 화면(`homeFor`, 현재 팬은 `/chat`)을 맞춘다. 뽑기 연출은 미정이다.
 - [x] 2026-11-12 `/home`·`/collection`·`/draw`를 SDK에 연결(목업 `_mock/cards.ts` 삭제)
   - 홈: `getMyRoundGaugeSummary`(이번 달 라운드), `getOwnedCards`(나의 카드 상위 2장), 라운드 완료 → `completeRound`(같은 requestId 재시도) → 결과를 세션 저장소에 두고 `/draw`
-  - 카드 탭: `getCollection`(미보유 포함·등급 필터), `getOwnedCards`(보유 카드 탭)
+  - 카드 탭: 2026-11-13 현호P 새 카드 규격(3등급·4유형) 목업 화면(`/collection`·`/collection/owned`·상세·강화)으로 교체. 백엔드 카드 규격 이관 뒤 `CardCollection`의 `templates`·`status`·`onRetry`에 실제 데이터를 넣어 연결(docs/card-ui-handoff.md)
   - 발급 결과: 카드·등급·신규/중복·보유 수, `entryUnlocked`면 해당 인플루언서 채팅방(`getRooms`의 influencerId로 찾음) 링크
   - 목 SDK에 카드 30종·completeRound·입장 자격 연동 추가, 시험 5건
 - [ ] 현호P: 카드 상세·강화(`upgradeCard`), 뽑기 연출, 최종 카드 아트로 화면 보강

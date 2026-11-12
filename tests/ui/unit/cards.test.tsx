@@ -2,7 +2,6 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import HomePage from '@/app/(user)/home/page';
-import CollectionPage from '@/app/(user)/collection/page';
 import DrawPage from '@/app/(user)/draw/page';
 import { saveLastDraw } from '@/app/(user)/_lib/cards';
 import { createMockChatApi } from '@/components/chat/api/mock';
@@ -44,7 +43,7 @@ describe('mock card SDK', () => {
   });
 });
 
-describe('home, collection and draw screens', () => {
+describe('home and draw screens', () => {
   it('home shows the month summary and owned cards, and round completion goes to /draw with the saved result', async () => {
     const api = createMockChatApi({ emptyMessages: true });
     renderApp(<HomePage />, api, 'userA');
@@ -52,16 +51,6 @@ describe('home, collection and draw screens', () => {
     await userEvent.click(screen.getByRole('button', { name: /라운드 완료/ }));
     await waitFor(() => expect(router.push).toHaveBeenCalledWith('/draw'));
     expect(sessionStorage.getItem('birdiebuddy-last-draw')).toContain('"roundId"');
-  });
-
-  it('collection lists owned and unowned templates and the owned tab shows only owned cards', async () => {
-    const api = createMockChatApi({ emptyMessages: true });
-    renderApp(<CollectionPage />, api, 'userA');
-    expect(await screen.findByText('1 / 30')).toBeVisible();
-    expect(screen.getAllByText('아직 만나지 못했어요')).toHaveLength(29);
-    await userEvent.click(screen.getByRole('button', { name: '보유 카드' }));
-    expect(screen.queryByText('아직 만나지 못했어요')).not.toBeInTheDocument();
-    expect(screen.getByText('10장 보유')).toBeVisible();
   });
 
   it('draw shows the confirmed card and links to the unlocked chat room', async () => {

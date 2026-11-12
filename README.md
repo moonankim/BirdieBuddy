@@ -1,8 +1,20 @@
 # BirdieBuddy
 
+> **카드 UI 후속 인계:** [목록·상세·강화 변경과 담당자별 연결 사항](docs/card-ui-handoff.md)을 먼저 확인합니다. 사용자 지시로 이번 단계의 API 연결은 제외했습니다. 장수·수집 현황·강화 결과는 목업이며 실제 데이터나 서버 성공으로 취급하지 않습니다.
+
+> **실제 카드 이미지 인계:** [R2 CDN 주소·DB/프론트 적용 지침](docs/card-assets.md), [36개 이미지 JSON 목록](docs/assets/card-images.json)을 사용합니다. 선수 식별자 12개·3등급이며 최종 이미지는 R2 출처입니다. 기존 Supabase Storage URL 생성·스타일 기반 경로를 그대로 적용하지 않습니다. DB·SDK·화면 연결은 아직 별도 작업입니다.
+
+> **디자인 시스템 적용 인계:** 화면·공통 UI 작업 전 [에이전트 적용 가이드](design-system/AGENT_GUIDE.md)를 확인합니다. 최신 원본·적용 상태·샘플 전용 구성·담당 경계와 검증 기준을 정리했습니다. 실제 API 연결을 보존하고 이전 카드 정의를 신규 요구사항으로 복제하지 않습니다.
+
+> **에이전트·담당자 카드 작업 참고:** 최신 카드 기준은 스타일 없음, 유형 `kpga/klpga/gtour/media`, 등급 `basic/rare/legend`입니다. 최종 카드 path는 `<유형>-<선수명>-<레벨>.png`(예: `gtour-공태풍-basic.png`)이며 디자인 스타일은 사용하지 않습니다. 작업 전 [변경 명세와 담당별 인계](docs/card-spec.md), [현호P 계획](docs/현호P_plan.md)을 확인합니다. 기존 DB·SDK·화면은 이전 계약이 남아 있어 전환 작업이 필요합니다.
+
 앱용 공통 스타일과 에셋은 [디자인 시스템 개발 가이드](design-system/DEVELOPMENT.md)를 따릅니다. UI 테스트는 `npm run test:ui`로 실행하며, 실행기가 프로젝트 내부 `.tmp/`를 임시 경로로 사용합니다. `.tmp/`는 Git에서 제외됩니다.
 
 골프존 AI 해커톤 프로젝트입니다. 브라우저는 Supabase Auth, Data API, RPC, Edge Functions, Realtime, Storage를 직접 호출하고 서버 데이터 처리는 Supabase에 둡니다.
+
+카드 목록은 `/collection`(전체)·`/collection/owned`(보유)로 나누며 선수·유형·등급 필터, 등급순·장수순 정렬과 강화 미리보기를 제공합니다. 사용자 요청에 따라 API는 연결하지 않았고, 장수·수집 현황은 화면에 명시된 목업입니다.
+
+카드 상세는 `/collection/c1` 등의 목업 페이지로 추가되어 있습니다. 홈·컬렉션에서 진입하며 실제 카드 아트 대신 공통 디폴트 이미지를 사용합니다. BASIC 예시 카드 `/collection/c2`는 11장으로 준비되어 강화 미리보기에 진입할 수 있습니다. 강화 화면은 `/collection/upgrade?cardId=c2`이며 확인·결과 미리보기만 제공합니다. 실제 DB 수량 조회·카드 차감·저장은 연결하지 않았습니다.
 
 ## 화면(Next.js) 로컬 실행
 
@@ -26,7 +38,7 @@ npm run dev        # http://localhost:3000
 | 관리자 (admin) | `/admin` | 데모 월 경과, 인증 심사 |
 
 - 목 모드 데이터는 브라우저 탭 안에만 있다. 팬 ↔ 인플루언서 주고받기는 같은 탭에서 계정을 전환해 확인한다.
-- 모바일 화면(390px) 기준이다. `/home`(이번 달 라운드·나의 카드·라운드 완료), `/collection`(컬렉션·보유 카드), `/draw`(발급 결과)는 SDK(`getMyRoundGaugeSummary`·`getOwnedCards`·`getCollection`·`completeRound`)에 연결돼 있고, 디자인·연출·강화는 현호P가 보강한다.
+- 모바일 화면(390px) 기준이다. `/home`(이번 달 라운드·나의 카드·라운드 완료)과 `/draw`(발급 결과)는 SDK(`getMyRoundGaugeSummary`·`getOwnedCards`·`completeRound`)에 연결돼 있다. `/collection/**`(목록·상세·강화)는 새 카드 규격(3등급) 목업이며 백엔드 규격 이관 뒤 연결한다([카드 UI 인계](docs/card-ui-handoff.md)).
 - 화면 타입은 루트 `lib/api/types.ts`를 그대로 쓴다. `app/design-system.css`는 `design-system/styles.css`(디자인 시스템 0.2)를 옮긴 사본이다.
 
 ```bash

@@ -1,0 +1,259 @@
+{
+  "schemaVersion": 1,
+  "source": "사용자 제공 CDN 업로드 목록 (2026-11-12)",
+  "baseUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev",
+  "assets": [
+    {
+      "category": "gtour",
+      "playerSlug": "gong_tae_pung",
+      "grade": "basic",
+      "imagePath": "gtour-gong_tae_pung-basic.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/gtour-gong_tae_pung-basic.png"
+    },
+    {
+      "category": "gtour",
+      "playerSlug": "gong_tae_pung",
+      "grade": "rare",
+      "imagePath": "gtour-gong_tae_pung-rare.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/gtour-gong_tae_pung-rare.png"
+    },
+    {
+      "category": "gtour",
+      "playerSlug": "gong_tae_pung",
+      "grade": "legend",
+      "imagePath": "gtour-gong_tae_pung-legend.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/gtour-gong_tae_pung-legend.png"
+    },
+    {
+      "category": "gtour",
+      "playerSlug": "kim_hong_cha",
+      "grade": "basic",
+      "imagePath": "gtour-kim_hong_cha-basic.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/gtour-kim_hong_cha-basic.png"
+    },
+    {
+      "category": "gtour",
+      "playerSlug": "kim_hong_cha",
+      "grade": "rare",
+      "imagePath": "gtour-kim_hong_cha-rare.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/gtour-kim_hong_cha-rare.png"
+    },
+    {
+      "category": "gtour",
+      "playerSlug": "kim_hong_cha",
+      "grade": "legend",
+      "imagePath": "gtour-kim_hong_cha-legend.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/gtour-kim_hong_cha-legend.png"
+    },
+    {
+      "category": "gtour",
+      "playerSlug": "moon_seo_rap",
+      "grade": "basic",
+      "imagePath": "gtour-moon_seo_rap-basic.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/gtour-moon_seo_rap-basic.png"
+    },
+    {
+      "category": "gtour",
+      "playerSlug": "moon_seo_rap",
+      "grade": "rare",
+      "imagePath": "gtour-moon_seo_rap-rare.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/gtour-moon_seo_rap-rare.png"
+    },
+    {
+      "category": "gtour",
+      "playerSlug": "moon_seo_rap",
+      "grade": "legend",
+      "imagePath": "gtour-moon_seo_rap-legend.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/gtour-moon_seo_rap-legend.png"
+    },
+    {
+      "category": "klpga",
+      "playerSlug": "hwang_yu_ja",
+      "grade": "basic",
+      "imagePath": "klpga-hwang_yu_ja-basic.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/klpga-hwang_yu_ja-basic.png"
+    },
+    {
+      "category": "klpga",
+      "playerSlug": "hwang_yu_ja",
+      "grade": "rare",
+      "imagePath": "klpga-hwang_yu_ja-rare.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/klpga-hwang_yu_ja-rare.png"
+    },
+    {
+      "category": "klpga",
+      "playerSlug": "hwang_yu_ja",
+      "grade": "legend",
+      "imagePath": "klpga-hwang_yu_ja-legend.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/klpga-hwang_yu_ja-legend.png"
+    },
+    {
+      "category": "klpga",
+      "playerSlug": "park_hyeon_kong",
+      "grade": "basic",
+      "imagePath": "klpga-park_hyeon_kong-basic.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/klpga-park_hyeon_kong-basic.png"
+    },
+    {
+      "category": "klpga",
+      "playerSlug": "park_hyeon_kong",
+      "grade": "rare",
+      "imagePath": "klpga-park_hyeon_kong-rare.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/klpga-park_hyeon_kong-rare.png"
+    },
+    {
+      "category": "klpga",
+      "playerSlug": "park_hyeon_kong",
+      "grade": "legend",
+      "imagePath": "klpga-park_hyeon_kong-legend.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/klpga-park_hyeon_kong-legend.png"
+    },
+    {
+      "category": "klpga",
+      "playerSlug": "yoon_i_ppal",
+      "grade": "basic",
+      "imagePath": "klpga-yoon_i_ppal-basic.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/klpga-yoon_i_ppal-basic.png"
+    },
+    {
+      "category": "klpga",
+      "playerSlug": "yoon_i_ppal",
+      "grade": "rare",
+      "imagePath": "klpga-yoon_i_ppal-rare.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/klpga-yoon_i_ppal-rare.png"
+    },
+    {
+      "category": "klpga",
+      "playerSlug": "yoon_i_ppal",
+      "grade": "legend",
+      "imagePath": "klpga-yoon_i_ppal-legend.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/klpga-yoon_i_ppal-legend.png"
+    },
+    {
+      "category": "kpga",
+      "playerSlug": "heo_in_saeng",
+      "grade": "basic",
+      "imagePath": "kpga-heo_in_saeng-basic.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/kpga-heo_in_saeng-basic.png"
+    },
+    {
+      "category": "kpga",
+      "playerSlug": "heo_in_saeng",
+      "grade": "rare",
+      "imagePath": "kpga-heo_in_saeng-rare.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/kpga-heo_in_saeng-rare.png"
+    },
+    {
+      "category": "kpga",
+      "playerSlug": "heo_in_saeng",
+      "grade": "legend",
+      "imagePath": "kpga-heo_in_saeng-legend.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/kpga-heo_in_saeng-legend.png"
+    },
+    {
+      "category": "kpga",
+      "playerSlug": "jung_ji_bung",
+      "grade": "basic",
+      "imagePath": "kpga-jung_ji_bung-basic.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/kpga-jung_ji_bung-basic.png"
+    },
+    {
+      "category": "kpga",
+      "playerSlug": "jung_ji_bung",
+      "grade": "rare",
+      "imagePath": "kpga-jung_ji_bung-rare.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/kpga-jung_ji_bung-rare.png"
+    },
+    {
+      "category": "kpga",
+      "playerSlug": "jung_ji_bung",
+      "grade": "legend",
+      "imagePath": "kpga-jung_ji_bung-legend.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/kpga-jung_ji_bung-legend.png"
+    },
+    {
+      "category": "kpga",
+      "playerSlug": "lee_seung_nyang",
+      "grade": "basic",
+      "imagePath": "kpga-lee_seung_nyang-basic.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/kpga-lee_seung_nyang-basic.png"
+    },
+    {
+      "category": "kpga",
+      "playerSlug": "lee_seung_nyang",
+      "grade": "rare",
+      "imagePath": "kpga-lee_seung_nyang-rare.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/kpga-lee_seung_nyang-rare.png"
+    },
+    {
+      "category": "kpga",
+      "playerSlug": "lee_seung_nyang",
+      "grade": "legend",
+      "imagePath": "kpga-lee_seung_nyang-legend.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/kpga-lee_seung_nyang-legend.png"
+    },
+    {
+      "category": "media",
+      "playerSlug": "kim_jin_sil",
+      "grade": "basic",
+      "imagePath": "media-kim_jin_sil-basic.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/media-kim_jin_sil-basic.png"
+    },
+    {
+      "category": "media",
+      "playerSlug": "kim_jin_sil",
+      "grade": "rare",
+      "imagePath": "media-kim_jin_sil-rare.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/media-kim_jin_sil-rare.png"
+    },
+    {
+      "category": "media",
+      "playerSlug": "kim_jin_sil",
+      "grade": "legend",
+      "imagePath": "media-kim_jin_sil-legend.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/media-kim_jin_sil-legend.png"
+    },
+    {
+      "category": "media",
+      "playerSlug": "park_ha_pum",
+      "grade": "basic",
+      "imagePath": "media-park_ha_pum-basic.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/media-park_ha_pum-basic.png"
+    },
+    {
+      "category": "media",
+      "playerSlug": "park_ha_pum",
+      "grade": "rare",
+      "imagePath": "media-park_ha_pum-rare.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/media-park_ha_pum-rare.png"
+    },
+    {
+      "category": "media",
+      "playerSlug": "park_ha_pum",
+      "grade": "legend",
+      "imagePath": "media-park_ha_pum-legend.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/media-park_ha_pum-legend.png"
+    },
+    {
+      "category": "media",
+      "playerSlug": "choi-na-bee",
+      "grade": "basic",
+      "imagePath": "media-choi-na-bee-basic.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/media-choi-na-bee-basic.png"
+    },
+    {
+      "category": "media",
+      "playerSlug": "choi-na-bee",
+      "grade": "rare",
+      "imagePath": "media-choi-na-bee-rare.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/media-choi-na-bee-rare.png"
+    },
+    {
+      "category": "media",
+      "playerSlug": "choi-na-bee",
+      "grade": "legend",
+      "imagePath": "media-choi-na-bee-legend.png",
+      "imageUrl": "https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/media-choi-na-bee-legend.png"
+    }
+  ]
+}
