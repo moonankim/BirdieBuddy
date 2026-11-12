@@ -1,6 +1,6 @@
 # BirdieBuddy — 전체 시스템 아키텍처
 
-**최종 갱신:** 2026-11-12 — PR #16 moderation 정책 변경을 백엔드 계약에 대조
+**최종 갱신:** 2026-11-12 — 루트 패키지와 Next.js 화면 통합 방향 반영
 
 > 제품 규칙은 [prd.md](./prd.md)를 기준으로 한다. 이 문서는 공통 아키텍처와 담당 경계를 설명하고, Supabase 백엔드의 상세 데이터·권한·SDK/RPC/Edge 계약과 구현 순서는 [홍주P_plan.md](./홍주P_plan.md)를 따른다.
 >
@@ -10,7 +10,7 @@
 
 ## 1. 전체 시스템과 데이터 흐름
 
-서비스 목표는 유저 웹·인플루언서 인박스·관리자 화면을 하나의 Next.js 앱에서 제공하는 것이다. 해커톤 동안 PR #14의 화면 미리보기는 Next.js 16·TypeScript 5.9를 쓰는 별도 `BirdieBuddy-ui/` 패키지로 유지한다. 루트 백엔드는 Node 24·TypeScript 7 도구 체계를 유지한다. 실제 데이터 연동 시 브라우저가 루트 `lib/api` SDK를 통해 Supabase를 직접 호출하며, PR #14 미리보기는 현재 더미 SDK 상태다. 실제 골프존 회원·라운드·결제 연동은 하지 않고 라운드 완료 버튼과 실제 Auth 데모 계정 전환으로 대체한다.
+서비스 목표는 유저 웹·인플루언서 인박스·관리자 화면을 루트의 단일 Next.js 앱에서 제공하는 것이다. 현재 화면 미리보기는 `BirdieBuddy-ui/`에 별도 프로젝트로 남아 있지만, 루트 `package.json`의 Next.js·React·Tailwind·TypeScript 도구 버전을 미리 맞춰 통합을 준비한다. 루트 런타임은 Node 24를 유지하고 백엔드 TypeScript 설정은 `tsconfig.backend.json`으로 분리한다. 화면 소스 이동과 하위 패키지 정리는 화면 담당자 후속 작업으로 요청하며 이번 변경에서는 건드리지 않는다. 실제 데이터 연동 시 브라우저가 루트 `lib/api` SDK를 통해 Supabase를 직접 호출하고, 현재 preview는 더미 SDK 상태다. 실제 골프존 회원·라운드·결제 연동은 하지 않고 라운드 완료 버튼과 실제 Auth 데모 계정 전환으로 대체한다.
 
 ```mermaid
 flowchart LR
@@ -121,7 +121,8 @@ BirdieBuddy/
 │  └─ verify-backend.mjs               # local roles·messages·inbox·cursor·RPC checks
 ├─ tests/backend/                      # cursor·Edge adapter contract tests
 ├─ deno.json                           # Edge Function 전용 고정 의존성·검사 설정
-├─ package.json                        # pinned local backend toolchain and scripts
+├─ deno.lock                           # Deno/공통 package.json 기반 npm·jsr 해석 고정
+├─ package.json                        # Next.js UI + pinned backend toolchain and scripts
 ├─ tsconfig.backend.json               # Node/SDK 검사, Edge는 Deno로 별도 검사
 └─ .env.example                        # 공개 placeholder만 포함, 실제 연결값 없음
 ```
@@ -148,11 +149,11 @@ lib/api는 브라우저 SDK이며 서버 구현 위치가 아니다. 클라이�
 4. actor는 검증한 세션에서 얻는다. 브라우저 userId·role·quality·verdict·보유량을 신뢰하지 않는다. messages의 bigint ID는 전송 전 문자열로 보존한다.
 5. 지금까지 검증한 migration·SDK·Edge 경계·local-only 흐름을 구분해 기록한다. 사용자 JWT를 통한 화면·실제 AI·원격 동작은 별도 검증 전까지 완료로 보지 않는다.
 
-### PR #14 해커톤 화면 패키지 결정
+### PR #14 해커톤 화면 통합 방향 (2026-11-12 갱신)
 
-- 해커톤 동안 안 A를 적용한다. `BirdieBuddy-ui/`를 독립 Next.js 패키지로 두고 루트 백엔드 패키지에 Next 의존성이나 프론트 TypeScript 설정을 추가하지 않는다.
-- UI와 백엔드가 공유하는 API 타입·호출 구현은 루트 `lib/api`가 단일 원본이다. 화면 패키지 안에서 서비스 타입을 복제하지 않고 SDK 타입을 가져다 쓴다.
-- `BirdieBuddy-ui/`에서 루트 `lib/api`/`lib/supabase`를 해석하는 패키지 경계와 Vercel 빌드 루트는 아직 배포 검증 전이다. 이를 확인하기 전까지는 별도 패키지 선택을 프론트 배포 완료로 취급하지 않는다.
+- 현재 `BirdieBuddy-ui/` 소스·manifest·lockfile은 별도 디렉터리에 남아 있다. 루트 manifest에는 Next.js 16.4.6, React 19.3.1, Tailwind 4.3.5, TypeScript 5.9.3 등 UI lockfile의 해석 버전을 맞춘다. 루트 `package-lock.json`과 Deno의 `deno.lock`도 공통 manifest 변경에 맞춰 갱신한다. 이는 dependency alignment이며 화면 이동이나 단일 패키지 통합 완료를 뜻하지 않는다.
+- 목표는 `app/`, `components/` 등 화면 구조를 루트로 옮기고 루트 `package.json`·`package-lock.json`을 단일 설치 기준으로 사용하는 것이다. 기존 백엔드 설정은 `tsconfig.backend.json`으로 유지하며 Edge 검사는 Deno로 분리한다. 화면 담당자인 자성P가 이동·UI 전용 설정 정리·공유 타입 연결을 후속 처리하도록 요청한다.
+- 백엔드 SDK 타입·호출의 원본은 루트 `lib/api`다. 통합 시 UI 목 타입·목 SDK를 실제 `lib/api` 사용으로 바꾸고 로그인·데모 세션·inbox revision/version·Realtime checkpoint 계약을 유지한다. 현재 두 package lock으로 Next workspace root 추론 경고가 보고됐다. 루트 source 이동·Vercel 빌드 및 실제 화면 흐름은 별도 통합 확인 전까지 완료로 보지 않는다.
 
 ## 3. 데이터 모델과 권한
 

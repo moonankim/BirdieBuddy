@@ -1125,12 +1125,19 @@ cards는 현호P, rooms/chat/filters/verifications는 자성P가 사용한다. �
 
 2026-11-11 PR #14 본문에서 홍주P에게 요청한 SDK 타입 대조, 데모 계정 매핑, UI 패키지 결정을 현재 `lib/api`와 `npm run demo:setup` 기준으로 확인했다. 별도 리뷰 댓글·스레드는 없었다.
 
-- **패키지 결정:** 해커톤 기간에는 안 A를 사용한다. `BirdieBuddy-ui/`는 Next.js 16·TypeScript 5.9 패키지로 유지하고, 루트 Node 24·TypeScript 7 백엔드 도구 체인에 Next 의존성을 섞지 않는다. API 런타임과 타입의 단일 원본은 루트 `lib/api`다. 프론트 패키지에서 이 코드를 참조하는 방법과 Vercel 빌드 범위는 배포 전 확인한다. 현재 선택만으로 UI 통합·배포 완료를 뜻하지 않는다.
-- **타입 비교:** `UUID`, `MessageId`, `Result`, `Page`, `Membership`, `SupportBadge`, `RoomCatalogItem` 등 기본 타입은 대체로 일치한다. UI 목업의 `Message`에는 `isReplyToMe`가 빠져 있다. UI `InboxItem = Message & ...`는 SDK의 `question | cluster` 판별 union과 다르고 `InboxPage.revision`도 빠져 있다. `replyToMessage`는 SDK의 `expectedClusterId`·`expectedClusterVersion`을 전달해야 한다. 메시지 재조회는 `updatedAfter/afterId` 대신 SDK의 `checkpoint` 계약을 사용한다. `getMyMembership` 입력은 문자열이 아니라 `{roomId}`다. pass 결과의 `rewriteQuality`, `suggestionToken`, `expiresAt`은 SDK 타입에서 `null`로 포함된다. 구독 상태 문자열 값은 같으므로 UI 별칭을 둘 수 있다.
+- **패키지 결정 (당시):** PR #14 검토 시 `BirdieBuddy-ui/`를 별도 Next.js 16·TypeScript 5.9 패키지로 유지하고 루트 Node 24·TypeScript 7 도구 체계와 분리하기로 했다. 이 결정은 2026-11-12 사용자 지시에 따라 §13.10에서 갱신한다. API 런타임과 타입의 원본은 루트 `lib/api`이며, 기존 기록은 통합 완료 근거가 아니다.
+- **타입 비교 (2026-11-12 갱신):** PR #19에서 UI의 `InboxItem` question/cluster union, `InboxPage.revision`, 답변의 예상 cluster ID/version은 루트 SDK 계약과 맞춰졌다. 현재 남은 UI 목 계약 차이는 `Message.isReplyToMe`, `getMyMembership(roomId)` 대 SDK의 `{roomId}`, `reconcileRoomMessages(updatedAfter/afterId)` 대 SDK의 checkpoint 입력이다. UI는 아직 자체 도메인 타입·mock SDK를 보유한다.
 - **SDK 보완:** `advanceDemoMonth`의 구현 반환값은 계획·RPC 응답과 일치하지만 SDK에서 `Record<string, unknown>`으로만 선언돼 있었다. 이를 `AdvanceDemoMonthData`로 구체화했다. UI에서 이 반환 계약을 별도로 복사하지 않고 루트 SDK 타입을 사용한다.
 - **데모 계정 매핑:** `demo:setup`은 로컬 전용 Auth 사용자와 `profiles.role`을 만든다. `userA`는 `user`이며 샘플 카드/라운드 10건, 입장하지 않은 상태다. `userB`는 `user`이며 샘플 카드/라운드 5건과 첫 방 active 멤버십이 있다. `influencer`는 influencer UUID `20000000-0000-4000-8000-000000000001`에 연결된 인증 완료 인플루언서다. `pendingInfluencer`는 UUID `20000000-0000-4000-8000-000000000011`에 연결된 미승인 신청자이며 `profiles.role`은 역시 `influencer`다. `admin`은 admin이며 데모 월 경과 권한을 갖는다. setup에는 UI에서 요청한 다섯 계정 외 `influencerB`와 `outsider`도 있다.
 - **로그인 연결 규칙:** `demo:setup`이 발급하는 실제 Auth UUID는 로컬 재생성마다 결정된 상수로 보장되지 않으며 `.demo-passwords.json`에 로컬 전용으로 저장한다. UI의 mock `userA` 같은 문자열 ID를 실제 사용자 ID로 쓰지 않는다. 실제 로그인은 Supabase Auth 세션의 `user.id`를 쓰고, 역할/닉네임 표시 정보는 프로필에서 조회한다. 권한은 클라이언트 역할값으로 판단하지 않고 RLS/RPC에서 다시 확인한다. `user_metadata`를 인가 근거로 쓰지 않는다.
-- **프론트 후속 조건:** 중복 타입을 SDK import/`Pick<BackendApi, ...>`로 교체하고 묶음 revision/version과 복구 checkpoint 인자를 보존한다. `pendingInfluencer`는 역할만으로 승인 상태가 구별되지 않으므로 신청 조회 결과에 따라 화면 진입을 결정한다. 이 항목은 자성P 화면 구현 완료를 표시하지 않는다.
+- **프론트 후속 조건:** 루트 앱 통합 때 중복 타입·mock SDK를 root `lib/api` 사용으로 교체하고 `Message.isReplyToMe`, `getMyMembership({roomId})`, 복구 checkpoint 인자를 맞춘다. `pendingInfluencer`는 역할만으로 승인 상태가 구별되지 않으므로 신청 조회 결과에 따라 화면 진입을 결정한다. 화면 폴더 이동과 이 후속 항목은 자성P 소유이며 완료로 표시하지 않는다.
+
+### 13.10 2026-11-12 — 루트 Next.js 패키지 정합 및 화면 통합 요청
+
+- **사용자 방향:** 별도 `BirdieBuddy-ui/` 프로젝트를 최종 구조로 두지 않고 기존 목표대로 루트 `app/`, `components/`, `lib/api` 구조로 통합한다. 이번 홍주P 변경은 루트 manifest/lockfile과 본 계획·공통 아키텍처에 한정하며, 화면 소스와 자성P 소유 manifest·lockfile은 수정하지 않는다.
+- **루트 도구 정합:** 루트 package에 화면 프로젝트의 Next.js 16.4.6·React 19.3.1·Tailwind 4.3.5·TypeScript 5.9.3 및 UI 검사 도구 버전을 맞추고, 기존 Node 24 runtime과 Supabase/backend dependencies를 보존한다. Backend TypeScript 설정은 `tsconfig.backend.json`으로 유지하며 `package-lock.json`과 `deno.lock`은 공통 manifest 의존성을 고정한다. 단일 패키지 구조·화면 이동은 아직 완료되지 않았다.
+- **담당 인계:** 자성P에게 `BirdieBuddy-ui/app`, `components`, 화면 전용 설정과 테스트를 루트 구조로 옮기고, 루트 package/lockfile 하나를 기준으로 정리하며 root `lib/api` 타입·호출을 사용하는 통합을 요청한다. 본문에 남은 Message·membership·checkpoint 차이를 함께 해결한다. 이번 커밋 본문에 요청을 남기며 외부 메시지는 보내지 않는다.
+- **검증 경계:** 루트 TypeScript 5.9 도구로 backend 및 기존 UI의 정적 typecheck를 확인한다. UI source 이동, browser flow, production build/deployment, 실제 Supabase·Auth 연동은 이 작업의 완료 범위에 포함하지 않는다.
 
 ## 14. 진행·완료 보고
 
