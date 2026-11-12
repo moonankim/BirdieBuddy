@@ -1,18 +1,18 @@
 'use client';
 import Link from 'next/link';
 import Image from 'next/image';
-import {CardArtwork,type CardGrade} from '@/components/ui/card-artwork';
+import {CardArtwork} from '@/components/ui/card-artwork';
 import type {ReactNode} from 'react';
 import {Guard} from '@/components/chat/shell';
 import {useSession} from '@/lib/session';
-import {mockCards,type Grade} from '../_mock/cards';
+import {mockCards} from '../_mock/cards';
+import {cardCategoryLabels,cardLevelLabels} from '@/lib/cards/presentation';
 
 // 샌드박스 목업 화면. design-system/sample/index.html 구성을 따른 가상 데이터이며,
 // 실제 홈(라운드 정보·라운드 완료→발급 결과)은 현호P 화면으로 교체한다. 경로(/home 또는 /draw)는 현호P와 확정 예정.
 const icon=(children:ReactNode,size?:number)=><svg className="icon" style={size?{width:size,height:size}:undefined} viewBox="0 0 24 24" aria-hidden="true" focusable="false">{children}</svg>;
 const cardIcon=icon(<><rect x="5" y="5" width="14" height="16" rx="2"/><path d="M8 2h11a3 3 0 0 1 3 3v13M9 10h6M9 14h4"/></>);
 const arrow=icon(<path d="M7 17 17 7M7 7h10v10"/>);
-const gradeKeys:Record<Grade,CardGrade>={일반:'common',레어:'rare',에픽:'epic',스페셜:'special'};
 const MOCK_MONTH={rounds:1,target:3};
 
 function Home(){
@@ -41,14 +41,17 @@ function Home(){
     </div>
     <div className="quick-row">
       <Link className="quick no-underline" href="/collection"><b>{cardIcon}</b>컬렉션</Link>
-      <Link className="quick no-underline" href="/collection?tab=owned"><b>{cardIcon}</b>보유 카드</Link>
+      <Link className="quick no-underline" href="/collection/owned"><b>{cardIcon}</b>보유 카드</Link>
       <Link className="quick no-underline" href="/chat"><b>{icon(<><path d="M21 11a8 8 0 0 1-8 8H7l-4 3V11a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8Z"/><path d="M7 10h10M7 14h6"/></>)}</b>채팅</Link>
     </div>
     <div className="section-head"><h2>나의 카드</h2><Link href="/collection" className="no-underline">전체 보기 {arrow}</Link></div>
     <div className="card-grid">
       {mockCards.slice(0,2).map(c=><div key={c.id} className="card-tile">
-        <CardArtwork name={c.name} grade={gradeKeys[c.grade]}/>
-        <h3>{c.name}</h3><p>{c.style} · {c.count}장</p>
+        <Link className="bb-card-detail-link" href={`/collection/${c.id}`} aria-label={`${c.name} ${cardLevelLabels[c.grade]} 카드 상세 보기`}>
+          <CardArtwork name={c.name} grade={c.grade}/>
+          <h3>{c.name}</h3><p>{cardCategoryLabels[c.category]} · {c.count}장</p>
+          <span className="bb-card-detail-hint">상세 보기</span>
+        </Link>
       </div>)}
     </div>
   </div>;

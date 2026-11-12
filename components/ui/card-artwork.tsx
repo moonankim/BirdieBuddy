@@ -3,10 +3,11 @@ import {useState} from 'react';
 import Image from 'next/image';
 import type {ReactNode} from 'react';
 
-export type CardGrade = 'common'|'rare'|'epic'|'special';
-const labels:Record<CardGrade,string>={common:'일반',rare:'레어',epic:'에픽',special:'스페셜'};
-export function GradeBadge({grade}:{grade:CardGrade}) {
-  return <span className="bb-badge" data-grade={grade}>{labels[grade]}</span>;
+// SDK 전환 중에는 기존 화면의 등급도 보존한다. 실제 데이터의 등급 변환은 하지 않는다.
+export type CardGrade = 'basic'|'rare'|'legend'|'common'|'epic'|'special';
+const labels:Record<CardGrade,string>={basic:'BASIC',rare:'레어',legend:'LEGEND',common:'일반',epic:'에픽',special:'스페셜'};
+export function GradeBadge({grade,label}:{grade:CardGrade;label?:string}) {
+  return <span className="bb-badge" data-grade={grade}>{label??labels[grade]}</span>;
 }
 
 // 최종 카드 아트와 구분되는 코드 기반 자리표시자. 이미지 재시도는 src 변경으로 수행한다.

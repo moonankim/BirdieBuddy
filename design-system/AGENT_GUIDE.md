@@ -1,5 +1,7 @@
 # 담당자 에이전트용 디자인 시스템 인계
 
+> **카드 UI 후속 인계:** [목록·상세·강화 변경과 담당자별 연결 사항](../docs/card-ui-handoff.md)을 먼저 확인합니다. 사용자 지시로 이번 단계의 API 연결은 제외했습니다. 장수·수집 현황·강화 결과는 목업이며 실제 데이터나 서버 성공으로 취급하지 않습니다.
+
 > **실제 카드 이미지 인계:** [R2 CDN 주소·DB/프론트 적용 지침](../docs/card-assets.md), [36개 이미지 JSON 목록](../docs/assets/card-images.json)을 사용합니다. 선수 식별자 12개·3등급이며 최종 이미지는 R2 출처입니다. 기존 Supabase Storage URL 생성·스타일 기반 경로를 그대로 적용하지 않습니다. DB·SDK·화면 연결은 아직 별도 작업입니다.
 
 **기준일:** 2026-11-12 · **시각 기준:** 0.4
@@ -19,7 +21,10 @@
 | 홈 카드 쇼케이스·컬렉션 표면 깊이 | 브랜치의 목업 화면에 적용 | API 연결 화면에 시각 구조만 통합 |
 | CSS 스피너·오류·404 레이아웃 | 공통 스타일·정적 샘플 준비 | 실제 Spinner·오류 경계·라우트 연결은 별도 |
 | 기본 프로필 SVG | 에셋·크기별 샘플 준비 | Avatar의 기존 이름 첫 글자 대체는 아직 유지 |
-| 최신 4유형·3등급 카드·PNG 경로 | 문서 확정 | DB·SDK·UI·시드 전환 미완료 |
+| 강화 `/collection/upgrade?cardId=…` | 디폴트 확인·결과 목업, 상세에서 진입 | 실제 차감·API·저장·연출·오류 복구는 후속 |
+| 컬렉션·보유 목록 | 전체·등급별 보유를 분리한 목업, 필터/정렬/상태·강화 진입 | 사용자 지시로 API 연결 제외, 실제 장수는 미조회 |
+| 카드 상세 `/collection/[cardId]` | 디폴트 이미지 기반 UI 목업·목록 진입 연결 | 실제 UUID·보유 수량·인증·SDK 연결은 후속 |
+| 최신 4유형·3등급 카드·PNG 경로 | 표시 타입·홈/컬렉션 목업에 3등급 반영 | DB·SDK·시드·CDN 화면 연결 전환 미완료 |
 
 기존 디자인 보강·상태 샘플·에셋은 `f0fc8d9`에 포함됩니다. 카드 규격·R2 CDN manifest·인계 문서는 별도 후속 변경이므로, 다른 브랜치·클론에서 사용하려면 해당 문서까지 반영된 버전을 확인해야 합니다. 공유 완료·main 반영·원격 배포를 이 문서만으로 판단하지 않습니다.
 
@@ -54,13 +59,17 @@
 
 ## 공통 구성과 에셋
 
-- `components/ui/card-artwork.tsx`: CardArtwork·GradeBadge·StatusPanel. 이미지 실패·미보유 대체를 재사용합니다. 현재 CardGrade·배지는 이전 4등급이므로 새 basic/legend를 억지로 common/special로 매핑하지 않습니다. SDK 전환과 함께 타입·표시 규칙을 갱신합니다.
+- `components/ui/card-artwork.tsx`: CardArtwork·GradeBadge·StatusPanel. 이미지 실패·미보유 대체를 재사용합니다. CardGrade·배지는 basic/legend를 추가 지원하며 이전 화면 호환용 common/epic/special도 유지합니다. rare의 기본 라벨은 기존 화면 호환을 위해 레어이며 상세는 명시적 RARE 라벨을 사용합니다. 실제 SDK enum은 아직 이전 4등급이므로 등급을 임의 매핑하지 않습니다.
 - `components/ui/index.tsx`: 기존 Button·Spinner·ErrorState·EmptyState. 이름이 있다고 새 상태 샘플이 적용됐다고 판단하지 않습니다. Spinner는 현재 텍스트 표시입니다.
 - `components/ui/avatar.tsx`: 현재 이미지 실패 시 이름 첫 글자를 표시합니다. 새 기본 프로필 연결은 후속입니다.
 - `/assets/avatar-default.svg`: `public/assets/avatar-default.svg` 단일 원본. 메시지 32px·목록 44px·설정 72px. 이름이 옆에 있으면 `alt=""`를 사용합니다.
 - `design-system/assets/connection-error.svg`: 오류 샘플의 장식용 일러스트. 현재 public URL은 없습니다. 실제 라우트 적용 시 공개 제공 방법을 정하고 존재하지 않는 `/assets/connection-error.svg`를 참조하지 않습니다.
 - `design-system/assets/course-contours.svg`: club.css의 상대 URL로 불러오는 배너 장식.
 - `design-system/assets/card-placeholder.svg`: 정적 시안용 이전 자리표시자. 민트 색상이 남아 있으므로 최신 최종 카드 아트로 취급하지 않습니다.
+
+카드 상세 구성요소는 `components/card/card-detail.tsx`, 최신 UI 표시 타입은 `lib/cards/presentation.ts`입니다. 현재 데이터 원본은 `app/(user)/_mock/cards.ts`이며 CDN URL·보유 정보의 대체 데이터로 사용하지 않습니다. 수량이 충분한 상세는 강화 확인·결과 목업으로 연결합니다. 강화 구성요소는 `components/card/card-upgrade.tsx`, 시안 비용은 `lib/cards/presentation.ts`의 `previewUpgradeCost`입니다. 결과는 화면 내 상태만 바꾸며 실제 요청·소유 수량·저장은 변경하지 않습니다.
+
+목록의 공통 구성은 `components/card/card-collection.tsx`, 필터·정렬·합산 규칙은 `lib/cards/collection.ts`, 목업 원본은 `mockCollectionTemplates`입니다. 컬렉션은 전체 템플릿, `/collection/owned`는 양수 템플릿×등급입니다. `status`와 `onRetry`는 로딩·오류 표시 인수용이며 실제 API를 호출하지 않습니다. 사용자가 이번 목록 개선에서 API 연결을 명시적으로 제외했습니다.
 
 ## 담당자별 적용 경계
 
