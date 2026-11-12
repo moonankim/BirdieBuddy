@@ -72,18 +72,18 @@ import {Icon} from '@/components/ui/icon';
 
 ## 카드 상세 목업
 
-`components/card/card-detail.tsx`는 카드 이미지 없이 `CardPreview` 표시 데이터만 받습니다. `/collection/[cardId]` 페이지에서 공용 목업을 조회하며 실제 DB·CDN 호출은 하지 않습니다. `verifiedAt`이 있을 때만 인증 배지를 표시합니다. `returnToOwned`는 보유 탭 복귀에 사용합니다. 스타일은 공통 `app.css`의 `.bb-detail-*`, 목록 링크는 `.bb-card-detail-link`를 사용합니다. 실제 강화·상세 수량 재조회는 후속 SDK 연결 단계에서 구현합니다.
+`components/card/card-detail.tsx`는 `CardPreview`와 선택적 `counts`(같은 카드의 등급별 수량)를 받습니다. `counts`가 있으면 BASIC·RARE·LEGEND 전환(`.bb-detail-levels`, 현재 등급 `aria-current="page"`)을 표시하고, `card.count===0`이면 미보유 실루엣과 미보유 안내를 표시합니다. `/collection/[cardId]` 페이지에서 공용 목업을 조회하며 실제 DB 호출은 하지 않습니다. 보유 카드 이미지는 `lib/cards/presentation.ts`의 `previewCardImageUrl`(R2 `default-card-at.png`) 공통 목업 이미지이며 선수·등급별 아트가 아닙니다. `verifiedAt`이 있을 때만 인증 배지를 표시합니다. `returnToOwned`는 보유 탭 복귀에 사용합니다. 스타일은 공통 `app.css`의 `.bb-detail-*`, 목록 링크는 `.bb-card-detail-link`를 사용합니다. 실제 강화·상세 수량 재조회는 후속 SDK 연결 단계에서 구현합니다.
 
 ## 강화 확인·결과 목업
 
-`components/card/card-upgrade.tsx`는 `CardPreview`를 받아 디폴트 카드 2개·다음 등급·소모/획득/잔여 수량과 결과를 표시합니다. `/collection/upgrade?cardId=c2`에서 확인할 수 있으며 `from=owned`는 상세와 보유 목록 복귀에 사용합니다. 카드 상세에서 수량이 충분하면 링크를 제공합니다.
+`components/card/card-upgrade.tsx`는 `CardPreview`와 선택적 `nextCount`(다음 등급의 현재 보유 수량)를 받아 공통 목업 이미지 카드 2개·다음 등급·소모/획득/잔여·다음 등급 수량과 결과를 표시합니다. `/collection/upgrade?cardId=c2`에서 확인할 수 있으며 `from=owned`는 상세와 보유 목록 복귀에 사용합니다. 카드 상세에서 수량이 충분하면 링크를 제공합니다.
 
-`previewUpgradeCost`는 두 화면이 공유하는 목업 비용 10장입니다. 실제 연결 시 서버 설정으로 교체합니다. 카드 부족·LEGEND·카드 선택 누락/오류를 처리하고, 수량 확인 체크 전에는 결과 버튼이 비활성입니다. 결과 제목으로 포커스를 이동하며 별도 연출·타이머·서버 호출은 없습니다. 목업 배열과 실제 보유 수량을 변경하지 않으므로 결과는 복귀·새로고침 시 유지되지 않습니다. 실제 강화 시 필요한 중복 방지·결과 미확정 복구·권한 검증은 SDK 연결 단계에서 구현합니다.
+`previewUpgradeCost`는 두 화면이 공유하는 목업 비용 10장입니다. 실제 연결 시 서버 설정으로 교체합니다. 카드 부족·LEGEND·카드 선택 누락/오류를 처리하고, 수량 확인 체크 전에는 결과 버튼이 비활성입니다. 확인 후 `confirm → revealing → result` 단계로 기본 강화 연출을 재생합니다. 카드가 모인 뒤 다음 등급 카드를 공개하며(`.bb-upgrade-reveal`·`.bb-upgrade-stage`·`.bb-upgrade-chip`·`.bb-upgrade-reveal-card`, `data-level`, CSS 변수 `--reveal-ms`) 시간은 `upgradeRevealMs`(RARE 3000ms·LEGEND 5000ms 시안)입니다. 건너뛰기를 제공하고 `prefers-reduced-motion`에서는 연출 없이 결과로 가며 이탈 시 타이머를 정리합니다. 결과 제목으로 포커스를 이동하며 서버 호출은 없습니다. 실제 연결 시 연출은 서버 성공 확인 뒤에만 시작합니다. 목업 배열과 실제 보유 수량을 변경하지 않으므로 결과는 복귀·새로고침 시 유지되지 않습니다. 실제 강화 시 필요한 중복 방지·결과 미확정 복구·권한 검증은 SDK 연결 단계에서 구현합니다.
 
 ## 목록 목업 구성과 연결 경계
 
-`CardCollection`은 전체/보유 두 모드에서 사용합니다. `owned`는 양수 수량의 템플릿·등급 조합을 표시하며 기본 정렬은 높은 등급순입니다. `templates`는 `CollectionTemplate[]`, `status`는 ready/loading/error, `onRetry`는 오류 안내의 재시도 콜백입니다. 미등록·전체 미보유·필터 결과 없음은 구분합니다. 임의의 네트워크 지연이나 오류를 생성하지 않습니다.
+`CardCollection`은 전체/보유 두 모드에서 사용합니다. `owned`는 양수 수량의 템플릿·등급 조합을 표시하며 기본 정렬은 높은 등급순입니다. `templates`는 `CollectionTemplate[]`, `status`는 ready/loading/error, `onRetry`는 오류 안내의 재시도 콜백입니다. 미등록·전체 미보유(컬렉션은 템플릿을 유지하고 라운드 완료 안내)·필터 결과 없음은 구분합니다. 임의의 네트워크 지연이나 오류를 생성하지 않습니다.
 
 선수·유형·등급 필터와 정렬은 `lib/cards/collection.ts`를 사용합니다. 컬렉션의 등급 필터는 해당 등급을 표시 대상으로 선택하며 미보유 템플릿을 없애지 않습니다. 목록 링크는 `grade`를 상세·강화에 전달합니다. `from=owned` 복귀는 `/collection/owned`로 고정합니다.
 
-현재 `mockCollectionTemplates`는 CDN manifest에서 선수 식별자·유형만 가져오고 이미지는 요청하지 않습니다. 수량은 별도 UI 시나리오이며 실소유 데이터가 아닙니다. 사용자의 명시 지시로 API 연결은 제외했습니다. 실제 연결 시 백엔드의 3등급 계약 확정, 조회 실패 시 목업 대체 금지, 계정 전환 시 이전 수량 폐기와 강화 후 재조회가 필요합니다.
+현재 `mockCollectionTemplates`는 CDN manifest에서 선수 식별자·유형만 가져오고 선수별 이미지는 요청하지 않습니다. 보유 카드에는 공통 목업 이미지, 미보유에는 실루엣을 사용합니다. 수량은 별도 UI 시나리오이며 실소유 데이터가 아닙니다. 사용자의 명시 지시로 API 연결은 제외했습니다. 실제 연결 시 백엔드의 3등급 계약 확정, 조회 실패 시 목업 대체 금지, 계정 전환 시 이전 수량 폐기와 강화 후 재조회가 필요합니다.
