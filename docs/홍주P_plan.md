@@ -2,7 +2,7 @@
 
 **담당:** Supabase 백엔드·채팅 서비스·브라우저 호출 SDK
 
-**계약 버전:** 1.6 / 2026-11-11
+**계약 버전:** 1.7 / 2026-11-12
 
 **상태:** 개발 실행 명세. 구현·프로젝트 연결·배포 완료를 뜻하지 않음.
 
@@ -370,7 +370,7 @@ upgrade_cost=10·room_entry=누적 발급 5장·gauge 시작50·월 기준3회·
 ### 5.4 월 게이지와 데모 월 경과
 
 - 데모 rounds.period_month·입장 월은 demo_clock.current_month. 일반 계정은 실제 KST 월. played_at은 모두 실제 서버 시각.
-- advance_demo_month는 role=admin 및 can_advance_month=true만. demo_accounts에 등록된 active 사용자 멤버십만 변경한다.
+- `get_admin_demo_month`와 `advance_demo_month`는 role=admin 및 `can_advance_month=true` 계정만 허용한다. 조회 RPC는 `demo_clock.current_month`만 반환하고, advance는 demo_accounts에 등록된 active 사용자 멤버십만 변경한다.
 - targetMonth는 월 첫날이며 바로 다음 월만 새 처리. 예: 2026-11-01→2026-12-01은11월 마감.
 - clock을 잠그고 마감 월의 사용자 전체 데모 라운드 수를 집계한다. 라운드는 모든 채팅방에 공통 적용한다. 기준3회에서 초과 1회당12.5를 더하고 부족 1회당12.5를 뺀다. 정산 대상 월은 `clamp(previousGauge + (roundCount - 3) × 12.5, 0, 100)`이다.
 - 해당 월에 최초 입장하거나 재입장한 멤버십은 월 정산 전체를 건너뛴다. 게이지 증가·감소를 모두 적용하지 않는다. 다른 active 멤버십은 기준대로 정산한다. 0 이하는 0으로 고정하고 status=left, left_month=targetMonth, left_at=server time을 기록하며 열린 `room_member_periods` 구간을 같은 트랜잭션에서 닫는다. `joined_month`는 해당 멤버십의 최신 입장 월로 관리한다. closedMonth는 활동 평가 월, left_month는 퇴장 효력 월이다.
@@ -507,6 +507,7 @@ SQL 업무 오류는 SQLSTATE P0001, MESSAGE=고정code, DETAIL=비기밀JSON. E
 | getMyInfluencerProfile() | get_my_influencer_profile, auth.uid()에 연결된 본인 정보 | `MyInfluencerProfile` |
 | getMyMembership({roomId}) | room_members의 본인/방 1행 | Membership 또는 null |
 | getMyRoundGaugeSummary() | auth.uid()의 유효 현재 월·전체 라운드 집계 | `RoundGaugeSummary` |
+| getAdminDemoMonth() | `get_admin_demo_month`, role=admin 및 `can_advance_month=true` 재검증 | 데모 시계의 `YYYY-MM-01` |
 | getMessages({roomId,beforeId?,afterId?,limit?}) | messages room_id + id keyset | Page<Message> |
 | getRoomMessageCheckpoint({roomId}) | messages room_id, SELECT RLS 범위에서 updated_at DESC,id DESC LIMIT 1, updated_at/id_text만 전송 | MessageChangeCursor 또는 null |
 | getMessageChanges({roomId,checkpoint,through,cursor?,limit?}) | messages room_id + (updated_at,id) keyset, `(checkpoint,through]`의 변경. checkpoint는 필수이며 null 허용, 후속 page는 cursor | Page<Message> |
@@ -948,7 +949,7 @@ P0/P1/P2는 PRD 순서이며 전체완료 요청에서 P2를 임의 제외하는
 | B-04 | collection/inventory_view·upgrade_card·SDK | P0/B-03 | 9/10장·special·동시차감·템플릿 30종/보유 등급별 수량 |
 | B-05 | room_catalog·join_room·입장 기간·SDK | P1/B-04 | 누적 4/5회 입장·카드 준비 중·월 0/2/3회 재입장·입장 기간 시작/종료·재입장 시 과거 기간 재개 |
 | B-06 | 내부저장RPC·submit-message·SDK·Realtime | P1/B-05 | JWT·3판정·직접우회 거부·제안 소비/저장 원자성·입장 기간 RLS·전송 중 권한 변경·checkpoint/through 복구·답변 isReplyToMe 보강 |
-| B-07 | demo_clock·월마감·getMyRoundGaugeSummary·SDK | P1/B-05 | 2/3/4회 게이지 변화·입장/재입장 월 정산 제외·중복 1회 마감·같은 월 3회 재입장·별도 세션 상태 조회로 퇴장/구독 정리 |
+| B-07 | demo_clock·월마감·getMyRoundGaugeSummary·getAdminDemoMonth·SDK | P1/B-05 | 2/3/4회 게이지 변화·입장/재입장 월 정산 제외·중복 1회 마감·같은 월 3회 재입장·admin+capability 현재 월 조회·비관리자 거부·별도 세션 상태 조회로 퇴장/구독 정리 |
 | B-08 | 점수·inbox·filtered reply·SDK | P1/B-06 | 배지/스타일 snapshot·묶음 조회/최고 점수/활성 고유 수·revision 페이지·예상 묶음 version·불변 답변 링크·MESSAGE_BLOCKED·KST 오늘 차단 수·소유권 |
 | B-09 | 신청·심사·이력·SDK | P2/B-01,02 | pending UQ·동시검토·배지일관·승인 시 11번째 방 생성 |
 | B-10 | filters/config·version·cleanup | P2/B-06 | 필터 선택/항상차단 분리·도배제한·소유권·version·7일정리 |
@@ -1146,6 +1147,15 @@ cards는 현호P, rooms/chat/filters/verifications는 자성P가 사용한다. �
 - **남은 통합:** 앱 Provider는 아직 `createMockChatApi()`를, SessionProvider는 mock 계정을 사용한다. 실제 Supabase Auth 세션, profiles role/nickname 조회, `createBrowserSupabaseClient()`·`createBackendApi()` 연결과 browser/JWT 흐름은 미검증이며 화면·세션 담당자 후속으로 남긴다. UI 역할 정보는 화면 분기만을 위한 표시값이고 실제 권한은 RLS/RPC가 검사한다.
 - **검증 범위:** 병합된 화면·SDK 타입 경계와 계획/아키텍처를 정적으로 대조했다. 테스트·typecheck·browser smoke는 실행하지 않았고 hosted Supabase에 접속하거나 변경하지 않았다.
 
+### 13.12 2026-11-12 — main PR #27~#29 반영 및 관리자 월 조회 보완
+
+- **동기화:** local `main`과 `feature/hongjoo`를 모두 `origin/main`의 `754363d` (PR #27~#29 포함)까지 fast-forward 반영했다. 작업 전 tree는 깨끗했고 충돌은 없었다.
+- **PR #29 담당 대조:** 실제 Supabase Auth·root `createBackendApi()` 연결과 목 E2E 모드 전환은 main 코드에 반영됐다. 기존 실제 데이터 브라우저 로그인·Realtime·Storage smoke는 아직 미검증이다.
+- **SDK 공백:** 관리자 UI의 기존 KST 초기값과 `INVALID_MONTH_TRANSITION.details.currentMonth` 복구는 데모 시계와 실제 달이 다를 수 있다. B-07에 admin 권한과 `can_advance_month` capability를 다시 검사하는 `get_admin_demo_month()` RPC/`getAdminDemoMonth()` SDK 계약을 추가했다. 자성P는 이 SDK 값을 관리자 화면의 월 표시·다음 달 계산에 연결한다.
+- **보안 후속:** PR #27의 `.demo-passwords.json`·`supabase/functions/.env`는 현재 branch index에서 제거 대상으로 stage했고, 로컬 파일은 ignore 상태로 보존했다. 비밀값은 열람하지 않았다. Read-only hosted Auth 집계에서 7개 local `example.test` demo identity와 일치하는 Auth 계정 7개가 2026-11-12 04:53–04:55 UTC에 만들어졌고, 비밀 파일 commit `337269c`는 04:20 UTC였다. 같은 비밀번호 사용 여부는 인증 시도 없이 미확정이나 재사용 위험을 높게 본다. 공유 Auth 계정 password reset과 기존 Git history rewrite는 아직 수행되지 않았으며, 파일이 과거 remote commit에 남아 있다.
+- **목록 데이터 대조:** hosted `main / PRODUCTION`은 읽기 전용으로 확인했다. `influencers` 11행·인증 10행, `chat_rooms` 10행, `card_templates` 30행, 이름이 비어 있는 influencer 0행이다. `authenticated` role과 synthetic JWT claim을 사용하는 SQL probe의 `room_catalog`도 10행/이름 10행을 반환했다. 이 결과는 실제 브라우저·사용자 JWT smoke가 아니며, 이름이 비어 있을 때 보이지 않는다고 한 화면/입력 경로는 사용자 확인을 기다린다.
+- **현상 추적:** 최근 24시간 Auth 로그에 password grant 5건·`invalid_credentials` 2건·audit login 3건이 있었지만 화면 이름 누락에 연결할 정보는 없다. PostgREST 로그에는 `profiles`/`room_catalog` 경로가 없어 요청별 화면 추적이 불가능했다. 프로필 행 자체가 누락되면 현재 session provider가 로그아웃시키는 분기지만, hosted profiles 7/7은 모두 존재한다. 이름 metadata 누락만으로는 DB trigger가 `버디`를 기본 처리하고 방 조회는 influencer name으로 필터하지 않는다. 사용자에게 들은 현상의 화면·입력·결과 상태가 확인되면 해당 경로를 재현한다.
+
 ## 14. 진행·완료 보고
 
 ### 14.1 티켓
@@ -1176,11 +1186,11 @@ cards는 현호P, rooms/chat/filters/verifications는 자성P가 사용한다. �
 | 백엔드 로컬 완료 | B-01~17 코드·필수로컬검증 | 진행 중: 로컬 11 ordered migrations·seed·7개 local 계정·SDK·5개 Edge 함수. 현재 `typecheck`, Node 3 + Deno 113, pgTAP 113, SQL lint 통과. A-09 1,000회 표본과 `complete_round` 재시도·단일 draw·force 권한·4→5/5→6 경계·실패 rollback도 local transaction에서 통과. 나머지 cross-ticket `verify:backend` 시나리오, browser·Realtime·Storage·live AI, 전체 acceptance는 별도 미검증 |
 | LLM hosted Secrets 준비 | `TYPESAFE_API_KEY`·`ANTHROPIC_API_KEY` 존재 여부와 회전된 값의 실제 호출 검증 | Dashboard에서 두 Secret 이름 저장 확인. 값·회전 여부 미열람·미확인, live 호출 미실행 |
 | 실제AI 검증 | live 호출·3판정·장애 | 미검증 |
-| 팀화면 통합 | 담당화면 P0/P1/P2·오류·구독 | 미검증 |
+| 팀화면 통합 | PR #29에서 실제 Auth·SDK Provider 코드 연결, E2E 목 모드 고정 | 코드 병합 완료. 사용자 JWT browser flow·Realtime·Storage는 미검증; 관리자 월 조회 SDK는 자성P UI에 아직 연결되지 않음 |
 | Supabase 관리 연결 | 프로젝트·DB 관리 경로 | Supabase MCP로 대상 읽기/적용 확인. CLI deploy는 로컬 `SUPABASE_ACCESS_TOKEN` 부재로 실패했으나 MCP deploy로 계속함 |
 | Supabase 로그인·프로젝트 권한 | 계정/PAT 범위/프로젝트 멤버십 및 Owner/Administrator Secret 쓰기 권한 | MCP에서 §2.1 ref 접근 및 migration/function 반영 성공. Secret 권한은 사용하지 않았고 별도 확인하지 않음. Production 직접 적용은 사용자 명시 지시 |
-| 원격 preflight | target ref·환경·DB major version·기존 데이터/schema baseline | MCP read-only 완료: main/PRODUCTION, PostgreSQL 17.11, 적용 전 테이블·migration·함수·Auth user·Storage object 0. CLI dry-run은 미실행, 사용자 데이터 부재로 데이터 backup 대상 없음 |
-| 원격 적용 | 승인환경 migration/Functions/Secrets·스모크 | 마지막 기록은 9 migrations·5 Edge Functions(active, verify_jwt=true), game_config 5 rows·Storage buckets 2·messages Realtime publication 1이다. 이번 작업은 원격 상태를 재조회하거나 변경하지 않았으므로 main에 병합된 A-09와 후속 fix migration의 hosted 적용은 미확인. provider Secrets·Auth origin·실데이터·smoke도 이번에 변경/실행 안 함 |
+| 원격 preflight | target ref·환경·DB major version·기존 데이터/schema baseline | 2026-11-12 MCP read-only: `main / PRODUCTION`, PostgreSQL 17.11, ACTIVE_HEALTHY. profiles 7, influencers 11(verified 10), rooms 10, templates 30, unnamed influencers 0. Synthetic authenticated role/JWT claim SQL probe의 `room_catalog`은 10행/10개 이름을 반환했다. 실제 브라우저·사용자 JWT smoke 증거는 아님 |
+| 원격 적용 | 승인환경 migration/Functions/Secrets·스모크 | 이번 작업에서 hosted migration·Function·Secret·Auth 설정은 변경하지 않았다. 신규 `get_admin_demo_month` migration은 원격 미적용 상태이며, 사용자 요청과 target 확인 뒤 별도로 적용해야 한다 |
 | 데모 완료 | 동결 후 전체리허설2회 | 미실행 |
 
 보고 순서는 변경 파일 → 명령/증거 → 완료 티켓 → 외부 조건/미검증 → 재개 방법이다. 외부 권한·AI 모듈이 없어도 독립 가능한 구현은 끝까지 진행한다.
@@ -1197,7 +1207,7 @@ cards는 현호P, rooms/chat/filters/verifications는 자성P가 사용한다. �
 | B-04 | collection/inventory·upgrade RPC와 SDK 구현 | 현호P 화면 통합 및 전체 acceptance 재확인 |
 | B-05 | catalog/join/re-entry RPC와 SDK 구현 | 자성P 화면·세션 흐름 통합 |
 | B-06 | submission RPC·JWT Edge·SDK·Realtime history/recovery와 Jev moderation adapter 연결; explicit local fixture도 유지 | live provider 호출/장애 조건, 화면 Realtime delivery와 실제 권한 통합 |
-| B-07 | demo clock·월 정산·round gauge 계약 구현 | 자성P 월 경과/퇴장/재입장 UI 통합 |
+| B-07 | demo clock·월 정산·round gauge 구현; 신규 `get_admin_demo_month` RPC·SDK 계약 추가 | 신규 migration/RPC 권한 테스트와 SDK test 실행, 자성P UI 연결 및 퇴장/재입장 통합 |
 | B-08 | score·inbox/revision·filtered answer·answer history 구현 | 인박스 UI와 실제 두 세션 흐름 통합 |
 | B-09 | verification 신청·심사·이력 backend 구현 | 자성P 관리자 신청/승인 UI 통합 |
 | B-10 | filters/version/rate-limit/metadata cleanup 구현 | latest fixture 이후 회귀 검증, 운영 cron 실제 실행 관찰 |

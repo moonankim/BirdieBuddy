@@ -1,16 +1,16 @@
 # BirdieBuddy — 전체 시스템 아키텍처
 
-**최종 갱신:** 2026-11-12 — PR #26 루트 Next.js 화면 병합 상태 반영
+**최종 갱신:** 2026-11-12 — PR #29 Supabase Auth·SDK 연결 상태 반영
 
 > 제품 규칙은 [prd.md](./prd.md)를 기준으로 한다. 이 문서는 공통 아키텍처와 담당 경계를 설명하고, Supabase 백엔드의 상세 데이터·권한·SDK/RPC/Edge 계약과 구현 순서는 [홍주P_plan.md](./홍주P_plan.md)를 따른다.
 >
-> 홍주P 백엔드는 로컬 구현·검증을 진행 중이다. 현재 branch에는 main의 PR #14 UI preview, PR #15 Jev/Claude adapter·A-09 발급 migration, PR #16 stalking 분류 변경, PR #26 루트 Next.js 화면 통합이 병합되어 있다. PR #16은 공개되지 않은 시간 또는 장소에서의 목격을 필수 차단으로 명확히 했으며, 공개 장소라도 사적인 시간의 목격은 차단 대상이다. Jev 요청은 공용 카테고리 설명을 사용하고 홍주P 검증기는 기존 `stalking` 필수 차단 계약을 적용하므로 SDK/RPC 스키마 변경은 없다. PR #26 이후 화면 타입은 루트 `lib/api`를 사용하지만 앱의 세션·Chat API Provider는 아직 mock이다. 이전에 local 11개 migration에서 SDK·Edge·카드 발급 연동을 검증했다. 문환P의 회귀 결과는 해당 계획 §7.2에 기록되어 있으며, 이 브랜치의 Edge 실호출·실제 AI·hosted 반영은 별도 미확인이다. 이번 병합 뒤 Supabase `main / PRODUCTION` 상태도 재조회하지 않았다.
+> 홍주P 백엔드는 로컬 구현·검증을 진행 중이다. 현재 branch에는 main의 PR #14 UI preview, PR #15 Jev/Claude adapter·A-09 발급 migration, PR #16 stalking 분류 변경, PR #26 루트 Next.js 화면 통합, PR #27~#29 최신 변경이 병합되어 있다. PR #16은 공개되지 않은 시간 또는 장소에서의 목격을 필수 차단으로 명확히 했으며, 공개 장소라도 사적인 시간의 목격은 차단 대상이다. PR #29는 화면을 실제 Supabase Auth와 `createBackendApi`에 연결했다. 필요한 공개 Supabase 환경값이 있으면 실제 모드를 쓰고, `NEXT_PUBLIC_DATA_MODE=mock` 또는 연결값 누락 시 목 모드를 쓴다. 로그인 역할·닉네임은 본인 `profiles` 행에서 읽고 권한은 RLS/RPC가 재검사한다. 브라우저를 통한 실제 사용자 로그인·Realtime·Storage, Edge 실호출·실제 AI는 아직 별도 미검증이다. Hosted Supabase의 현재 읽기 전용 점검은 `harness/verification-log.md`에 기록했다.
 >
 > 제품 요구사항과 다른 구현 기본값이 생기면 PRD와 담당 계획을 함께 갱신한다. 런타임에서는 CSR·RLS·Supabase 호출 계약을 따른다.
 
 ## 1. 전체 시스템과 데이터 흐름
 
-서비스는 유저 웹·인플루언서 인박스·관리자 화면을 루트의 단일 Next.js 앱으로 제공한다. PR #26에서 `BirdieBuddy-ui/`의 화면 소스와 테스트를 `app/`, `components/`, `tests/ui/`로 이동했고 루트 `package.json`·`package-lock.json`을 단일 설치 기준으로 정리했다. 루트 런타임은 Node 24를 유지하고 백엔드 TypeScript 설정은 `tsconfig.backend.json`으로 분리한다. 현재 화면의 세션과 Chat API는 여전히 mock이며, 실제 데이터 연동 시 브라우저가 루트 `lib/api` SDK를 통해 Supabase를 직접 호출한다. 실제 골프존 회원·라운드·결제 연동은 하지 않고 라운드 완료 버튼과 실제 Auth 데모 계정 전환으로 대체한다.
+서비스는 유저 웹·인플루언서 인박스·관리자 화면을 루트의 단일 Next.js 앱으로 제공한다. PR #26에서 `BirdieBuddy-ui/`의 화면 소스와 테스트를 `app/`, `components/`, `tests/ui/`로 이동했고 루트 `package.json`·`package-lock.json`을 단일 설치 기준으로 정리했다. PR #29 이후 필요한 Supabase URL·publishable key가 있으면 브라우저가 실제 Auth 세션과 루트 `lib/api` SDK를 사용한다. `NEXT_PUBLIC_DATA_MODE=mock`이거나 연결 값이 없으면 목 세션과 목 SDK를 사용한다. E2E는 목 모드로 고정한다. 루트 런타임은 Node 24를 유지하고 백엔드 TypeScript 설정은 `tsconfig.backend.json`으로 분리한다. 실제 골프존 회원·라운드·결제 연동은 하지 않고 라운드 완료 버튼과 데모 계정으로 대체한다.
 
 ```mermaid
 flowchart LR
@@ -149,12 +149,12 @@ lib/api는 브라우저 SDK이며 서버 구현 위치가 아니다. 클라이�
 4. actor는 검증한 세션에서 얻는다. 브라우저 userId·role·quality·verdict·보유량을 신뢰하지 않는다. messages의 bigint ID는 전송 전 문자열로 보존한다.
 5. 지금까지 검증한 migration·SDK·Edge 경계·local-only 흐름을 구분해 기록한다. 사용자 JWT를 통한 화면·실제 AI·원격 동작은 별도 검증 전까지 완료로 보지 않는다.
 
-### PR #26 루트 Next.js 화면 통합 상태 (2026-11-12 갱신)
+### PR #26–29 루트 Next.js 화면 통합 상태 (2026-11-12 갱신)
 
 - PR #26에서 화면 소스가 루트 `app/`, `components/`, `tests/ui/`로 이동했고 중복 `BirdieBuddy-ui/` manifest·lockfile은 제거됐다. 단일 설치 기준은 루트 `package.json`·`package-lock.json`이며 기존 backend 설정은 `tsconfig.backend.json`, Edge 검사는 Deno를 사용한다.
 - `components/chat/api/chat-api.tsx`는 `BackendApi`에서 화면 메서드 타입을 선택하고, 화면이 사용하는 도메인 타입도 루트 `lib/api/types.ts`를 가져온다. 정적 대조 결과 `Message.isReplyToMe`, `getMyMembership({roomId})`, `reconcileRoomMessages({roomId,currentMessages,checkpoint})`, `InboxPage.revision`, question/cluster 답변 version 계약이 현재 SDK와 맞아 홍주P SDK 타입 수정은 필요하지 않았다.
-- 런타임 앱은 아직 `lib/session`의 더미 계정과 `components/chat/providers.tsx`의 `createMockChatApi()`를 사용한다. 실제 Auth 세션·profiles의 role/nickname 조회·`createBrowserSupabaseClient()`와 `createBackendApi()` 연결, 사용자 JWT 기반 browser smoke는 아직 남아 있으며 화면/세션 담당자의 후속 작업이다. 클라이언트 역할은 화면 분기에만 쓰고 권한은 RLS/RPC가 다시 검사한다.
-- 루트 소스 이동은 완료됐지만 실제 Supabase 화면 통합, browser flow, Vercel 배포 확인은 완료로 보지 않는다. 이 병합에서 hosted Supabase 상태도 확인하거나 변경하지 않았다.
+- PR #29는 `lib/session`을 Supabase Auth 세션 복원·이메일 로그인과 `profiles` 본인 행의 역할/닉네임 조회에 연결하고, `components/chat/providers.tsx`의 실제 모드를 `createBackendApi()`로 바꿨다. 목 로그인과 목 SDK는 E2E·미리보기용으로 남아 있다. 클라이언트 역할은 화면 분기에만 쓰고 권한은 RLS/RPC가 다시 검사한다.
+- 실제 사용자 브라우저 로그인·다중 브라우저 Realtime·Storage 흐름과 Vercel 배포는 아직 검증되지 않았다. 관리자 데모 월 화면은 현재 KST 월과 오류 details를 사용한다. 홍주P SDK에는 서버의 데모 시계를 읽는 `getAdminDemoMonth()`를 추가했으며, 화면 연결은 자성P 담당이다.
 
 ## 3. 데이터 모델과 권한
 

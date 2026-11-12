@@ -30,8 +30,10 @@ function errorFrom(value: unknown): ApiError {
     try { details = JSON.parse(detailValue) as Record<string, unknown>; } catch { details = undefined; }
   } else if (detailValue && typeof detailValue === 'object') details = detailValue as Record<string, unknown>;
   if (e?.error && typeof e.error === 'object') return errorFrom(e.error);
-  const message = typeof e?.message === 'string' && !['P0001','FunctionsHttpError','FunctionsRelayError'].includes(e.message)
-    ? e.message : fixedMessages[code] ?? fixedMessages.INTERNAL_ERROR ?? 'Request failed.';
+  const message = rawCode === 'P0001' && fixedMessages[code]
+    ? fixedMessages[code]
+    : typeof e?.message === 'string' && !['P0001','FunctionsHttpError','FunctionsRelayError'].includes(e.message)
+      ? e.message : fixedMessages[code] ?? fixedMessages.INTERNAL_ERROR ?? 'Request failed.';
   return { code, message, retryable: retryableCodes.has(code), ...(details ? { details } : {}) };
 }
 
@@ -140,6 +142,7 @@ export function createBackendApi(client: AnyClient): BackendApi {
       return {roomId:data.room_id,status:data.status,gauge:Number(data.gauge),joinedAt:data.joined_at,joinedMonth:data.joined_month,leftAt:data.left_at,leftMonth:data.left_month} as any;
     }),
     getMyRoundGaugeSummary: ()=>run(()=>rpc(client,'get_my_round_gauge_summary')),
+    getAdminDemoMonth: ()=>run(()=>rpc<string>(client,'get_admin_demo_month')),
     advanceDemoMonth: (input)=>run(()=>rpc<AdvanceDemoMonthData>(client,'advance_demo_month',{p_request_id:input.requestId,p_target_month:input.targetMonth})),
     getMessages: (input)=>run(async()=>{
       const result=await rpc<JsonRecord>(client,'get_messages',{p_room_id:input.roomId,p_before_id:input.beforeId??null,p_after_id:input.afterId??null,p_limit:input.limit??50});

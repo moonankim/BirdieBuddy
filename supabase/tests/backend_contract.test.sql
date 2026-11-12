@@ -1,5 +1,5 @@
 begin;
-select plan(19);
+select plan(21);
 
 select has_table('public','profiles','profiles is present');
 select has_table('public','messages','messages is present');
@@ -18,6 +18,8 @@ select ok(not has_table_privilege('anon','public.messages','SELECT'),'anonymous 
 select ok(not has_table_privilege('authenticated','private.demo_accounts','SELECT'),'authenticated cannot read private capabilities');
 select ok(not has_function_privilege('authenticated','public.begin_message_submission(uuid,uuid,uuid,text)','EXECUTE'),'message reservation is service-role only');
 select ok(has_function_privilege('service_role','public.begin_message_submission(uuid,uuid,uuid,text)','EXECUTE'),'Edge service role can reserve message work');
+select ok(not has_function_privilege('anon','public.get_admin_demo_month()','EXECUTE'),'anonymous users cannot read the demo month');
+select ok(has_function_privilege('authenticated','public.get_admin_demo_month()','EXECUTE'),'authenticated callers can reach the admin-checked demo month RPC');
 select ok((select public from storage.buckets where id='card-assets'),'card assets are publicly readable');
 select ok((select allowed_mime_types @> array['image/webp'] from storage.buckets where id='influencer-profiles'),'profile bucket accepts WebP images');
 

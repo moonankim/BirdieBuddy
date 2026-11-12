@@ -249,6 +249,7 @@ export type BackendApi = {
   joinRoom(input: { requestId: UUID; roomId: UUID }): Promise<Result<JoinRoomData>>;
   getMyMembership(input: { roomId: UUID }): Promise<Result<Membership | null>>;
   getMyRoundGaugeSummary(): Promise<Result<RoundGaugeSummary>>;
+  getAdminDemoMonth(): Promise<Result<string>>;
   advanceDemoMonth(input: { requestId: UUID; targetMonth: string }): Promise<Result<AdvanceDemoMonthData>>;
   getMessages(input: { roomId: UUID; beforeId?: MessageId; afterId?: MessageId; limit?: number }): Promise<Result<Page<Message>>>;
   submitMessage(input: SubmitMessageInput): Promise<Result<SubmitMessageData>>;
