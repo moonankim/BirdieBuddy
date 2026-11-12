@@ -9,7 +9,7 @@
 - 더미 SDK 기준 F-01~F-16 화면이 루트 단일 Next.js 앱(`app/`·`components/`·`lib/session/`)에 있다. 설치는 루트 `package.json`·`package-lock.json` 하나, 실행은 루트에서 `npm ci && npm run dev`.
 - 화면 타입은 루트 `lib/api/types.ts`를 그대로 쓴다(`ChatApi = Pick<BackendApi, ...>`). 화면 쪽 타입 복사본은 없다.
 - 디자인 시스템 0.2·`docs/design.md`를 전 화면에 적용했다(`app/design-system.css`).
-- 실제 Supabase 로그인·SDK 연결, 현호P 화면 교체는 아직이다.
+- 2026-11-12 v2: 실제 Supabase Auth 로그인·`createBackendApi` 연결 코드 완료(기본 실제 모드, `NEXT_PUBLIC_DATA_MODE=mock`이면 목 모드). 실제 데이터로 화면 흐름 확인은 아직이다. 현호P 화면 교체도 아직이다.
 - 검증(2026-11-12, 루트): `typecheck:ui`·vitest 158건·`next build`·lint 오류 0, 백엔드 `tsc -p tsconfig.backend.json`·`tests/backend` 4건 통과. Playwright E2E·deno 검사는 맥에서 실행 필요.
 
 ## 2. v1 이후 바뀐 것
@@ -52,10 +52,14 @@
   - 2026-11-12 완료: ③ `use-room-messages`가 `checkpoint`를 보관해 다음 복구에 넘김(초기·초기화 시 null), ④ 목 SDK가 보는 사람 기준으로 `isReplyToMe`를 계산하고 채팅방은 그 값으로 "내 질문에 대한 답변" 표시, ⑤ `getMyMembership({ roomId })`. vitest 157건·`next build` 통과
 - [x] 타입 단일화: `components/chat/api/types.ts` 삭제, 모든 화면·목 SDK·테스트가 `@/lib/api/types`를 import. `ChatApi = Pick<BackendApi, ...>`(홍주P §13.9). 목 SDK는 실제 SDK와 같은 타입을 만족한다
 - [ ] Vercel 빌드 루트를 레포 루트로 지정하고 배포 확인
-- [ ] 실시간 구독의 `onMessageEnrichmentError` 콜백을 받아 복구(reconcile) 실행(e51db39)
-- [ ] `ChatApiProvider` 주입을 더미 → `createBackendApi(client)`로 교체(더미는 테스트용으로 유지)
-- [ ] `lib/session`을 Supabase Auth 로그인/로그아웃으로 교체, 데모 계정 5종(userA·userB·influencer·pendingInfluencer·admin) 매핑은 `npm run demo:setup` 결과 기준
-- [ ] 클라이언트는 `lib/supabase/client.ts`의 `createBrowserSupabaseClient()`를 쓰고, 환경변수는 `.env.example`의 `NEXT_PUBLIC_SUPABASE_URL`·`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`를 따른다(`npm run local:env`로 생성). 값은 커밋하지 않는다
+- [x] `ChatApiProvider`: 실제 모드는 `createBackendApi(getBrowserClient())`, 목 모드는 목 SDK(`components/chat/providers.tsx`)
+- [x] `lib/session`: 실제 모드는 Supabase Auth `signInWithPassword`·세션 복원·`onAuthStateChange`, `userId`는 Auth `user.id`, 역할·닉네임은 `profiles`(본인 행). 프로필이 없으면 로그아웃 후 FORBIDDEN. 로그인 화면은 이메일·암호 + 데모 계정 이메일 채우기 버튼(암호는 화면에 두지 않음)
+- [x] 클라이언트는 `createBrowserSupabaseClient()`를 한 번만 만든다(`lib/session/client.ts`). 환경변수는 루트 `.env`(공개 값)
+- [x] `next.config.ts`: 루트 `lib/api`의 `.js` 확장자 import를 webpack이 `.ts`로 찾도록 설정. `dev`·`build`는 `--webpack`
+- [x] 관리자 월 경과: 실제 모드는 KST 이번 달로 시작하고 `INVALID_MONTH_TRANSITION`의 `details.currentMonth`로 맞춤
+- [x] 실시간 구독 `onMessageEnrichmentError` → 복구 실행
+- [x] 세션 실제 모드 단위 시험 4건(로그인·세션 복원·잘못된 암호·프로필 없음). vitest 162건·`next build --webpack`·lint 오류 0
+- [ ] **맥에서 실제 데이터 확인:** 데모 계정 암호(`.demo-passwords.json`) 받아 팬 입장·질문 → 인플루언서 답변·방송·삭제 → 관리자 월 경과·인증 심사 흐름
 - [ ] 실시간 구독·재연결, 두 브라우저(팬/인플루언서) 실시간 답변·방송·삭제 확인
 
 ### 3.3 레포 통합 방식 (결정·완료)

@@ -25,5 +25,7 @@ export default defineConfig({
     reuseExistingServer: false,
     timeout: 120_000,
     gracefulShutdown: { signal: 'SIGTERM', timeout: 5000 },
+    // E2E는 목 SDK 화면 흐름을 검증한다(실제 Supabase 연결과 분리).
+    env: { NEXT_PUBLIC_DATA_MODE: 'mock' },
   },
 });

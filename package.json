@@ -4,8 +4,8 @@
   "private": true,
   "description": "골프존 AI 해커톤 — Next.js 화면 + Supabase CSR backend",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint app components lib/session tests/ui",
     "typecheck:ui": "tsc --noEmit -p tsconfig.json",
