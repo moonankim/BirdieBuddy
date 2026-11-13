@@ -30,7 +30,7 @@ export function CardCollection({templates=mockCollectionTemplates,status='ready'
     <header><p className="bb-eyebrow bb-eyebrow--start" aria-hidden="true">My cards</p><h1 className="page-title bb-poster-title">보유 카드</h1><p className="bb-detail-caption">내가 가진 카드와 강화할 카드를 확인해요.</p></header>
     <aside className="bb-detail-preview"><strong>화면 확인용 예시</strong><p>보유 수량·강화 조건은 목업이에요. 실제 로그인 계정의 데이터가 아니며 카드 이미지는 공통 디폴트를 사용해요.</p></aside>
     <CardTabs current="owned"/>
-    {status==='loading'?<StatusPanel tone="loading" title="카드를 불러오고 있어요"><span className="bb-spinner" aria-hidden="true"/> 잠시 기다려 주세요.</StatusPanel>:status==='error'?<StatusPanel tone="error" title="카드를 불러오지 못했어요" onRetry={onRetry}>연결을 확인하고 다시 시도해 주세요.</StatusPanel>:totalOwned===0?<section className="bb-state"><h2>아직 보유한 카드가 없어요</h2><p>라운드를 완료하고 첫 카드를 받아 보세요.</p><Link className="bb-button" href="/draw">라운드 완료</Link></section>:<>
+    {status==='loading'?<StatusPanel tone="loading" title="카드를 불러오고 있어요"><span className="bb-spinner" aria-hidden="true"/> 잠시 기다려 주세요.</StatusPanel>:status==='error'?<StatusPanel tone="error" title="카드를 불러오지 못했어요" onRetry={onRetry}>연결을 확인하고 다시 시도해 주세요.</StatusPanel>:totalOwned===0?<section className="bb-state"><h2>아직 보유한 카드가 없어요</h2><p>라운드를 완료하고 첫 카드를 받아 보세요.</p><Link className="bb-button" href="/home">홈에서 라운드 완료하기</Link></section>:<>
       <section className="bb-stat" aria-label="보유 현황 (예시)">
         <p className="bb-stat-label">보유 카드 (예시)</p>
         <p className="bb-stat-value">{totalOwned}<small>장</small></p>

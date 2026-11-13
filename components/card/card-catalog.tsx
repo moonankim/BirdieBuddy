@@ -29,7 +29,7 @@ export function CardCatalog({templates=mockCollectionTemplates,ownership='ready'
         <progress className="bb-stat-progress" aria-label="카드 수집 현황" value={collectedCards} max={totalCards}/>
         <ul className="bb-stat-grades" aria-label="등급별 수집 현황">{cardLevels.map(grade=><li key={grade} data-grade={grade}><span className="bb-badge" data-grade={grade}>{cardLevelLabels[grade]}</span>{ownedLevelCount(templates,grade)} / {templates.length}</li>)}</ul>
       </section>}
-      {showOwnership&&collectedCards===0&&<section className="bb-state" data-tone="info" aria-labelledby="collection-empty-title"><strong id="collection-empty-title">아직 모은 카드가 없어요</strong><p>라운드를 완료하면 카드 1장을 받아요. 아래에서 모을 수 있는 카드를 미리 확인해 보세요.</p><Link className="bb-button" href="/draw">라운드 완료</Link></section>}
+      {showOwnership&&collectedCards===0&&<section className="bb-state" data-tone="info" aria-labelledby="collection-empty-title"><strong id="collection-empty-title">아직 모은 카드가 없어요</strong><p>라운드를 완료하면 카드 1장을 받아요. 아래에서 모을 수 있는 카드를 미리 확인해 보세요.</p><Link className="bb-button" href="/home">홈에서 라운드 완료하기</Link></section>}
       <div className="bb-filter-bar">
         <ChipGroup label="등급" value={filters.grade} options={gradeChipOptions} onChange={grade=>setFilters(previous=>({...previous,grade}))}/>
         <ChipGroup label="유형" value={filters.category as 'all'|CardCategory} options={categoryChipOptions} onChange={category=>setFilters(previous=>({...previous,category}))}/>
