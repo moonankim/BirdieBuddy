@@ -1,6 +1,6 @@
 # BirdieBuddy — 자성P 프론트엔드 개발 정의서 v3
 
-- 작성일: 2026-11-13 (main `4003863` 기준)
+- 작성일: 2026-11-13 (main `4003863` 기준, 같은 날 main `da1a6dd`까지 반영 — 8.5·8.6절)
 - 기준 문서: `prd.md`(4절 "여기까지 읽었어요" 포함), `architecture.md`, `홍주P_plan.md`, `card-ui-handoff.md`, `card-spec.md`, `design.md`, `design-system/AGENT_GUIDE.md`
 - 문서 관계: v1은 화면별 상세 스펙, v2는 2026-11-12까지의 완료 기록이다. v3는 **앞으로 할 일의 계획**만 다룬다. 충돌하면 v3 → v2 → v1 순으로 따른다.
 
@@ -8,19 +8,19 @@
 
 - 화면은 루트 단일 Next.js 앱이고 실제 Supabase 로그인과 SDK(`lib/api`)로 동작한다. `NEXT_PUBLIC_DATA_MODE=mock`이면 목 SDK로 동작한다.
 - 채팅·인박스·설정·인증·관리자 화면은 실제 데이터로 동작한다. 홈의 이번 달 라운드·라운드 완료·나의 카드와 발급 결과(`/draw`)도 실제 데이터다.
-- 카드 목록·상세·강화(`/collection/**`)는 현호P의 새 카드 규격(4유형·3등급, 스타일 없음) 목업이다. 서버 카드 규격 이관 전까지 API에 연결하지 않는다(`card-ui-handoff.md`).
-- 디자인 시스템은 0.4(아이보리 배경·딥그린)로 바뀌었고 앱 공통 스타일은 현호P가 반영했다.
+- 카드 화면은 현호P의 새 카드 규격(4유형·3등급, 스타일 없음)이다. `/collection`은 manifest 기반 **정적 도감**(36장 실제 아트, 연결 대상은 보유 수량뿐), `/collection/owned`·상세·강화는 목업이다. 서버 카드 규격 이관 전까지 API에 연결하지 않는다(`card-ui-handoff.md`).
+- 디자인 시스템은 0.4(아이보리 배경·딥그린)에 이어 카드 아트 기반 토큰(PR #35)으로 의미 토큰 값이 바뀌었다. 채팅·인박스·설정·관리자의 배경·테두리·보조 글자 색도 함께 바뀌었으므로 화면 확인이 필요하다(8.5).
 
 ## 2. 작업 목록과 순서
 
 | 순서 | 번호 | 작업 | 지금 가능 여부 | 선행 조건 · 협업 |
 | --- | --- | --- | --- | --- |
 | 0 | FIX-1 | PR #30 점검에서 나온 홈·발급 결과 수정 3건(8절) | 가능(바로) | 홍주P 정적 점검 결과(`feature/hongjoo` 62a2352 · 홍주P_plan §13.13) |
-| 1 | R-1 | "여기까지 읽었어요" 화면(팬 구분선·최신 이동·채팅방 안 읽은 수·인박스 NEW) | 가능(목 SDK로 먼저) | 실제 연결은 홍주P 읽음 위치 저장·조회 기능 필요(3.2). 디자인은 현호P(3.5) |
-| 2 | D-1 | 디자인 시스템 0.4 적용 점검과 공통 상태 화면 연결 | 가능 | 현호P `AGENT_GUIDE.md`·`DEVELOPMENT.md` 기준 |
+| 1 | R-1 | "여기까지 읽었어요" 화면(팬 구분선·최신 이동·채팅방 안 읽은 수·인박스 NEW) | 가능(목 SDK로 먼저) | 서버 기능 코드는 main에 병합됨(PR #36). 원격 DB 적용은 아직(3.2). 디자인은 현호P(3.5) |
+| 2 | D-1 | 디자인 시스템 0.4 적용 점검과 공통 상태 화면 연결 | 가능 | 현호P `AGENT_GUIDE.md`·`DEVELOPMENT.md` 기준. 토큰 변경 화면 확인·카드 디자인 2차 적용 포함(8.5) |
 | 3 | V-1 | 실제 데이터 전체 흐름 점검 | 가능(맥에서 실행) | 원격 데모 계정 암호 교체 뒤 새 암호 필요(홍주P) |
-| 4 | A-1 | 관리자 화면에 데모 월 조회(`getAdminDemoMonth`) 연결 | 대기 | 홍주P `79d2c90`이 main에 병합돼야 함 |
-| 5 | C-1 | 카드 목록·상세·강화에 실제 데이터 연결 | 대기 | 홍주P 새 카드 규격(인물·템플릿 UUID, 3등급 수량, 강화 비용) 이관 |
+| 4 | A-1 | 관리자 화면에 데모 월 조회(`getAdminDemoMonth`) 연결 | 가능(목 SDK로 먼저) | SDK·목은 main에 병합됨(PR #36). 원격 DB 적용 전에는 실제 모드에서 오류·재시도 화면이 보이는 것이 정상 |
+| 5 | C-1 | 카드 목록·상세·강화에 실제 데이터 연결 | 대기 | 홍주P 새 카드 규격(인물·템플릿 UUID, 3등급 수량, 강화 비용) 이관. 도감은 정적이므로 보유 수량(`playerSlug`·3등급)만 연결 |
 | 6 | H-1 | 홈 "나의 카드"·발급 결과를 새 카드 규격 표시로 전환 | 대기 | C-1과 같은 이관. 지금은 서버의 기존 4등급·스타일을 그대로 표시 |
 | 7 | DEP-1 | 배포(빌드 루트=레포 루트)와 배포 주소 공유 | 협의 | 홍주P: 허용 출처(CORS)·Auth 리디렉트에 배포 주소 추가 |
 
@@ -53,6 +53,19 @@ FIX-1은 실제 카드가 두 번 발급될 수 있는 문제라 가장 먼저 �
 | `InboxItem.isNew: boolean`, `InboxPage.newCount: number` | — | — | 재입장 재노출·답변 완료 제외 규칙은 서버 판정 권장 |
 
 화면은 위 함수가 없을 때(목 모드 또는 서버 미구현) 실패 경로(구분선·숫자·NEW 숨김)로 동작해야 한다.
+
+**구현 현황(2026-11-13, main `da1a6dd`):** 홍주P B-18이 main에 병합됐다(`4b1f664`, migration `20261113011530_read_state_checkpoints.sql`). 원격 DB 적용과 런타임 검증은 아직이다. 실제 계약(`lib/api/types.ts`):
+
+| 함수·필드 | 형태 |
+| --- | --- |
+| `getRoomReadState({ roomId })` | `RoomReadState { lastReadMessageId, firstUnreadMessageId, unreadCount }` |
+| `markRoomRead({ roomId, lastReadMessageId })` | `{ lastReadMessageId }` |
+| `getRooms` 항목 | `unreadCount: number \| null` |
+| `getInboxReadState({ roomId })` | `InboxReadState { roomId, lastCheckedMessageId }` |
+| `markInboxChecked({ roomId, lastCheckedMessageId })` | `{ lastCheckedMessageId }`. 새로 앞으로 옮길 때는 지금 입장 기간의 통과 질문까지만 허용 |
+| `InboxItem.isNew`, `InboxPage.newCount`·`checkedThroughMessageId` | 인박스 조회가 읽음 상태를 함께 준다 |
+
+목 SDK에는 아직 기본값(`unreadCount: null`, `isNew: false`, `newCount: 0`)만 들어가 있고 위 함수는 없다. `ChatApi`(`components/chat/api/chat-api.tsx`)에도 읽음 함수가 빠져 있으므로 R-1에서 둘 다 추가한다.
 
 ### 3.3 화면 동작
 
@@ -97,11 +110,13 @@ FIX-1은 실제 카드가 두 번 발급될 수 있는 문제라 가장 먼저 �
 - 채팅·인박스·설정·인증·관리자·로그인을 새 색(아이보리·딥그린)에서 한 번씩 확인하고, 화면에 직접 넣은 예전 색·임시 클래스가 있으면 공통 클래스로 바꾼다.
 - `AGENT_GUIDE.md`에서 "실제 연결은 별도"로 남긴 항목 중 화면 담당 몫을 연결한다: 공통 로딩(스피너)·오류·404 레이아웃, 기본 프로필 이미지(`public/assets/avatar-default.svg`)를 Avatar 대체 표시로(현재는 이름 첫 글자). 카드 일러스트 대체는 C-1 이후.
 - 예전 목업용 스타일(`card-picture`·`portrait` 등) 중 더 쓰지 않는 것은 현호P와 확인 후 정리.
+- **토큰 값 변경 확인(PR #35):** 채팅·인박스·설정·관리자에서 바탕·테두리·보조 글자·비활성 색이 아이보리 톤으로 바뀌었다. 대비·읽기 어려운 곳을 확인한다. 홈의 기존 rare 배지가 새 RARE 평행사변형(레드)으로 보이는지도 확인한다.
+- **카드 디자인 2차 적용(합의 후):** `AGENT_GUIDE.md` "카드 기반 디자인 시스템 2차 적용" 대응표를 따른다. 글 위주 화면에 포스터 제목·사선 띠·골드를 쓰지 않고, 등급 레드(`--grade-rare-*`)를 오류 색으로 쓰지 않는다. 등급 배지는 새 3등급 SDK 전환 뒤에만 적용한다.
 
 ## 5. 대기 작업
 
-- **A-1 관리자 데모 월:** 홍주P `79d2c90`이 main에 들어오면 관리자 화면 시작 시 `getAdminDemoMonth()`로 현재 월을 읽고, 지금의 "KST 이번 달 + 오류 details 보정"은 실패 시 대비로만 남긴다.
-- **C-1 카드 실제 데이터:** `card-ui-handoff.md`대로 현호P의 `CardCollection`·`CardDetail`·`CardUpgrade`를 재사용하고 `templates`·`status`·`onRetry`에 실제 조회 결과를 넣는다. 목업을 실제 수량의 대체값으로 쓰지 않는다. 강화는 `upgradeCard`(같은 요청 ID 재시도) 뒤 목록 재조회. 계정 전환·새로고침·오류·미보유 상태 확인.
+- **A-1 관리자 데모 월(이제 가능):** `getAdminDemoMonth()`는 main에 있고 `ChatApi`·목 SDK에도 홍주P가 추가해 두었다. 관리자 화면 시작 시 이 값으로 현재 월 표시·다음 달 계산을 하고, 실패하면 KST 이번 달을 쓰지 말고 오류·재시도를 보여 준다(8.2). 원격 DB 적용 전에는 실제 모드에서 오류가 뜨는 것이 정상이다.
+- **C-1 카드 실제 데이터:** `card-ui-handoff.md`(목록 표시 규칙·API 연결 시 교체 지점)대로 현호P의 구성요소를 재사용한다. `/collection` 정적 도감(`CardCatalog`)은 `ownership`에 보유 수량만, `/collection/owned`(`CardCollection`)는 `templates`·`status`·`onRetry`에 실제 조회 결과를 넣는다. 목업을 실제 수량의 대체값으로 쓰지 않는다. 강화는 `upgradeCard`(같은 요청 ID 재시도) 뒤 목록 재조회. 계정 전환·새로고침·오류·미보유 상태 확인.
 - **H-1 홈·발급 결과:** 새 규격이 오면 `app/(user)/_lib/cards.ts`의 등급·스타일 표시를 새 규격(4유형·3등급)으로 바꾸고 상세 링크(`/collection/[cardId]`)를 연결한다.
 - **DEP-1 배포:** 빌드 루트를 레포 루트로, `npm run build`(webpack). 환경 변수는 공개 Supabase URL·키만. 배포 주소를 홍주P에게 알려 허용 출처·Auth 리디렉트에 추가.
 
@@ -109,7 +124,7 @@ FIX-1은 실제 카드가 두 번 발급될 수 있는 문제라 가장 먼저 �
 
 | 대상 | 요청 |
 | --- | --- |
-| 홍주P | 3.2 읽음 위치 저장·조회 기능(형태는 결정에 따름), `79d2c90` main 병합, 데모 암호 교체 뒤 새 암호 공유, 새 카드 규격 이관 일정, 배포 주소 허용 출처 추가 |
+| 홍주P | 원격 DB에 데모 월·읽음 상태 migration 2개 적용, `79d2c90` main 병합, 데모 암호 교체 뒤 새 암호 공유, 새 카드 규격 이관 일정, 배포 주소 허용 출처 추가 |
 | 현호P | 3.5 구분선·안 읽은 수·NEW·최신 이동 버튼 시안, 사용하지 않는 예전 카드 스타일 정리 여부 |
 | 문환P | 없음(PRD 작성자로서 3.1 해석이 맞는지만 확인) |
 
@@ -119,7 +134,7 @@ FIX-1은 실제 카드가 두 번 발급될 수 있는 문제라 가장 먼저 �
 
 ## 8. 추가 요청사항 (2026-11-13 확인)
 
-main에는 새 커밋이 없고(`4003863` 그대로), 아래는 아직 main에 들어오지 않은 다른 담당자 브랜치의 커밋 메시지·문서에서 자성P에게 온 요청이다.
+8.1~8.4는 main `4003863` 시점에 다른 담당자 브랜치의 커밋 메시지·문서에서 자성P에게 온 요청이다. 8.5는 이후 main `4c40929`(PR #33·#34·#35)에서 확인한 내용이다.
 
 ### 8.1 FIX-1 홈·발급 결과 수정 (홍주P 점검, `feature/hongjoo` 62a2352 · 홍주P_plan §13.13·13.14)
 
@@ -145,3 +160,48 @@ main에는 새 커밋이 없고(`4003863` 그대로), 아래는 아직 main에 �
 - 홍주P: 로컬 데모 전체 초기화 명령 `demo:reset`(기본은 계획만 출력, `--apply`로 실행) 추가. 브라우저 `.env`는 바꾸지 않으므로 로컬 화면 확인 시 연결 값과 데이터 모드를 직접 확인하고 개발 서버를 재시작한다.
 - 문환P: 시연용 가상 인플루언서 12명 카드 36장 AI 이미지 안(`ea0745c`). 반영 여부는 현호P, DB·목록 변경은 홍주P 결정.
 
+### 8.5 main `4c40929` 반영 (2026-11-13, PR #33·#34·#35)
+
+`feature/jasung`은 main을 fast-forward로 받았다(충돌 없음). 자성P PR #34도 이번에 main에 병합됐다.
+
+| 출처 | 내용 | 자성P 할 일 | 반영 위치 |
+| --- | --- | --- | --- |
+| 현호P `ae64e21` | 카드 아트 기반 토큰 3층 구조. 의미 토큰 이름은 그대로, 값만 아이보리 톤으로 변경. `app/layout.tsx` 글꼴 링크에 Anton·Black Han Sans·Oswald 추가 | 채팅·인박스·설정·관리자 화면 색 확인, 홈 rare 배지 표시 확인 | D-1 |
+| 현호P `ff05803` | 카드 디자인 2차 적용 대응표(`AGENT_GUIDE.md`) | 채팅·인박스·관리자에 카드 언어 적용 시 대응표 준수(합의 후 진행) | D-1 |
+| 현호P `4027db1`·`3cda0b3` | `/collection` 정적 도감(`CardCatalog`, manifest 36장 실제 아트)과 `/collection/owned` 보유 카드(`CardCollection`) 분리. select 필터를 칩·정렬 토글·현황 패널로 교체 | 새 3등급 SDK 연결 시 `CardCatalog.ownership`(보유 수량만)과 `CardCollection`의 `templates`·`status`·`onRetry` 연결. 홈·발급 결과·하단 탭 링크는 그대로 동작 | C-1 |
+| 현호P `2b41184` | 카드 상세 3등급 전환, 강화 연출·건너뛰기, 목업 이미지를 R2 `default-card-at.png`로 교체 | 없음(C-1 때 강화 결과를 서버 확정 뒤 연출로 연결) | C-1 |
+| 문환P `ea0745c` | 시연용 가상 인플루언서 12명 카드 36장 AI 이미지 안 | 없음(반영 여부는 현호P·홍주P 결정) | 8.4 |
+| 홍주P `feature/hongjoo` `4b1f664`·`076e15a` (main 미병합) | 읽음 상태 서버 기능(B-18) 구현, 인박스 테스트 fixture에 새 필드 기본값 추가 | R-1 목 SDK·화면을 이 타입에 맞춰 작성. 병합 뒤 실제 연결 | R-1 · 3.2 |
+
+작업 순서(2절)는 바뀌지 않는다. FIX-1 → R-1 순으로 진행한다.
+
+### 8.6 main `da1a6dd` 반영 (2026-11-13, PR #36 홍주P)
+
+`feature/jasung`은 main을 fast-forward로 받았다(충돌 없음).
+
+| 출처 | 내용 | 자성P 할 일 | 반영 위치 |
+| --- | --- | --- | --- |
+| 홍주P `79d2c90` | `getAdminDemoMonth()` SDK·목·migration. `ChatApi`에 추가됨 | 관리자 화면 연결(오류·재시도 포함). 원격 DB 적용 대기 | A-1 · 8.2 |
+| 홍주P `4b1f664`·`076e15a` | 읽음 상태 서버 기능(B-18). 목 SDK에 `unreadCount`·`isNew`·`newCount` 기본값만 추가 | R-1에서 `ChatApi`·목 SDK에 읽음 함수 추가 후 화면 연결 | R-1 · 3.2 |
+| 홍주P `79d2c90` | 유출된 `.demo-passwords.json`·`supabase/functions/.env`를 Git 추적에서 제거 | 이번 머지로 로컬 파일도 지워졌다. 원격 데모 계정 암호는 홍주P가 교체 예정이므로 새 암호를 받아 V-1 진행 | V-1 |
+| 홍주P `fb333a1` | 로컬 DB 전체 초기화 `npm run demo:reset`(기본은 계획만, `--apply`로 실행). 브라우저 `.env`는 건드리지 않음 | 없음. 로컬 화면 확인 때 연결 값·데이터 모드를 직접 확인하고 개발 서버 재시작 | 8.4 |
+| 홍주P `157496c`·`62a2352` | 카드 API 전환(인물 UUID·확률·4→3등급 이관·스타일 보상 규칙)은 공동 결정 전까지 보류 | C-1·H-1은 계속 대기. 스타일 제거 뒤 점수·배지·입장 조건은 문환P와 화면 규칙 확인 | C-1 · H-1 · 8.3 |
+
+작업 순서는 2절 표 그대로 FIX-1 → R-1부터 진행한다. A-1은 이제 바로 할 수 있고 작으므로 R-1 다음에 이어서 해도 된다.
+
+
+## 9. 진행 기록
+
+### 2026-11-13 FIX-1 · R-1(목 SDK) · A-1 완료
+
+| 번호 | 한 일 | 테스트 |
+| --- | --- | --- |
+| FIX-1-1 | 홈 "라운드 완료"가 재시도 가능 오류 상태면 기본 버튼도 같은 요청 ID로만 다시 보낸다(버튼 문구 "발급 다시 시도") | 응답 유실 → 기본 버튼 재시도 시 요청 ID 동일·라운드 1회만 증가 |
+| FIX-1-2 | 발급 결과 저장 키를 `birdiebuddy-last-draw:<사용자 ID>`로 나누고 `session-reset` 때 모두 지운다(예전 키도 정리) | 계정별 분리·초기화 시 삭제·다른 계정 `/draw`에 안 보임 |
+| FIX-1-3 | 발급 결과 입장 안내를 `getRooms().requiredCards`로 표시, 못 받으면 숫자 없는 문구 | 설정값 7 → "7장" |
+| R-1 | `ChatApi`에 `getRoomReadState`·`markRoomRead`·`getInboxReadState`·`markInboxChecked` 추가, 목 SDK 구현(첫 입장 커서, 인플루언서 메시지만 계산, 단조 증가, 삭제 제외, 인박스 NEW·`newCount`·`checkedThroughMessageId`). `useRoomMessages(roomId, start)`에 대기·`afterId` 시작·`loadNewer`/`hasNewer` 추가. 팬 방: 읽은 위치 받는 동안 로딩, 첫 안 읽은 메시지부터 열기, 구분선 고정·스크롤, "최신 메시지로 ↓", 300ms 묶음 읽음 저장, 실패 시 최신에서 열기. 방 목록 안 읽은 수(99+). 인박스 NEW·"지난 확인 이후 새 질문 N건"·확인 저장(열어 둔 동안 NEW 유지) | `tests/ui/unit/read-state.test.tsx` 10건 |
+| A-1 | 관리자 현재 월을 `getAdminDemoMonth()`로만 읽고, 실패 시 오류·다시 시도(한 달 경과 잠금). `INVALID_MONTH_TRANSITION`이면 서버 월을 다시 읽는다. KST 추정(`useDemoMonth`) 제거 | `tests/ui/unit/admin-month.test.tsx` 3건 |
+
+검증: `typecheck:ui` 통과, `lint` 오류 0(기존 경고 4), `test:ui` 225건 통과, `build`(목 모드) 통과. 실행하지 않음: `test:e2e`, 실제 모드(원격 DB에 읽음 상태·데모 월 migration 미적용), 브라우저 육안 확인.
+
+남은 것: 원격 DB 적용 뒤 R-1·A-1 실제 계정 확인(V-1), 구분선·배지·최신 이동 버튼 시안(현호P), D-1.
