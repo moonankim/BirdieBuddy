@@ -270,3 +270,5 @@ FIX-1은 실제 카드가 두 번 발급될 수 있는 문제라 가장 먼저 �
 
 **하단 메뉴 보정:** 위쪽 선이 진하고 선택 탭 밑줄 양끝이 말려 보였다(입력용 `--border-input`=sand-9를 메뉴 경계에 쓰고, `.nav-item.active`가 둥근 칸 안쪽 밑줄을 그림). `components/chat/bottom-nav.tsx`에서 의미 토큰 기준으로 보정: 경계 `--border-subtle`, 바탕 `--surface-raised`, 선택 표시는 아이콘 뒤 옅은 알약(`--surface-subtle`)+강조 글자색. 디자인 시스템 파일은 바꾸지 않음.
 
+**방 목록 "들어가기" 누락 수정:** 실제 서버는 이미 입장 중인 방에 `canJoin=false`(새 입장 가능 여부)와 `joinReason='already_active'`를 준다. 화면이 `canJoin`만 보고 버튼을 그려 실제 모드에서 입장 중인 방의 "들어가기"가 사라졌다. v1 F-03 표대로 `already_active`면 항상 "들어가기"를 보이도록 수정. 목 SDK도 서버와 같게 입장 중인 방은 `canJoin=false`로 바꾸고 `joinRoom`은 입장 중이면 먼저 `alreadyActive`를 돌려준다. 테스트 1건 추가(`test:ui` 239건 통과).
+
