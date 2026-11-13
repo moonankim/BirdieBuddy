@@ -17,10 +17,40 @@
 | `../public/assets/avatar-default.svg` | 기본 프로필 단일 원본. 앱에서는 `/assets/avatar-default.svg`로 참조 |
 | `assets/connection-error.svg` | 오류 화면의 장식용 일러스트 |
 | `club.css` | 앱·시안이 공유하는 카드 중심 배너·원본 카드 표시 규칙 |
+| `card.css` | 카드 아트의 디자인 언어(포스터 제목·자간 라벨·평행사변형 태그·사선 띠·LEVEL 트랙·3등급 배지). 앱은 `app.css`가 `components` 레이어로, 시안은 `styles.css`가 불러옴 |
 | `app.css` | 프레임워크와 무관한 앱 구성요소. `bb-` 접두사, `components` 레이어 사용 |
 | `assets/icons.json` | 24×24 viewBox·1.75 선 굵기용 SVG path 목록 |
 | `assets/card-placeholder.svg` | 정적 HTML 등에서 사용하는 2:3 자리표시자 |
 | `styles.css`·`sample/` | 디자인 검토 페이지용 레이아웃과 예시 |
+
+## 카드 기반 토큰 체계 (2026-11-13)
+
+실제 카드 아트(BASIC 그린·RARE 레드·LEGEND 블랙+골드, 아이보리 바탕)에서 색을 추출해 `tokens.css`를 3층으로 재구성했습니다. 컴포넌트 라이브러리는 도입하지 않았고, 오픈소스는 방법론만 참고했습니다. 단계 규칙은 Radix Colors, 원시→의미→컴포넌트 3층 구조는 shadcn/ui 테마 방식입니다.
+
+| 층 | 토큰 | 규칙 |
+| --- | --- | --- |
+| 원시 스케일 | `--sand-1..12`(아이보리), `--green-1..12`, `--red-1..12`, `--gold-1..12`, `--ink-1..12` | 1~2 배경, 3~5 컴포넌트 배경, 6~8 테두리, 9~10 단색, 11~12 텍스트. 화면 코드에서 직접 쓰지 않음 |
+| 의미 토큰 | `--surface-*`, `--text-*`, `--action-*`, `--border-*`, `--focus-ring` | 이름은 그대로 두고 값만 스케일로 재연결했다. 기존 화면은 수정 없이 톤만 아이보리 쪽으로 이동 |
+| 등급 토큰 | `--grade-{basic,rare,legend}-{solid,on,soft,text,border,glow}`, `--grade-inactive-{solid,on}`, `--grade-crown` | 채운 태그는 solid+on, 옅은 배경은 soft+text, 프레임은 border, 강조는 glow |
+| 타이포 | `--font-poster`(Anton+Black Han Sans), `--font-label`(Oswald), `--tracking-label`, `--type-hero` | 카드 화면 전용. 포스터 글꼴은 단일 굵기라 `font-weight: 400`과 `font-synthesis: none`을 쓴다. `--font-display`·`.page-title`은 다른 화면 보호를 위해 유지 |
+| 형태 | `--skew-tag`, `--band-angle`, `--cut-corner` | 평행사변형은 텍스트 왜곡을 피하려고 `clip-path`로 구현 |
+
+이전 원시 이름(`--pine-*`, `--mint-*`, `--special` 등)은 스케일을 가리키는 호환 별칭입니다. `--surface-epic`·`--text-epic`은 이전 4등급 화면 호환용이며 신규 사용을 금지합니다. 글꼴은 `app/layout.tsx`의 Google Fonts 링크 하나로 Noto Sans KR과 함께 불러옵니다(OFL, npm 의존성 없음).
+
+| 패턴 (`card.css`) | 마크업 | 접근성 |
+| --- | --- | --- |
+| 포스터 제목 | `.bb-poster-title` (`.page-title`과 함께 사용 가능) | 대문자 변환은 CSS만 적용되며 접근 가능한 이름은 원문 그대로 |
+| 자간 라벨 | `<p class="bb-eyebrow" aria-hidden="true">Level</p>`, 왼쪽 정렬은 `bb-eyebrow--start` | 영문 장식 라벨은 숨기고 의미는 주변 텍스트로 전달 |
+| 소속·등급 태그 | `<span class="bb-tag" data-grade="rare">KLPGA</span>` | 텍스트 필수 |
+| 3등급 배지 | `GradeBadge` 또는 `<span class="bb-badge" data-grade="legend">LEGEND</span>` | 이전 등급(common/epic/special)은 기존 알약형 유지 |
+| 칩 필터 | `<div class="bb-chip-group" role="group" aria-label="등급"><button class="bb-chip" data-grade="rare" aria-pressed="true">RARE</button>…` | 선택은 `aria-pressed`. 넘치면 가로 스크롤, 조작 영역 44px |
+| 정렬 토글 | `<div class="bb-segmented" role="group" aria-label="정렬"><button aria-pressed="true">등급순</button>…` | 2~3개 선택지에만 사용 |
+| 현황 패널 | `.bb-stat` > `.bb-stat-label`·`.bb-stat-value`·`.bb-stat-sub`·`.bb-stat-progress`·`.bb-stat-grades` | 숫자는 포스터 글꼴, 등급별 수는 배지와 텍스트로 |
+| 미보유 아트 | `CardArtwork locked` → `data-state="locked"` 흑백·반투명 | 대체 텍스트에 "(미보유)", 화면에 "미보유" 텍스트 병기 |
+| LEVEL 트랙 | 링크: `<nav class="bb-level-track"><a class="bb-level" data-grade aria-current="page"><span class="bb-level-tag">…</span><small>…</small></a>` · 표시만: `<ol class="bb-level-track"><li class="bb-level" aria-current="step">` | 현재 등급은 `aria-current`, 등급색·왕관 외에 텍스트·수량으로 구분 |
+| 사선 띠 | `class="bb-band" data-level="rare"` | 장식 의사 요소. 색은 `--band-color`로 조정 |
+
+새 토큰 조합은 WCAG AA 대비를 계산해 확인했습니다. 본문 4.5:1, 테두리 3:1 이상입니다. 예를 들어 `--grade-legend-text`는 아이보리 위 5.69:1, 비활성 태그는 5.15:1입니다.
 
 현재 앱은 `app/globals.css`에서 공통 `app.css`를 직접 불러옵니다. 기존 `app/design-system.css`는 레거시 화면 호환 스타일이며 토큰은 공통 원본을 참조합니다. 새 구성요소를 추가할 때 공통 파일을 수정하고 앱에 복사하지 않습니다. 앱만 별도 저장소로 분리할 경우 이 공통 디렉터리도 함께 전달해야 합니다.
 
@@ -72,18 +102,18 @@ import {Icon} from '@/components/ui/icon';
 
 ## 카드 상세 목업
 
-`components/card/card-detail.tsx`는 카드 이미지 없이 `CardPreview` 표시 데이터만 받습니다. `/collection/[cardId]` 페이지에서 공용 목업을 조회하며 실제 DB·CDN 호출은 하지 않습니다. `verifiedAt`이 있을 때만 인증 배지를 표시합니다. `returnToOwned`는 보유 탭 복귀에 사용합니다. 스타일은 공통 `app.css`의 `.bb-detail-*`, 목록 링크는 `.bb-card-detail-link`를 사용합니다. 실제 강화·상세 수량 재조회는 후속 SDK 연결 단계에서 구현합니다.
+`components/card/card-detail.tsx`는 `CardPreview`와 선택적 `counts`(같은 카드의 등급별 수량)를 받습니다. `counts`가 있으면 BASIC·RARE·LEGEND 전환(`.bb-detail-levels`, 현재 등급 `aria-current="page"`)을 표시하고, `card.count===0`이면 미보유 실루엣과 미보유 안내를 표시합니다. `/collection/[cardId]` 페이지에서 공용 목업을 조회하며 실제 DB 호출은 하지 않습니다. 보유 카드 이미지는 `lib/cards/presentation.ts`의 `previewCardImageUrl`(R2 `default-card-at.png`) 공통 목업 이미지이며 선수·등급별 아트가 아닙니다. `verifiedAt`이 있을 때만 인증 배지를 표시합니다. `returnToOwned`는 보유 탭 복귀에 사용합니다. 스타일은 공통 `app.css`의 `.bb-detail-*`, 목록 링크는 `.bb-card-detail-link`를 사용합니다. 실제 강화·상세 수량 재조회는 후속 SDK 연결 단계에서 구현합니다.
 
 ## 강화 확인·결과 목업
 
-`components/card/card-upgrade.tsx`는 `CardPreview`를 받아 디폴트 카드 2개·다음 등급·소모/획득/잔여 수량과 결과를 표시합니다. `/collection/upgrade?cardId=c2`에서 확인할 수 있으며 `from=owned`는 상세와 보유 목록 복귀에 사용합니다. 카드 상세에서 수량이 충분하면 링크를 제공합니다.
+`components/card/card-upgrade.tsx`는 `CardPreview`와 선택적 `nextCount`(다음 등급의 현재 보유 수량)를 받아 공통 목업 이미지 카드 2개·다음 등급·소모/획득/잔여·다음 등급 수량과 결과를 표시합니다. `/collection/upgrade?cardId=c2`에서 확인할 수 있으며 `from=owned`는 상세와 보유 목록 복귀에 사용합니다. 카드 상세에서 수량이 충분하면 링크를 제공합니다.
 
-`previewUpgradeCost`는 두 화면이 공유하는 목업 비용 10장입니다. 실제 연결 시 서버 설정으로 교체합니다. 카드 부족·LEGEND·카드 선택 누락/오류를 처리하고, 수량 확인 체크 전에는 결과 버튼이 비활성입니다. 결과 제목으로 포커스를 이동하며 별도 연출·타이머·서버 호출은 없습니다. 목업 배열과 실제 보유 수량을 변경하지 않으므로 결과는 복귀·새로고침 시 유지되지 않습니다. 실제 강화 시 필요한 중복 방지·결과 미확정 복구·권한 검증은 SDK 연결 단계에서 구현합니다.
+`previewUpgradeCost`는 두 화면이 공유하는 목업 비용 10장입니다. 실제 연결 시 서버 설정으로 교체합니다. 카드 부족·LEGEND·카드 선택 누락/오류를 처리하고, 수량 확인 체크 전에는 결과 버튼이 비활성입니다. 확인 후 `confirm → revealing → result` 단계로 기본 강화 연출을 재생합니다. 카드가 모인 뒤 다음 등급 카드를 공개하며(`.bb-upgrade-reveal`·`.bb-upgrade-stage`·`.bb-upgrade-chip`·`.bb-upgrade-reveal-card`, `data-level`, CSS 변수 `--reveal-ms`) 시간은 `upgradeRevealMs`(RARE 3000ms·LEGEND 5000ms 시안)입니다. 건너뛰기를 제공하고 `prefers-reduced-motion`에서는 연출 없이 결과로 가며 이탈 시 타이머를 정리합니다. 결과 제목으로 포커스를 이동하며 서버 호출은 없습니다. 실제 연결 시 연출은 서버 성공 확인 뒤에만 시작합니다. 목업 배열과 실제 보유 수량을 변경하지 않으므로 결과는 복귀·새로고침 시 유지되지 않습니다. 실제 강화 시 필요한 중복 방지·결과 미확정 복구·권한 검증은 SDK 연결 단계에서 구현합니다.
 
 ## 목록 목업 구성과 연결 경계
 
-`CardCollection`은 전체/보유 두 모드에서 사용합니다. `owned`는 양수 수량의 템플릿·등급 조합을 표시하며 기본 정렬은 높은 등급순입니다. `templates`는 `CollectionTemplate[]`, `status`는 ready/loading/error, `onRetry`는 오류 안내의 재시도 콜백입니다. 미등록·전체 미보유·필터 결과 없음은 구분합니다. 임의의 네트워크 지연이나 오류를 생성하지 않습니다.
+컬렉션(`/collection`)은 `CardCatalog`, 보유 카드(`/collection/owned`)는 `CardCollection`으로 화면을 분리했습니다. 두 화면은 `CardTabs`로만 오갑니다. `CardCatalog`는 정적 카드 목록(manifest의 선수×등급)을 전시하고 `ownership`(ready/loading/error) 상태로 보유 표시만 덧입힙니다. `CardCollection`은 `templates`·`status`(ready/loading/error)·`onRetry`를 받습니다. 임의의 네트워크 지연이나 오류는 만들지 않습니다.
 
-선수·유형·등급 필터와 정렬은 `lib/cards/collection.ts`를 사용합니다. 컬렉션의 등급 필터는 해당 등급을 표시 대상으로 선택하며 미보유 템플릿을 없애지 않습니다. 목록 링크는 `grade`를 상세·강화에 전달합니다. `from=owned` 복귀는 `/collection/owned`로 고정합니다.
+필터는 `ChipGroup`(등급·유형), 보유 카드의 선수 선택은 `.bb-filter-select`, 정렬은 `Segmented`(`components/card/card-controls.tsx`)를 사용합니다. 선택 규칙은 `lib/cards/collection.ts`의 `selectCatalog`·`selectOwned`를 따릅니다. 목록 링크는 `grade`를 상세·강화에 전달하고, 보유 카드에서 진입하면 `from=owned`로 `/collection/owned`에 복귀합니다.
 
-현재 `mockCollectionTemplates`는 CDN manifest에서 선수 식별자·유형만 가져오고 이미지는 요청하지 않습니다. 수량은 별도 UI 시나리오이며 실소유 데이터가 아닙니다. 사용자의 명시 지시로 API 연결은 제외했습니다. 실제 연결 시 백엔드의 3등급 계약 확정, 조회 실패 시 목업 대체 금지, 계정 전환 시 이전 수량 폐기와 강화 후 재조회가 필요합니다.
+현재 `mockCollectionTemplates`는 CDN manifest에서 선수 식별자·유형·등급별 이미지 URL(`imageUrls`)을 가져옵니다. 컬렉션은 실제 아트(미보유는 `CardArtwork locked` 흑백)를, 보유 카드·상세·강화는 공통 목업 이미지를 사용합니다. 수량은 별도 UI 시나리오이며 실소유 데이터가 아닙니다. 사용자의 명시 지시로 API 연결은 제외했습니다. 실제 연결 시 백엔드의 3등급 계약 확정, 조회 실패 시 목업 대체 금지, 계정 전환 시 이전 수량 폐기와 강화 후 재조회가 필요합니다.

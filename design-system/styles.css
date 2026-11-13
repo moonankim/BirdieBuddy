@@ -1,10 +1,11 @@
 @charset "UTF-8";
-@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=Anton&family=Black+Han+Sans&family=Oswald:wght@500;600&display=swap");
 
 /* Primitive → semantic tokens → components. Values are owned here. */
 @import url("./tokens.css");
 @import url("./club.css");
 @import url("./states.css");
+@import url("./card.css");
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 body { margin: 0; background: var(--surface-page); color: var(--text-primary); font: var(--type-body)/var(--line-body) var(--font); -webkit-font-smoothing: antialiased; }

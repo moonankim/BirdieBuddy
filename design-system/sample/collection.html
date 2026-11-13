@@ -85,11 +85,11 @@
 </a>
 </header>
 <div class="content bb-album">
-<p class="eyebrow" style="margin-top:8px">나의 카드 앨범</p>
-<h1 class="page-title" style="margin-top:5px">라운드로 채운 컬렉션</h1>
+<p class="bb-eyebrow bb-eyebrow--start" style="margin-top:8px" aria-hidden="true">Collection</p>
+<h1 class="page-title bb-poster-title" style="margin-top:5px">라운드로 채운 컬렉션</h1>
 <section class="bb-album-summary" aria-label="카드 수집 현황">
-<p>수집한 카드 템플릿</p><strong class="bb-album-count">3 <small>/ 30</small></strong>
-<div class="progress" role="progressbar" aria-label="카드 템플릿 수집 현황" aria-valuenow="3" aria-valuemin="0" aria-valuemax="30"><span style="width:10%"></span></div>
+<p>수집한 카드 템플릿 (예시)</p><strong class="bb-album-count">3 <small>/ 12</small></strong>
+<div class="progress" role="progressbar" aria-label="카드 템플릿 수집 현황" aria-valuenow="3" aria-valuemin="0" aria-valuemax="12"><span style="width:25%"></span></div>
 </section>
 <div class="tabs" aria-label="카드 보기">
 <button class="tab active" type="button" data-tab="all" aria-pressed="true">컬렉션</button>
@@ -97,10 +97,9 @@
 </div>
 <div class="filters" aria-label="등급 필터">
 <button class="filter active" type="button" data-grade="all" aria-pressed="true">전체</button>
-<button class="filter" type="button" data-grade="일반" aria-pressed="false">일반</button>
-<button class="filter" type="button" data-grade="레어" aria-pressed="false">레어</button>
-<button class="filter" type="button" data-grade="에픽" aria-pressed="false">에픽</button>
-<button class="filter" type="button" data-grade="스페셜" aria-pressed="false">스페셜</button>
+<button class="filter" type="button" data-grade="basic" aria-pressed="false">BASIC</button>
+<button class="filter" type="button" data-grade="rare" aria-pressed="false">RARE</button>
+<button class="filter" type="button" data-grade="legend" aria-pressed="false">LEGEND</button>
 </div>
 <div class="section-mini">
 <div class="section-head">
@@ -108,34 +107,34 @@
 <span>가상 데이터</span>
 </div>
 <div class="card-grid" id="cards">
-<article class="card-tile" data-owned="true" data-grade="레어">
+<article class="card-tile" data-owned="true" data-grade="rare">
 <div class="card-picture">
-<span class="badge">레어</span>
+<span class="bb-badge" data-grade="rare">RARE</span>
 <div class="portrait">
 </div>
 </div>
 <h3>서윤 프로</h3>
-<p>일러스트</p>
+<p>KLPGA</p>
 <strong>2장 보유</strong>
 </article>
-<article class="card-tile" data-owned="true" data-grade="일반">
+<article class="card-tile" data-owned="true" data-grade="basic">
 <div class="card-picture peach">
-<span class="badge gray">일반</span>
+<span class="bb-badge" data-grade="basic">BASIC</span>
 <div class="portrait">
 </div>
 </div>
 <h3>민준 프로</h3>
-<p>레트로</p>
+<p>KPGA</p>
 <strong>1장 보유</strong>
 </article>
-<article class="card-tile" data-owned="true" data-grade="에픽">
+<article class="card-tile" data-owned="true" data-grade="legend">
 <div class="card-picture lavender">
-<span class="badge epic">에픽</span>
+<span class="bb-badge" data-grade="legend">LEGEND</span>
 <div class="portrait">
 </div>
 </div>
 <h3>하린 프로</h3>
-<p>홀로그램</p>
+<p>G투어</p>
 <strong>1장 보유</strong>
 </article>
 <article class="card-tile" data-owned="false" data-grade="none">

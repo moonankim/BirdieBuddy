@@ -1,4 +1,4 @@
-import {render,screen} from '@testing-library/react';
+import {render,screen,within} from '@testing-library/react';
 import {describe,expect,it,vi} from 'vitest';
 import type {ReactNode} from 'react';
 import {CardDetail} from '@/components/card/card-detail';
@@ -10,11 +10,11 @@ vi.mock('@/components/chat/shell',()=>({Guard:({children}:{children:ReactNode})=
 const card:CardPreview={id:'preview',name:'예시 선수',category:'gtour',grade:'basic',count:9,verifiedAt:null};
 
 describe('카드 상세 목업',()=>{
-  it('실제 이미지를 요청하지 않고 디폴트·유형·등급·수량과 목업 안내를 표시한다',()=>{
+  it('선수별 아트 대신 공통 디폴트 이미지와·유형·등급·수량과 목업 안내를 표시한다',()=>{
     const {container}=render(<CardDetail card={card}/>);
     expect(screen.getByRole('heading',{level:1,name:'예시 선수'})).toBeInTheDocument();
-    expect(screen.getByRole('img',{name:'예시 선수 카드 이미지 준비 중'})).toBeInTheDocument();
-    expect(container.querySelector('img')).toBeNull();
+    expect(screen.getByRole('img',{name:'예시 선수 카드'})).toHaveAttribute('src','https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/default-card-at.png');
+    expect(container.querySelectorAll('img')).toHaveLength(1);
     expect(screen.getByText('목업 데이터')).toBeInTheDocument();
     expect(screen.getByText('보유 장수').parentElement).toHaveTextContent('9장');
     expect(screen.queryByText('인증됨')).toBeNull();
@@ -43,6 +43,23 @@ describe('카드 상세 목업',()=>{
   });
 });
 
+describe('카드 상세의 등급 전환과 미보유',()=>{
+  it('등급별 수량으로 같은 카드의 다른 등급 상세로 이동하고 복귀 경로를 유지한다',()=>{
+    render(<CardDetail card={{...card,count:3}} counts={{basic:3,rare:2,legend:0}} returnToOwned/>);
+    const levels=screen.getByRole('navigation',{name:'등급 선택'});
+    expect(within(levels).getByRole('link',{name:'BASIC 3장 보유'})).toHaveAttribute('aria-current','page');
+    expect(within(levels).getByRole('link',{name:'RARE 2장 보유'})).toHaveAttribute('href','/collection/preview?grade=rare&from=owned');
+    expect(within(levels).getByRole('link',{name:'LEGEND 미보유'})).not.toHaveAttribute('aria-current');
+  });
+  it('0장 등급은 미보유 카드로 표시하고 나의 카드로 안내하지 않는다',()=>{
+    render(<CardDetail card={{...card,grade:'legend',count:0}}/>);
+    expect(screen.getByRole('img',{name:'미보유 카드'})).toBeInTheDocument();
+    expect(screen.getByText('아직 보유하지 않은 등급이에요')).toBeInTheDocument();
+    expect(screen.queryByText('나의 카드 상세')).toBeNull();
+    expect(screen.getByText('보유 장수').parentElement).toHaveTextContent('미보유');
+  });
+});
+
 describe('카드 상세 주소',()=>{
   it('없는 카드 ID를 임의의 카드로 대체하지 않는다',async()=>{
     await expect(CardDetailPage({params:Promise.resolve({cardId:'not-a-card'}),searchParams:Promise.resolve({})})).rejects.toThrow('CARD_NOT_FOUND');
@@ -59,4 +76,5 @@ describe('카드 상세 주소',()=>{
 it('선택한 등급의 장수만 상세에 표시한다',async()=>{
   render(await CardDetailPage({params:Promise.resolve({cardId:'c1'}),searchParams:Promise.resolve({grade:'basic'})}));
   expect(screen.getByText('보유 장수').parentElement).toHaveTextContent('3장');
+  expect(screen.getByRole('link',{name:'RARE 2장 보유'})).toHaveAttribute('href','/collection/c1?grade=rare');
 });

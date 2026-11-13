@@ -2,6 +2,7 @@
 @import './tokens.css';
 @import './club.css';
 @import './states.css';
+@import './card.css' layer(components);
 
 @layer components {
   .bb-stack { display: grid; gap: var(--space-4); min-width: 0; }
@@ -18,7 +19,6 @@
   .bb-field:disabled { background: var(--action-disabled); color: var(--text-disabled); }
   .bb-icon { display: inline-block; width: 24px; height: 24px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; }
   .bb-badge { display: inline-flex; align-items: center; gap: var(--space-1); padding: var(--space-1) var(--space-2); border-radius: var(--radius-pill); background: var(--surface-neutral); color: var(--text-secondary); font: 700 var(--type-caption)/1.5 var(--font); }
-  .bb-badge[data-grade="rare"] { background: var(--surface-subtle); color: var(--text-accent); }
   .bb-badge[data-grade="epic"] { background: var(--surface-epic); color: var(--text-epic); }
   .bb-badge[data-grade="special"] { background: var(--surface-special); color: var(--text-special); }
   .bb-card-art { position: relative; isolation: isolate; width: 100%; aspect-ratio: 2 / 3; overflow: hidden; border-radius: var(--card-radius); border: 1px solid var(--border-subtle); background: var(--surface-subtle); }
@@ -54,7 +54,7 @@
   .bb-detail-facts dt { color: var(--text-secondary); font-size: var(--type-caption); }
   .bb-detail-facts dd { margin: var(--space-1) 0 0; font-weight: 800; }
   .bb-detail-facts .bb-detail-count { grid-column: 1 / -1; border-top: 1px solid var(--border-subtle); padding-top: var(--space-4); }
-  .bb-detail-count dd { font: 800 36px/1.2 var(--font-display); font-variant-numeric: tabular-nums; color: var(--text-accent); }
+  .bb-detail-count dd { font: 400 40px/1.1 var(--font-poster); font-variant-numeric: tabular-nums; color: var(--text-accent); }
   .bb-detail-count dd span { margin-left: var(--space-1); font: 500 var(--type-label)/var(--line-body) var(--font); }
   .bb-detail-upgrade { display: grid; gap: var(--space-3); padding: var(--space-5); border: 1px solid var(--border-subtle); border-top: 3px solid var(--action-primary); border-radius: var(--radius-md); background: var(--surface-raised); }
   .bb-detail-upgrade > p { color: var(--text-secondary); font-size: var(--type-label); }
@@ -64,8 +64,6 @@
   .bb-detail-upgrade .bb-button { width: 100%; }
   .bb-detail-preview { padding-left: var(--space-3); border-left: 2px solid var(--border-input); color: var(--text-secondary); font-size: var(--type-caption); }
   .bb-detail-preview p { margin-top: var(--space-1); }
-  .bb-badge[data-grade="basic"] { background: var(--surface-neutral); color: var(--text-accent); }
-  .bb-badge[data-grade="legend"] { background: var(--surface-special); color: var(--text-special); }
 
   .bb-upgrade-pair { display: grid; grid-template-columns: minmax(0, 1fr) var(--icon-md) minmax(0, 1fr); align-items: center; gap: var(--space-2); }
   .bb-upgrade-pair figure { display: grid; gap: var(--space-3); min-width: 0; margin: 0; }
@@ -79,28 +77,37 @@
   .bb-upgrade-consent { display: flex; align-items: center; gap: var(--space-3); min-height: var(--touch-target); font-size: var(--type-label); cursor: pointer; }
   .bb-upgrade-consent input { width: 20px; height: 20px; flex: 0 0 auto; accent-color: var(--action-primary); }
   .bb-upgrade-max { padding: var(--space-3); border: 1px dashed var(--border-input); border-radius: var(--radius-md); text-align: center; }
-  .bb-upgrade-max strong { font-size: var(--type-label); color: var(--text-special); }
+  .bb-upgrade-max strong { font: 400 var(--type-heading)/1.2 var(--font-poster); letter-spacing: .02em; color: var(--grade-legend-text); }
   .bb-upgrade-max p { margin-top: var(--space-2); font-size: var(--type-caption); color: var(--text-secondary); }
   .bb-upgrade-actions { display: grid; gap: var(--space-3); }
-  .bb-upgrade-result { border-color: var(--special); }
+  .bb-upgrade-result { border-color: var(--grade-rare-border); }
+  .bb-upgrade-result[data-level="legend"] { border-color: var(--grade-legend-border); }
 
   .bb-collection-tabs { margin: 0; text-align: center; }
-  .bb-collection-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
-  .bb-collection-controls label { display: grid; min-width: 0; gap: var(--space-1); }
-  .bb-collection-controls .bb-field { padding: var(--space-2); }
   .bb-collection-result-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
   .bb-collection-result-head h2 { margin-right: auto; font-size: var(--type-heading); }
   .bb-collection-result-head > span { color: var(--text-secondary); font-size: var(--type-caption); }
-  .bb-collection-summary { margin-top: 0; }
-  .bb-collection-summary progress { grid-column: 1 / -1; }
   .bb-collection-count { display: block; margin-top: var(--space-2); }
-  .bb-collection-levels { display: grid; gap: var(--space-1); margin: var(--space-2) 0; padding-top: var(--space-2); border-top: 1px solid var(--border-subtle); }
-  .bb-collection-levels > div { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: var(--space-1); }
-  .bb-collection-levels dt { color: var(--text-secondary); font-size: var(--type-caption); }
-  .bb-collection-levels dd { margin: 0; font-size: var(--type-label); }
-  .bb-collection-levels a { display: inline-flex; align-items: center; min-height: var(--touch-target); padding: 0 var(--space-2); }
   .bb-collection-upgrade { width: 100%; margin-top: var(--space-2); padding: var(--space-2); font-size: var(--type-caption); }
-  @media (max-width: 359px) { .bb-collection-controls { grid-template-columns: minmax(0, 1fr); } }
+
+  .bb-detail-count dd span + span { color: var(--text-secondary); }
+
+
+  /* 기본 강화 연출: 카드가 모인 뒤 다음 등급 카드가 공개된다. 시간은 --reveal-ms로 등급별 조정. */
+  .bb-upgrade-reveal { --reveal-ms: 3000ms; overflow: hidden; }
+  .bb-upgrade-reveal > p { color: var(--text-secondary); font-size: var(--type-label); text-align: center; }
+  .bb-upgrade-stage { position: relative; width: min(56%, 200px); aspect-ratio: 2 / 3; margin: var(--space-6) 0; }
+  .bb-upgrade-chip { position: absolute; inset: 0; border: 1px solid var(--border-input); border-radius: var(--card-radius); background: var(--surface-raised); box-shadow: var(--shadow-card); transform: translate(var(--x), var(--y)) rotate(var(--r)); animation: bb-upgrade-gather calc(var(--reveal-ms) * .5) ease-in forwards, bb-upgrade-fade calc(var(--reveal-ms) * .1) linear calc(var(--reveal-ms) * .5) forwards; }
+  .bb-upgrade-reveal-card { position: absolute; inset: 0; opacity: 0; animation: bb-upgrade-pop calc(var(--reveal-ms) * .35) ease-out calc(var(--reveal-ms) * .55) forwards; }
+  .bb-upgrade-reveal-card .bb-card-art, .bb-upgrade-result .bb-card-art { box-shadow: 0 0 0 3px var(--grade-rare-border), 0 0 28px var(--grade-rare-glow), var(--shadow-card); }
+  .bb-upgrade-reveal[data-level="legend"] .bb-upgrade-reveal-card .bb-card-art, .bb-upgrade-result[data-level="legend"] .bb-card-art { box-shadow: 0 0 0 3px var(--grade-legend-border), 0 0 28px var(--grade-legend-glow), var(--shadow-card); }
+  @keyframes bb-upgrade-gather { to { transform: none; } }
+  @keyframes bb-upgrade-fade { to { opacity: 0; } }
+  @keyframes bb-upgrade-pop { from { opacity: 0; transform: scale(.82); } 70% { opacity: 1; transform: scale(1.05); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .bb-upgrade-chip { display: none; }
+    .bb-upgrade-reveal-card { opacity: 1; animation: none; }
+  }
 
 }
 @media (hover: hover) {

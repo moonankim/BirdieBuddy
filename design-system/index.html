@@ -172,6 +172,43 @@
 </div>
 <p class="footnote">버튼은 기본·hover·pressed·disabled·focus 상태를 확인할 수 있어. 텍스트와 배지를 함께 사용해 상태를 전달해.</p>
 </section>
+<section class="section" id="card-language">
+<div class="section-head">
+<div>
+<span class="eyebrow">03.5 / CARD LANGUAGE</span>
+<h2>카드 디자인 언어</h2>
+</div>
+<span>POSTER · TAG · LEVEL</span>
+</div>
+<div class="component-row" style="display:grid;gap:12px">
+<p class="bb-eyebrow bb-eyebrow--start" aria-hidden="true">Affiliation</p>
+<span><span class="bb-tag">G투어</span></span>
+<p class="bb-poster-title" style="margin:0">Kim Hong Cha</p>
+<p class="bb-poster-title" style="margin:0">김홍차</p>
+</div>
+<div class="component-row">
+<span class="bb-badge" data-grade="basic">BASIC</span>
+<span class="bb-badge" data-grade="rare">RARE</span>
+<span class="bb-badge" data-grade="legend">LEGEND</span>
+<span class="bb-tag" data-grade="rare">KLPGA</span>
+<span class="bb-tag" data-grade="legend">미디어</span>
+</div>
+<div style="display:grid;gap:20px;max-width:360px">
+<div><p class="bb-eyebrow" aria-hidden="true">Level</p><ol class="bb-level-track" aria-label="BASIC 단계 예시"><li class="bb-level" data-grade="basic" aria-current="step"><span class="bb-level-tag">BASIC</span><small>3장</small></li><li class="bb-level" data-grade="rare"><span class="bb-level-tag">RARE</span><small>2장</small></li><li class="bb-level" data-grade="legend"><span class="bb-level-tag">LEGEND</span><small>미보유</small></li></ol></div>
+<div><ol class="bb-level-track" aria-label="RARE 단계 예시"><li class="bb-level" data-grade="basic"><span class="bb-level-tag">BASIC</span></li><li class="bb-level" data-grade="rare" aria-current="step"><span class="bb-level-tag">RARE</span></li><li class="bb-level" data-grade="legend"><span class="bb-level-tag">LEGEND</span></li></ol></div>
+<div><ol class="bb-level-track" aria-label="LEGEND 단계 예시"><li class="bb-level" data-grade="basic"><span class="bb-level-tag">BASIC</span></li><li class="bb-level" data-grade="rare"><span class="bb-level-tag">RARE</span></li><li class="bb-level" data-grade="legend" aria-current="step"><span class="bb-level-tag">LEGEND</span></li></ol></div>
+<div class="bb-band" data-level="rare" style="height:120px;border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--surface-raised)" aria-hidden="true"></div>
+</div>
+<div style="display:grid;gap:12px;max-width:360px">
+<section class="bb-stat" aria-label="수집 현황 예시"><p class="bb-stat-label">모은 카드</p><p class="bb-stat-value">4<small>/ 36</small></p><p class="bb-stat-sub">선수 3 / 12명</p><progress class="bb-stat-progress" value="4" max="36" aria-label="카드 수집 현황 예시"></progress><ul class="bb-stat-grades"><li><span class="bb-badge" data-grade="basic">BASIC</span>2 / 12</li><li><span class="bb-badge" data-grade="rare">RARE</span>1 / 12</li><li><span class="bb-badge" data-grade="legend">LEGEND</span>1 / 12</li></ul></section>
+<div class="bb-filter-bar">
+<div class="bb-chip-group" role="group" aria-label="등급 예시"><button class="bb-chip" type="button" aria-pressed="false">전체</button><button class="bb-chip" type="button" data-grade="basic" aria-pressed="false">BASIC</button><button class="bb-chip" type="button" data-grade="rare" aria-pressed="true">RARE</button><button class="bb-chip" type="button" data-grade="legend" aria-pressed="false">LEGEND</button></div>
+<div class="bb-chip-group" role="group" aria-label="유형 예시"><button class="bb-chip" type="button" aria-pressed="true">전체</button><button class="bb-chip" type="button" aria-pressed="false">KPGA</button><button class="bb-chip" type="button" aria-pressed="false">KLPGA</button><button class="bb-chip" type="button" aria-pressed="false">G투어</button><button class="bb-chip" type="button" aria-pressed="false">미디어</button></div>
+</div>
+<div class="bb-segmented" role="group" aria-label="정렬 예시"><button type="button" aria-pressed="true">등급순</button><button type="button" aria-pressed="false">장수순</button></div>
+</div>
+<p class="footnote">실제 카드 아트(아이보리 바탕·딥그린 사선·세로 압축 이름·LEVEL 트랙)에서 가져온 패턴이야. 등급은 색과 함께 항상 BASIC·RARE·LEGEND 텍스트로 표시하고, 골드는 LEGEND와 왕관에만 써. 사선 띠는 장식이라 보조 기술에서 숨겨. 목록 필터는 select 대신 칩(등급 칩은 평행사변형·등급색), 정렬은 토글, 현황은 <code>bb-stat</code> 패널을 써. 스타일은 <code>card.css</code>, 색은 <code>tokens.css</code>의 <code>--grade-*</code>야.</p>
+</section>
 <section class="section">
 <div class="section-head">
 <div>

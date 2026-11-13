@@ -11,11 +11,12 @@ export function GradeBadge({grade,label}:{grade:CardGrade;label?:string}) {
 }
 
 // 최종 카드 아트와 구분되는 코드 기반 자리표시자. 이미지 재시도는 src 변경으로 수행한다.
-export function CardArtwork({src,name,grade,unowned=false}:{src?:string|null;name:string;grade?:CardGrade;unowned?:boolean}) {
+// unowned는 아트를 숨기고 실루엣을, locked는 컬렉션(도감)에서 아트를 흑백으로 보여 준다.
+export function CardArtwork({src,name,grade,unowned=false,locked=false}:{src?:string|null;name:string;grade?:CardGrade;unowned?:boolean;locked?:boolean}) {
   const [failedSrc,setFailedSrc]=useState<string|null>(null);
   const showImage=Boolean(src)&&src!==failedSrc&&!unowned;
-  return <div className="bb-card-figure"><div className="bb-card-art" data-state={unowned?'unowned':showImage?'image':'placeholder'}>
-    {showImage ? <Image unoptimized src={src!} alt={`${name} 카드`} fill sizes="(max-width: 480px) 45vw, 200px" onError={()=>setFailedSrc(src!)}/> :
+  return <div className="bb-card-figure"><div className="bb-card-art" data-state={unowned?'unowned':showImage?(locked?'locked':'image'):'placeholder'}>
+    {showImage ? <Image unoptimized src={src!} alt={locked?`${name} 카드 (미보유)`:`${name} 카드`} fill sizes="(max-width: 480px) 45vw, 200px" onError={()=>setFailedSrc(src!)}/> :
       <svg className="bb-card-placeholder" viewBox="0 0 200 300" role="img" aria-label={unowned?'미보유 카드':`${name} 카드 이미지 준비 중`}>
         <path d="M0 230Q80 180 200 225V300H0Z" fill="var(--border-subtle)"/>
         <circle cx="100" cy="115" r="28" fill="var(--text-secondary)"/>
