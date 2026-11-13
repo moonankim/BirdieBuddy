@@ -91,6 +91,19 @@ UI 배지는 신규 basic/legend와 기존 common/epic/special을 함께 지원�
 
 오류 코드별 문구(부족 장수, 최고 등급, 처리 중, 설정 오류, 인증·권한)는 [현호P 계획](./현호P_plan.md) §3.3을 따릅니다.
 
+## 뽑기 연출 목업 (`/draw/preview`)
+
+| 항목 | 내용 |
+| --- | --- |
+| 경로 | `/draw/preview?grade=basic\|rare\|legend&new=1\|0&unlocked=1`. 잘못된 등급은 카드 없음 화면. 실제 `/draw`(자성P, 이전 규격 API)와 분리 |
+| 구성요소 | `CardDrawReveal({result:{card(+imageUrl),isNew,ownedCount,entryUnlocked}, autoRevealMs?})` (`components/card/card-draw-reveal.tsx`) |
+| 단계 | `data-phase`: intro → heartbeat → ready(탭 또는 자동 공개) → flip → result. 시간은 `lib/cards/presentation.ts`의 `drawRevealTiming` |
+| 등급 암시 | 박동 BASIC 2·RARE 3·LEGEND 4회, `data-grade`별 빛 색, RARE 이상 반짝임, LEGEND 플래시·광택 |
+| 접근성 | 단계 문구 `role="status"`, 카드는 ready 단계에서만 열리는 버튼, 건너뛰기, 동작 줄이기 시 결과만, 결과 제목 포커스 |
+| 목업 데이터 | `app/(user)/_mock/draw.ts`: 김홍차(manifest 실제 아트), 보유 장수는 목업 +1 |
+
+연결 기준: 새 3등급 SDK 전환 시 `/draw`는 `completeRound` 결과를 `DrawRevealResult`로 바꿔 `CardDrawReveal`에 넘깁니다. 처음 도착했을 때만 연출하고, 새로고침·재진입이면 결과만 보여 줍니다(예: 세션 저장소에 공개 완료 표시). 연출·탭·건너뛰기·이탈은 결과를 바꾸지 않고 새 발급을 하지 않습니다.
+
 ## 담당자별 후속 작업
 
 | 담당 | 참고·확인할 작업 |
@@ -107,10 +120,11 @@ UI 배지는 신규 basic/legend와 기존 common/epic/special을 함께 지원�
 `tests/ui/unit/card-collection.test.tsx`, `card-detail.test.tsx`, `card-upgrade.test.tsx`가 다음을 검증합니다.
 
 - 컬렉션: 36장 전시·실제 아트·미보유 흑백, 수집 현황, 등급/유형 칩, 보유 조회 실패 시 목록 유지, 전체 미보유·등록 없음
+- 뽑기 연출: 등급별 박동 시간, 탭 공개·포커스, 자동 공개, 건너뛰기, 동작 줄이기, 타이머 정리, NEW/+1장·입장 안내, 잘못된 등급 주소
 - 보유 카드: 양수만·등급순 기본, 칩·선수 선택·정렬 토글 조합과 필터만 초기화, 보유 선수만 선택지, 빈 상태·오류·로딩
 - 상세: 등급 전환, 미보유 표시, 카드 없음, 복귀 경로
 - 강화: 확인/결과, 등급별 연출 시간, 건너뛰기, 동작 줄이기, 이탈 시 타이머 정리, 다음 등급 수량
 
-실행 명령은 `npm run test:ui`, `npm run build`, `npm run lint`, `npm run typecheck:ui`이며 타입 검사는 빌드와 동시에 실행하지 않습니다. 2026-11-13 기준 UI 테스트 208개 통과, 타입 검사·빌드 성공, lint 오류 없음(기존 파일 경고 4건)입니다.
+실행 명령은 `npm run test:ui`, `npm run build`, `npm run lint`, `npm run typecheck:ui`이며 타입 검사는 빌드와 동시에 실행하지 않습니다. 2026-11-13 기준 UI 테스트 218개 통과, 타입 검사·빌드 성공, lint 오류 없음(기존 파일 경고 4건)입니다.
 
 브라우저·미리보기는 열지 않았습니다. 연출과 CDN 이미지의 실제 렌더링, 모바일 육안 검수, 실제 로그인 사용자의 카드 API 연동과 원격 배포는 미검증입니다. 기본 이미지 URL은 curl Range 요청으로 HTTP 206·image/png 응답만 확인했습니다.
