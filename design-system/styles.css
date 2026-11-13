@@ -96,16 +96,10 @@ p, h1, h2, h3 { overflow-wrap: anywhere; }
 .quick b { display: block; color: var(--text-accent); margin-bottom: var(--space-1); }
 .card-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: var(--space-3); }
 .card-tile { min-width: 0; }
-.card-picture { position: relative; aspect-ratio: 2 / 3; border: 1px solid var(--border-subtle); border-radius: var(--card-radius); overflow: hidden; background: linear-gradient(145deg,var(--surface-subtle),var(--art-green)); display: flex; align-items: flex-end; justify-content: center; }
-.card-picture.peach { background: linear-gradient(145deg,var(--surface-screen),var(--art-peach)); }
-.card-picture.lavender { background: linear-gradient(145deg,var(--surface-epic),var(--art-lavender)); }
-.card-picture.empty { background: var(--surface-neutral); color: var(--text-secondary); }
-.portrait { width: 90px; height: 115px; position: relative; border-radius: 48% 48% 10% 10%; background: var(--pine-800); transform: translateY(25px); }
-.portrait:before { content: ""; position: absolute; width: 55px; height: 59px; border-radius: 50% 50% 45% 45%; background: var(--art-skin); top: -38px; left: 18px; box-shadow: 0 -8px 0 1px var(--pine-950); }
-.portrait:after { content: ""; position: absolute; width: 66px; height: 12px; border-radius: 50% 50% 12px 12px; background: var(--surface-screen); top: -33px; left: 13px; transform: rotate(-6deg); }
-.peach .portrait { background: var(--text-special); }
-.lavender .portrait { background: var(--text-epic); }
-.card-picture .badge { position: absolute; top: var(--space-2); left: var(--space-2); }
+/* 시안 카드 이미지: 실제 카드 PNG(2:3·contain). 등급·수량은 이미지 밖에 표시한다. 앱은 CardArtwork(.bb-card-art)를 쓴다. */
+.sample-card-art { display: block; width: 100%; height: auto; aspect-ratio: 2 / 3; object-fit: contain; border-radius: var(--card-radius); }
+.sample-card-art[data-owned="false"] { filter: grayscale(1); opacity: .5; }
+.card-tile .bb-badge { margin-top: var(--space-1); }
 .card-tile h3 { font-size: var(--type-label); margin-top: var(--space-2); letter-spacing: var(--tracking-heading); }
 .card-tile p { font-size: var(--type-caption); color: var(--text-secondary); }
 .card-tile strong { font-size: var(--type-label); color: var(--text-accent); }
