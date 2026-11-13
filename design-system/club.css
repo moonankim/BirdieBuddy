@@ -3,7 +3,8 @@
 .bb-feature::before { content: ""; position: absolute; z-index: -1; inset: 0 0 0 48%; background: linear-gradient(160deg, rgb(255 255 255 / 7%), transparent), var(--action-primary); clip-path: polygon(35% 0, 100% 0, 100% 100%, 0 100%); }
 .bb-feature::after { content: ""; position: absolute; z-index: -1; inset: 0; background: url("./assets/course-contours.svg") center / cover; pointer-events: none; }
 .bb-feature-copy { min-width: 0; }
-.bb-feature h2 { margin: var(--space-3) 0; font: 400 clamp(30px, 7vw, 38px)/1.12 var(--font-poster); font-synthesis: none; letter-spacing: .01em; }
+/* 한글 제목은 단어 중간에서 끊지 않는다(keep-all). 글자 크기는 글 칸(약 0.44 × 화면 폭)에 "한 장의 카드로." 한 줄이 들어가도록 맞춘다. */
+.bb-feature h2 { margin: var(--space-3) 0; font: 400 clamp(20px, 5.4vw, 28px)/1.15 var(--font-poster); font-synthesis: none; letter-spacing: .01em; word-break: keep-all; }
 .bb-feature p { margin: 0 0 var(--space-4); font-size: var(--type-label); color: var(--hero-text); }
 .bb-feature .bb-feature-label { display: inline-block; padding-bottom: var(--space-2); border-bottom: 2px solid var(--grade-crown); font: 600 var(--type-caption)/1.4 var(--font-label); letter-spacing: .12em; }
 .bb-feature .bb-feature-link { display: inline-flex; align-items: center; min-height: var(--touch-target); color: var(--text-inverse); text-decoration: underline; text-underline-offset: 5px; font-size: var(--type-label); }

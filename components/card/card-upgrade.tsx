@@ -73,7 +73,7 @@ export function CardUpgrade({card,nextCount,returnToOwned=false}:{card:CardPrevi
         </dl>
         <p className="bb-detail-caption">실제 보유 수량이 아닌 이 화면의 계산 예시예요. 입장 자격·보유 배지·누적 획득 기록은 그대로예요.</p>
       </section>
-      <div className="bb-upgrade-actions"><Link className="bb-button" href={collectionHref}>{returnToOwned?'보유 카드로':'컬렉션으로'}</Link><Link className="bb-button bb-button--secondary" href={detailHref}>카드 상세로 돌아가기</Link></div>
+      <div className="bb-upgrade-actions"><Link className="bb-button" href={collectionHref}>{returnToOwned?'보유 카드로':'컬렉션으로'}</Link><Link className="bb-button bb-button--secondary" href={`/collection/${encodeURIComponent(card.id)}?grade=${result.grade}${returnToOwned?'&from=owned':''}`}>{cardLevelLabels[result.grade]} 카드 보기</Link></div>
     </>:<>
       <section className="bb-detail-info" aria-label="강화 전후 카드">
         <div className="bb-upgrade-pair">

@@ -29,7 +29,28 @@
 | `media` | `park_ha_pum` | [BASIC](https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/media-park_ha_pum-basic.png) | [RARE](https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/media-park_ha_pum-rare.png) | [LEGEND](https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/media-park_ha_pum-legend.png) |
 | `media` | `choi-na-bee` | [BASIC](https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/media-choi-na-bee-basic.png) | [RARE](https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/media-choi-na-bee-rare.png) | [LEGEND](https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/media-choi-na-bee-legend.png) |
 
-`choi-na-bee`에는 하이픈, 다른 선수 식별자에는 밑줄이 포함됩니다. `choi_na_bee` 등으로 정규화하면 존재하지 않는 주소가 됩니다. 파일명을 하이픈으로 단순 분할해 선수명을 추출하지 말고 manifest의 명시 필드로 매핑합니다. 한글 표시명과 인물 UUID는 별도 대조 후 연결하며 slug에서 추측하지 않습니다.
+`choi-na-bee`에는 하이픈, 다른 선수 식별자에는 밑줄이 포함됩니다. `choi_na_bee` 등으로 정규화하면 존재하지 않는 주소가 됩니다. 파일명을 하이픈으로 단순 분할해 선수명을 추출하지 말고 manifest의 명시 필드로 매핑합니다. 한글 표시명은 아래 표를 사용하고 slug에서 자동 변환하지 않습니다. 인물 UUID는 별도 대조 후 연결합니다.
+
+## 선수 한글 표시명
+
+**확정:** 2026-11-13 현호P. 화면 목업(`app/(user)/_mock/cards.ts`의 `playerNames`)에 반영했습니다. DB 시드·SDK 표시명 연결은 홍주P 작업이며 인물 UUID 매핑은 아직 정하지 않았습니다.
+
+| 유형 | playerSlug | 한글 표시명 |
+| --- | --- | --- |
+| `kpga` | `heo_in_saeng` | 허인생 |
+| `kpga` | `jung_ji_bung` | 정지붕 |
+| `kpga` | `lee_seung_nyang` | 이승냥 |
+| `klpga` | `hwang_yu_ja` | 황유자 |
+| `klpga` | `park_hyeon_kong` | 박현콩 |
+| `klpga` | `yoon_i_ppal` | 윤이빨 |
+| `gtour` | `gong_tae_pung` | 공태풍 |
+| `gtour` | `kim_hong_cha` | 김홍차 |
+| `gtour` | `moon_seo_rap` | 문서랍 |
+| `media` | `kim_jin_sil` | 김진실 |
+| `media` | `park_ha_pum` | 박하품 |
+| `media` | `choi-na-bee` | 최나비 |
+
+`moon_seo_rap`의 표시명은 slug 발음(문서랩)과 다른 **문서랍**입니다. slug와 파일명은 바꾸지 않습니다.
 
 ## DB·SDK 담당자 적용
 
