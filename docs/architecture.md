@@ -8,7 +8,7 @@
 
 > 제품 규칙은 [prd.md](./prd.md)를 기준으로 한다. 이 문서는 공통 아키텍처와 담당 경계를 설명하고, Supabase 백엔드의 상세 데이터·권한·SDK/RPC/Edge 계약과 구현 순서는 [홍주P_plan.md](./홍주P_plan.md)를 따른다.
 >
-> 홍주P 백엔드는 로컬 구현·검증을 진행 중이다. 현재 branch에는 main의 PR #14~#35가 병합되어 있다. PR #16은 공개되지 않은 시간 또는 장소에서의 목격을 필수 차단으로 명확히 했고, PR #29는 화면을 실제 Supabase Auth와 `createBackendApi`에 연결했다. PR #33/#34는 카드 이미지 가이드와 자성P v3 계획, PR #35는 카드 컬렉션 목업 UI·디자인 변경이다. PR #35는 카드 DB/SDK를 연결하지 않았다. B-18 읽음 상태 migration·SDK source는 `4b1f664`에 구현됐지만 main/hosted에는 아직 반영되지 않았다. 필요한 공개 Supabase 환경값이 있으면 실제 모드를 쓰고, `NEXT_PUBLIC_DATA_MODE=mock` 또는 연결값 누락 시 목 모드를 쓴다. 로그인 역할·닉네임은 본인 `profiles` 행에서 읽고 권한은 RLS/RPC가 재검사한다. 브라우저를 통한 실제 사용자 로그인·Realtime·Storage, Edge 실호출·실제 AI는 아직 별도 미검증이다. Hosted Supabase의 현재 읽기 전용 점검은 `harness/verification-log.md`에 기록했다.
+> 홍주P 백엔드는 로컬 구현·검증을 진행 중이다. 현재 branch에는 main의 PR #14~#35가 병합되어 있다. PR #16은 공개되지 않은 시간 또는 장소에서의 목격을 필수 차단으로 명확히 했고, PR #29는 화면을 실제 Supabase Auth와 `createBackendApi`에 연결했다. PR #33/#34는 카드 이미지 가이드와 자성P v3 계획, PR #35는 카드 컬렉션 목업 UI·디자인 변경이다. PR #35는 카드 DB/SDK를 연결하지 않았다. B-18 읽음 상태 migration·SDK source는 `4b1f664`에 구현됐고, DB migration은 2026-11-13 hosted `main / PRODUCTION`에 반영됐다. 이후 로컬에서 검증한 일반 Supabase migration과 영향받는 Edge Function은 같은 작업에서 해당 hosted 대상에 동기화한다(세부 규칙은 루트 `AGENTS.md`). Git main에는 아직 병합되지 않았으며 화면 UI 연결과 실제 사용자 JWT·브라우저 흐름은 별도 미검증이다. 필요한 공개 Supabase 환경값이 있으면 실제 모드를 쓰고, `NEXT_PUBLIC_DATA_MODE=mock` 또는 연결값 누락 시 목 모드를 쓴다. 로그인 역할·닉네임은 본인 `profiles` 행에서 읽고 권한은 RLS/RPC가 재검사한다. 브라우저를 통한 실제 사용자 로그인·Realtime·Storage, Edge 실호출·실제 AI는 아직 별도 미검증이다. Hosted Supabase의 적용·검증 내역은 `harness/verification-log.md`에 기록했다.
 >
 > 제품 요구사항과 다른 구현 기본값이 생기면 PRD와 담당 계획을 함께 갱신한다. 런타임에서는 CSR·RLS·Supabase 호출 계약을 따른다.
 
@@ -167,7 +167,7 @@ lib/api는 브라우저 SDK이며 서버 구현 위치가 아니다. 클라이�
 
 - `origin/main`의 `1c34f94`에 PR #33/#34의 카드 이미지 생성 가이드와 자성P v3 개발 계획 문서가 추가됐다. 이 두 PR은 런타임 코드를 바꾸지 않는다.
 - 자성P v3는 팬 방별 read cursor, 인플루언서 inbox cursor, 방 unread count, 질문 NEW를 홍주P 서버 기능으로 제안했다. PRD §4를 기준으로 홍주P 계획의 B-18 계약에 개인별 서버 cursor, 첫 방문 처리, 삭제·퇴장 기간 가시성, 단조 증가, priority 목록의 `checkedThroughMessageId`를 정의했다.
-- B-18 migration/RPC/SDK source와 타입 계약은 feature commit `4b1f664`에 구현됐으며 main/hosted에는 반영되지 않았다. `markInboxChecked`는 새 전진 시 열린 현재 팬 입장 기간의 통과 질문만 허용하고 기존 cursor 이하 재시도는 허용한다. 화면 UI 연결, local Supabase 적용·권한 테스트, typecheck는 아직 실행되지 않아 티켓 완료로 처리하지 않는다.
+- B-18 migration/RPC/SDK source와 타입 계약은 feature commit `4b1f664`에 구현됐고, DB migration은 2026-11-13 hosted `main / PRODUCTION`에 적용됐다. `markInboxChecked`는 새 전진 시 열린 현재 팬 입장 기간의 통과 질문만 허용하고 기존 cursor 이하 재시도는 허용한다. 로컬 migration·DB 계약 테스트는 적용했지만 B-18 전용 사용자 JWT 통합, 화면 UI 연결, typecheck는 아직 실행하지 않아 티켓 전체 완료로 처리하지 않는다.
 
 ### PR #30/#32 병합 및 카드 데이터 계약 후속
 
@@ -289,7 +289,9 @@ AiAdapter 타입의 유일한 상세 기준은 홍주P 계획 §8.1이다. 여�
 2. config가 없으면 supabase init → migration·seed·Function·SDK·scripts·예제 env 작성.
 3. local:start로 로컬 stack 시작과 연결 값 수집 → 실제 로컬 env 생성. 원격 로그인·원격 키를 선행 조건으로 요구하지 않음.
 4. 로컬 reset → 실제 DB 타입 생성 → Auth Admin+pg로 데모 계정·private 데이터 준비 → 정적·DB·Edge·SDK·Realtime 검증.
-5. 명시적인 원격 적용 요청·대상 환경·관리 권한이 있으면 별도로 이력·dry-run·migration·Functions·Secrets·원격 스모크 수행.
+5. 로컬 검증이 끝나면 일반 schema/RPC/RLS/Storage/Realtime 정책 변경과 영향받는 Edge Function을 사용자가 지정한 `BirdieBuddy Project` ref `kjfaqfpvfvgbrvdoosyi`, hosted `main / PRODUCTION`에 같은 작업에서 동기화한다. 매번 ref·현재 migration/schema/function 상태와 관리 접근을 재확인하고 결과를 검증 로그에 남긴다. 반복 적용 요청은 필요하지 않다.
+
+로컬 demo/seed fixture, 가상 Auth 사용자, placeholder Storage 데이터, hosted Secret 값, 추측한 Auth origin/CORS 및 reset·삭제·비가역 데이터 변경은 상시 동기화 권한에 포함되지 않는다. 개발용 config/env 전체를 hosted에 복사하지 않는다. 실제 사용자 JWT·browser·AI 통합 검증은 migration/function 동기화와 별도로 보고한다.
 
 브라우저 .env.local, Node .env.backend.local, Functions .env를 구분한다. 브라우저/Node는 호스트의 로컬 URL, Edge는 플랫폼 SUPABASE_URL을 사용한다. 관리자 키·DB URL·암호·JWT는 브라우저와 Git·로그에서 제외한다. 로컬 init이나 config 변경이 원격에 자동 적용된다고 보지 않는다.
 

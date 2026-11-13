@@ -20,14 +20,14 @@
 
 ## 0. 한 문장으로 시작하는 실행 지시
 
-사용자가 이 계획을 바탕으로 개발을 요청하면 이 파일을 실행 명세로 삼는다. 현재는 로컬 구현·검증을 보완 중이다. 이번 main 병합 후속 작업은 홍주P 소유 B-18 읽음 상태 backend와 필요한 계약·검증 문서를 반영하며 hosted 데이터·schema·배포는 변경하지 않는다.
+사용자가 이 계획을 바탕으로 개발을 요청하면 이 파일을 실행 명세로 삼는다. Supabase 변경은 로컬에서 먼저 구현·검증하고, 완료된 schema·migration·RPC·RLS·Storage/Realtime 정책 및 영향받는 Edge Function은 고정 hosted 대상에 같은 작업 중 동기화한다. 이 상시 권한과 제외 범위는 루트 `AGENTS.md`를 따른다. 실제 AI·팀 화면 통합·사용자 JWT/browser smoke는 별도 검증 상태로 기록한다.
 
 1. 저장소 상태와 작업 지침을 확인하고 기존 수정사항을 보존한다. 아래 체크리스트와 실제 파일을 비교해 미완료 지점부터 진행한다. 체크 표시만으로 구현 완료를 가정하지 않는다.
 2. B-01~B-18을 구현한다. 제품 규칙은 PRD를 적용하고, 미정인 기술 세부사항은 아래 계약을 사용한다. 다른 담당자의 화면·AI 코드·최종 이미지가 없다는 이유로 독립 가능한 백엔드 구현을 중단하지 않는다.
 3. migration → 권한/RPC → 시드·계정 → SDK → Edge Function → 통합 검증 순서로 진행한다. 화면 대신 SDK 테스트로 P0/P1을 먼저 완성한다.
 4. 정상·거부·재시도·동시성 검증을 실행하고 실패를 수정한다. 티켓별 환경과 증거를 기록하며 구현 시 harness/verification-log.md도 갱신한다.
 5. 자격증명·컨테이너 등 외부 조건이 없으면 가능한 구현과 정적 검사를 계속한다. 필요한 사용자 조치와 재개 방법만 구체적으로 보고한다. 없는 권한·키·검증 결과를 만들어내지 않는다.
-6. 코드와 로컬 검증이 끝나면 **홍주P 백엔드 로컬 완료**로 보고한다. 실제 LLM·팀 화면 통합·원격 적용은 별도 상태다. 원격 변경에는 사용자 요청과 명시적인 대상 환경이 필요하다.
+6. 코드와 로컬 검증이 끝나면 영향받는 DB migration·Edge Function을 상시 승인된 hosted 대상으로 동기화하고, 로컬 검증과 hosted 반영 상태를 각각 보고한다. 실제 LLM·팀 화면 통합·사용자 JWT/browser 흐름은 별도 상태다.
 
 **완성 범위:** 홍주P 백엔드, 브라우저 SDK, 테스트, 실행·배포 절차. 카드 확률/발급 알고리즘과 private.issue_card는 문환P A-09 소유이며, 홍주P는 complete_round에서 같은 트랜잭션으로 이를 호출하고 권한·멱등성·반환 계약을 통합한다. 현호P·자성P 화면과 현호P의 카드 이미지 생성, 문환P의 실제 AI 품질 개선, 발표 자료를 대신 완성한다는 의미는 아니다.
 
@@ -55,7 +55,7 @@
 - 로컬 Supabase는 자체 Auth/DB 관리 연결 값을 사용한다. **사용자가 제공한 원격 키나 CLI 로그인은 로컬 구현·통합 검증의 선행 조건이 아니다.** 로컬 값을 얻는 순서는 §10.3에 고정한다.
 - AI 공급자 키 관리 결정: `TYPESAFE_API_KEY`와 `ANTHROPIC_API_KEY`를 §2.1의 Supabase 프로젝트 Edge Function Secrets에 저장하고 Edge Function에서만 사용한다. 실제 Jev/Claude 검증과 시연에는 각각의 키와 문환P 모듈이 필요하며, 이 상태를 로컬 백엔드 완료와 구분한다.
 - 로컬 코드·DB 개발은 provider key 없이 진행한다. 문환P가 소유한 `AiAdapter` 구현 전에는 `BB_USE_LOCAL_AI_FIXTURE=true`와 local Supabase API/DB host가 모두 확인될 때만 로컬 샘플 adapter를 사용한다. 지정 marker에 따라 suggest/block/cluster 응답과 고정 요약문을 만들며 일반 문장은 quality 50으로 통과한다. 이는 안전 필터가 아니고 `passesAllFilters=false`라 질문 인용 권한을 부여하지 않는다. hosted·운영·host 불일치 환경은 `FILTER_UNAVAILABLE`로 fail-closed 한다. 실제 owner adapter가 도착하면 교체한다. 원격 Secret 설정은 대상 환경 및 Owner/Administrator 권한 확인 뒤 별도 기록한다.
-- 원격 CLI 로그인/link·schema 변경·Function 배포는 별도 요청과 대상 확인 전까지 실행하지 않는다. 독립 가능한 로컬 backend 구현과 검증은 진행한다.
+- 로컬 설정·자격증명·fixture를 원격에 통째로 복사하지 않는다. 로컬 검증 후 schema/migration/RPC/RLS/Storage/Realtime 정책과 영향받는 Function은 `AGENTS.md`의 상시 권한에 따라 hosted `main / PRODUCTION`에 반영한다. provider Secret, Auth origin/redirect/CORS, demo data 및 파괴적 데이터 변경은 그 권한에 포함되지 않는다.
 
 ## 1. 아키텍처와 담당 경계
 
@@ -115,7 +115,7 @@ tests/backend/                     cursor tests; Deno Edge adapter contract test
 | project ref | `kjfaqfpvfvgbrvdoosyi` |
 | URL | `https://kjfaqfpvfvgbrvdoosyi.supabase.co` |
 | 대시보드 | [프로젝트 관리](https://supabase.com/dashboard/project/kjfaqfpvfvgbrvdoosyi) |
-| 용도 | 사용자가 제공한 해커톤 연결 대상. Dashboard에서 `main` 브랜치가 `PRODUCTION`으로 표시됨. 이를 해커톤 시연용으로 써도 되는지와 실제 데이터 상태는 별도 확인 필요 |
+| 용도 | 사용자가 지정한 공유 hosted 동기화 대상. Dashboard에서 `main` 브랜치가 `PRODUCTION`으로 표시됨. 일반 backend migration·영향받는 Function의 상시 반영 대상이며, 매 작업 전 실제 ref·환경·현재 데이터와 schema 상태를 확인 |
 
 개발 착수 후 이 원격 프로젝트를 사용할 때 루트 `.env.local`에 작성할 값:
 
@@ -173,9 +173,9 @@ CLI가 생성한 config는 다음 기준으로 보완한다. 이 설정을 위�
 | storage.buckets.card-assets | public=true, file_size_limit="10MiB", allowed_mime_types=["image/png","image/jpeg","image/webp"] |
 | functions의 세 사용자 호출 함수 | verify_jwt=true 기본, §10.2의 handler 인증도 구현 |
 
-로컬 설정이 원격 프로젝트에 자동 적용된다고 가정하지 않는다. 테이블·RLS·함수·Storage 정책·Realtime publication은 이후 티켓의 migration/배포로 구현한다.
+로컬 설정이 원격 프로젝트에 자동 적용된다고 가정하지 않는다. 테이블·RLS·함수·Storage 정책·Realtime publication은 migration/배포로 구현하고, 로컬 검증 후 상시 승인된 hosted 대상으로 동기화한다. Supabase 설정 파일 전체나 개발용 Auth 설정은 원격에 그대로 push하지 않는다.
 
-로컬 설정은 원격 프로젝트에 자동 반영되지 않는다. 원격 로그인은 §2.5, 단계별 반영은 §13을 따른다. 개발 시작 요청만으로 원격 변경을 시작하지 않는다.
+로컬 설정은 원격 프로젝트에 자동 반영되지 않는다. §2.5의 연결·권한 확인과 §13의 단계별 preflight를 거쳐 일반 backend migration/Function 변경을 같은 작업에서 반영한다. 개발용 local fixture·seed·Auth 사용자·placeholder object는 제외하며, Auth URL/CORS·Secret·파괴적 데이터 변경은 별도 사용자 입력이 필요하다.
 
 ### 2.4 환경과 외부 조건
 
@@ -189,7 +189,7 @@ CLI가 생성한 config는 다음 기준으로 보완한다. 이 설정을 위�
 
 ### 2.5 Supabase 로그인·프로젝트 권한 준비
 
-아래는 향후 사용자가 원격 적용을 명시적으로 요청하고 대상 환경을 확정한 뒤 사용할 절차다. 현재 적힌 project ref는 사용자가 전달한 연결 대상일 뿐, 실제 로그인·프로젝트 멤버십·해커톤/운영 환경 구분·기존 데이터 상태는 확인하지 않았다.
+아래는 사용자가 상시 지정한 hosted 대상에 일반 backend 변경을 반영하는 절차다. 별도의 반복 요청은 필요하지 않다. 매 작업에서 실제 ref·`main / PRODUCTION` 환경·프로젝트 접근·migration history·기존 데이터 상태를 재확인한다. 다른 ref/preview/운영 환경은 이 권한에 포함되지 않는다.
 
 1. 소유자가 Supabase Dashboard에서 대상 ref가 `kjfaqfpvfvgbrvdoosyi`인지, 프로젝트가 의도한 해커톤 환경인지, 기존 데이터와 현재 migration 이력을 확인한다.
 2. 작업자는 해당 프로젝트에 초대된 Supabase 계정으로 로그인한다. 접근 권한이 없으면 프로젝트 소유자/관리자가 필요한 프로젝트 멤버 권한만 부여한다. 앱의 `profiles.role='admin'`은 Supabase Dashboard/CLI 권한을 부여하지 않는다.
@@ -1045,17 +1045,17 @@ migration 순서: core/config→private/Auth→RLS/helpers→문환P A-09 `issue
 
 ## 13. 원격 적용·인계·복구
 
-이 절은 실제 원격 적용 기준과 진행 증거다. `md 파일 기반으로 개발 시작해`는 B-01~B-17 로컬 구현·검증의 지시이며, 이 대화의 별도 요청에서 사용자가 §2.1 프로젝트 `main / PRODUCTION` 직접 적용도 허용했다. 범위는 아래 원격 적용 요약에 기록한다.
+이 절은 실제 원격 적용 기준과 진행 증거다. 일반 migration과 영향받는 Function은 사용자가 상시 지정한 §2.1 `main / PRODUCTION` 대상에 로컬 검증 직후 반영한다. 현재 적용·검증 범위는 아래 원격 적용 요약에 기록한다.
 
 ### 13.1 원격 작업 범위와 사전 조건
 
-적용 전 작업 기록에 대상 ref, 환경, 작업 commit, 예상 migration, 실행할 function, 필요한 Secret **이름**, Auth URL 변경, Storage/Realtime 변경, seed/이미지/계정 단계, 백업 위치, 확인 담당을 남긴다. 비밀값이나 토큰은 기록하지 않는다. 2026-11-11 사용자가 §2.1 ref의 `main / PRODUCTION`에 직접 반영하라고 지정했다. 사전 조회에서 프로젝트 상태는 ACTIVE_HEALTHY·PostgreSQL 17.11이고, public/private 테이블·migration·Edge Function·Auth user·Storage object는 비어 있었다.
+적용 전 작업 기록에 대상 ref, 환경, 작업 commit, 예상 migration, 실행할 function, 필요한 Secret **이름**, Auth URL 변경, Storage/Realtime 변경, 선택적 데이터 단계, 확인 담당을 남긴다. 비밀값이나 토큰은 기록하지 않는다. 사용자는 §2.1 ref의 `main / PRODUCTION`을 일반 backend 변경의 상시 동기화 대상으로 지정했다. 사전 조회에서 프로젝트 상태는 ACTIVE_HEALTHY·PostgreSQL 17.11이고, public/private 테이블·migration·Edge Function·Auth user·Storage object는 비어 있었다. 이 과거 baseline을 현재 상태로 간주하지 말고 매번 다시 확인한다.
 
-- 원격 적용 대상은 `kjfaqfpvfvgbrvdoosyi`인지 매번 확인한다. 사용자가 지정한 이번 직접 적용 대상은 main/PRODUCTION이며, 다른 ref/프리뷰/운영은 별도 대상 승인 없이 연결하지 않는다.
-- 변경 범위는 reviewed migration과 필요한 함수(`submit-message`, `send-influencer-message`, `update-room-greeting`, `summarize-room`, `cluster-questions`)로 제한한다. 문서상 예정 함수 목록을 실제 배포 완료로 보지 않는다.
+- 원격 적용 대상은 `kjfaqfpvfvgbrvdoosyi`의 hosted `main / PRODUCTION`인지 매번 확인한다. 이 고정 대상에는 반복 승인 없이 반영한다. 다른 ref/preview/운영은 별도 대상 지시 없이 연결하지 않는다.
+- 변경 범위는 로컬 검증된 reviewed migration과 그 변경에 영향받는 Edge Function이다. 배포할 함수 source/version과 `verify_jwt`를 확인하며, 문서상 예정 함수 목록을 실제 배포 완료로 보지 않는다.
 - `local_issue_card.sql`, `BB_USE_LOCAL_AI_FIXTURE`, fictional local seed/Auth/Storage setup은 hosted environment에 적용·배포하지 않는다. Jev/Claude provider adapter source는 main에 병합됐지만 live 호출·Edge 배포는 미검증이다. 키 부재 시 계약된 moderation fallback을 쓰며 provider 호출 오류는 `FILTER_UNAVAILABLE`로 변환한다.
 - 현재 schema, migration history, DB major version, 기존 함수/Secret 이름, Storage bucket/object, `messages` publication, Auth URL/redirect, 기존 사용자와 데이터를 읽어 baseline을 만든다. 소유되지 않은 기존 구조와 이력은 임의로 채택·삭제·repair하지 않는다.
-- §12의 로컬 migration/권한/Function 검증을 통과한 commit을 대상으로 한다. 사용 중인 DB와 호환성을 확인하고, 기존 사용자/Storage 데이터가 있으면 복구 백업과 기존 Function 소스를 확보하지 못한 상태로 쓰기 단계에 넘어가지 않는다. 사전 조회로 두 데이터가 모두 비어 있음을 확인한 신규 설치는 이를 기록하고 계속할 수 있다.
+- §12의 관련 로컬 migration/권한/Function 검증을 통과한 변경을 대상으로 한다. 기존 hosted 사용자·Storage 데이터를 보존하고 호환되는 additive 변경은 동기화한다. 데이터 삭제/재작성·비가역 변환·reset은 상시 권한에서 제외하며 사용자 지시와 복구 계획 없이 실행하지 않는다. Function 교체는 기존 source와 JWT 정책을 확인하고 회복 가능한 배포 절차를 사용한다.
 - 실제 Jev 검증에는 `TYPESAFE_API_KEY`, Claude suggest/summary 검증에는 `ANTHROPIC_API_KEY`가 필요하다. 전체 AI 경로의 시연 검증은 §2.7에 따라 두 hosted Secrets를 설정하고 호출량/비용 조건을 확인한 뒤 수행한다. 키가 없을 때는 문환P adapter의 계약된 fallback을 쓰며 실제 모델 판정으로 보고하지 않는다. 키가 없다고 fail-closed만 하지는 않으며 fallback pass는 PRD대로 quality 50으로 저장한다.
 
 ### 13.2 인증 및 읽기 전용 preflight
@@ -1083,7 +1083,7 @@ CLI의 출력 대상과 대시보드 ref가 일치하지 않으면 즉시 중단
 
 ### 13.4 DB migration과 선택적 초기 데이터
 
-먼저 §13.2의 원격 dry-run으로 대상과 변경 목록을 재확인한다. migration이 예상대로만 추가되고, 현재 원격 schema와 호환되며 백업/복구 기록이 있을 때에만 사용자 승인 범위 안에서 적용한다. `--dry-run`은 실행 대상/변경 목록 확인이지 seed SQL의 각 데이터 결과를 검증하는 것은 아니다. seed 내용을 별도로 검토한다.
+먼저 §13.2의 원격 dry-run으로 대상과 변경 목록을 재확인한다. migration이 예상 범위이며 현재 원격 schema와 호환되는지 확인한 뒤, 고정 hosted 대상에 상시 승인된 일반 migration을 적용한다. 기존 데이터를 삭제·재작성하거나 비가역 변환하는 변경은 별도 사용자 지시와 복구 계획이 필요하다. `--dry-run`은 실행 대상/변경 목록 확인이지 seed SQL의 각 데이터 결과를 검증하는 것은 아니다. seed 내용을 별도로 검토한다.
 
 ```bash
 # 미래 실행 예시. --yes는 scope가 승인된 비대화형 변경에만 사용.
@@ -1100,7 +1100,7 @@ npx --yes supabase@3.0.0 db push --remote=kjfaqfpvfvgbrvdoosyi --include-seed --
 
 ### 13.5 Functions·Storage·Realtime 반영
 
-Migration 성공과 DB health 확인 후 승인된 함수만 배포한다. v3 hosted mutation에는 `--yes`를 명시하고 매 호출에 동일한 원격 ref를 넣는다. `--prune`은 다른 함수 삭제 위험이 있으므로 routine deploy에서 사용하지 않는다. `verify_jwt`를 끄거나 gateway 검증을 우회하지 않는다.
+Migration 성공과 DB health 확인 후 변경에 영향받는 함수도 같은 작업에서 고정 hosted 대상으로 배포한다. v3 hosted mutation에는 `--yes`를 명시하고 매 호출에 동일한 원격 ref를 넣는다. `--prune`은 다른 함수 삭제 위험이 있으므로 routine deploy에서 사용하지 않는다. `verify_jwt`를 끄거나 gateway 검증을 우회하지 않는다. provider Secret, Auth origin/redirect/CORS는 상시 sync 권한에 포함하지 않는다.
 
 ```bash
 # secrets file은 비추적/보호 경로에만 만들고 승인된 이름만 포함한다.
@@ -1130,7 +1130,7 @@ Secrets 변경은 통상 즉시 runtime에 반영되며 함수 재배포가 필�
 - card-assets 공개 읽기·관리자 쓰기, influencer-profiles 공개 읽기·인증된 소유자 업로드·타 인플루언서 덮어쓰기 거부, Auth origin/redirect를 확인한다. 기존 운영 데이터에 대한 cleanup/삭제 스모크는 하지 않는다.
 - 작업 commit, CLI 버전, ref, migration 목록, deployed function 이름/시점, Secret 이름(값 금지), 테스트 역할·결과·오류·미실행 항목을 `harness/verification-log.md`에 기록한다.
 
-로그인 확인, 프로젝트 ref 접근, DB dry-run, 실제 migration, Function 배포, Secrets 반영, Storage/Auth/Realtime 설정, 실제 JWT 스모크, live AI 호출은 각각 독립된 증거다. 한 단계 성공을 나머지 완료로 묶지 않는다. 전체 범위 중 미실행 조건이 있으면 원격 적용 완료로 보고하지 않는다.
+원격 동기화 완료는 대상 ref/환경, migration history와 반영된 schema, 영향받는 Function source/version/`verify_jwt`를 사후 확인했을 때 기록한다. 실제 사용자 JWT, browser, Realtime·Storage 통합, Auth origin, live AI와 Secret 검증은 각각 별도 증거이며 전체 기능/시연 준비 완료로 확대 해석하지 않는다. 동기화 자체가 실패하면 로컬만 반영된 상태를 명확히 기록하고 원인을 해결하거나 blocker를 보고한다.
 
 ### 13.7 부분 실패·복구
 
@@ -1220,7 +1220,7 @@ npm run demo:reset -- --apply
 - **동기화:** `git fetch origin main`에서 확인한 최신 main은 `4003863` (PR #30, #31, #32 포함)이다. 이를 `feature/hongjoo`에 병합했다. 기존 변경은 앞선 `fb333a1`에서 별도 커밋했으며, merge 결과와 본 절은 이 작업의 병합 커밋에 포함한다. PR을 push하거나 hosted Supabase에 변경을 적용하지 않았다.
 - **PR #30 실제 계약:** `/home`·`/draw`의 라운드 요약·완료·최근 카드 조회는 기존 4등급 BackendApi를 쓴다. `/collection/**`는 신규 3등급·4유형 UI 목업이므로 실제 보유 정보로 보면 안 된다. main PR #32가 추가한 상세·강화도 예시 수량과 비용을 표시하며 API 호출·보유량 변경을 하지 않는다.
 - **홍주P 로컬 개발:** `demo:reset`과 `prepare-local-env.mjs --backend-only`를 `fb333a1`에 커밋했다. 이 도구는 기본 계획 출력, `--apply`에서만 loopback 로컬 Supabase를 초기화한다. 공유 hosted DB와 브라우저 env 파일은 변경하지 않는다.
-- **B-07 관리자 시계:** `get_admin_demo_month()` migration 및 `getAdminDemoMonth()`는 이전 `79d2c90`에 구현되어 현재 feature branch에 남아 있다. 이번 main 병합은 이 변경을 main 또는 DB에 적용하지 않는다. 관리자 화면은 계속 KST 초기값으로 시작하며 자성P가 성공 응답 월을 읽고 오류/재시도 경계를 연결해야 한다. hosted migration 적용은 별도 환경 요청·검증 뒤 진행한다.
+- **B-07 관리자 시계:** `get_admin_demo_month()` migration 및 `getAdminDemoMonth()`는 이전 `79d2c90`에 구현되어 현재 feature branch에 남아 있다. 이 시점의 main 병합은 이 변경을 main 또는 DB에 적용하지 않았으며, 관리자 화면은 자성P가 성공 응답 월을 읽고 오류/재시도 경계를 연결해야 했다. hosted migration은 이후 §13.15에서 반영했다.
 - **신규 카드 기준과 백엔드 차이:** main의 [card-spec.md](./card-spec.md)는 `kpga/klpga/gtour/media`, `basic/rare/legend`, 12개 `playerSlug`×3등급 PNG 및 R2 경로를 확정한다. 현재 `card_style`, 4등급 enum, `(influencer_id,style)` 템플릿 키, Storage WebP 경로, 발급·강화 RPC, seed/config, SDK는 구 계약이다. 새 카드 전환 migration이나 매핑은 이번 변경에서 만들지 않았다.
 
 데이터 전환 전에 필요한 결정:
@@ -1234,6 +1234,15 @@ npm run demo:reset -- --apply
 
 - **PR #30 UI 후속(타 담당):** 홈의 retryable 오류 상태에서도 새 requestId의 기본 발급이 가능해 응답 유실 후 중복 지급 위험이 있다. `birdiebuddy-last-draw` sessionStorage 키는 계정 구분이 없고 `/draw` 안내는 5장을 고정한다. 자성P·현호P가 요청 재사용/계정 분리/설정값 안내를 수정한다. 이는 코드 정적 대조 결과이며 브라우저 재현은 아니다.
 - **이번 확인 범위:** main 코드와 백엔드 migration·SDK·seed 및 담당 문서를 정적으로 대조했다. 새 카드 확률·인물 UUID·기존 데이터 매핑이 확정되지 않아 schema/RPC/seed 변경은 보류했다. 테스트·typecheck·build·browser smoke·hosted 조회/변경은 실행하지 않았다.
+
+### 13.15 2026-11-13 — 사용자가 요청한 hosted `main / PRODUCTION` 동기화
+
+- **대상·기준:** Supabase MCP에서 `BirdieBuddy Project` ref `kjfaqfpvfvgbrvdoosyi`, ACTIVE_HEALTHY, PostgreSQL 17.11을 확인했다. 로컬 migration 14개와 hosted 이력을 비교한 뒤 production 변경을 적용했다.
+- **DB 반영:** 기존 hosted 9개 migration에 빠져 있던 `issue_card`, `fix_complete_round_issue_card_call`, `get_admin_demo_month`, `read_state_checkpoints`와 후속 `read_state_foreign_key_indexes`를 적용했다. Supabase MCP가 새 migration version을 적용 시각으로 만들었으므로, CLI remote 접속이 IPv6 네트워크 오류로 불가능한 점을 확인한 뒤 migration history의 version만 로컬 파일 timestamp에 맞췄다. 적용 SQL·name·rollback 기록은 유지했다. 로컬에는 `migration up`으로 미적용 2개 migration과 새 인덱스 migration을 적용했고 DB를 reset하지 않았다.
+- **Edge 반영:** 기존 다섯 함수는 version 1의 fail-closed AI adapter였다. 로컬 provider adapter와 필요한 `_shared/ai*` 의존 파일을 포함해 다섯 함수를 version 2로 재배포했다. 모두 `verify_jwt=true`이며 hosted에서 함수별 source를 local 파일과 대조했다.
+- **production 미복사 범위:** `seed.sql`, local fixtures, 가상 Auth 사용자, placeholder Storage object는 넣지 않았다. Secret·Auth redirect·CORS는 변경하지 않았다. Jev/Claude live 호출과 실제 사용자 JWT·브라우저 흐름은 실행하지 않았다.
+- **로컬 검증:** local stack(127.0.0.1:54322)에서 `migration up`, `supabase test db supabase/tests`(4 files/121 assertions), `db lint --fail-on error`(schema errors 0), `deno check supabase/functions/*/index.ts`, `deno test --sloppy-imports supabase/functions/`(150/150)를 확인했다. Deno test는 provider key lookup을 차단하는 권한 없는 실행으로 통과했다.
+- **hosted 사후 확인:** migration 14개가 local filename version과 일치하고, 함수 5개가 ACTIVE/version 2/JWT 검증 활성 상태다. `complete_round`→`private.issue_card`, B-18 RLS·grants·테이블 접근 차단·FK 인덱스가 SQL 조회로 확인됐다. Security advisor는 authenticated SECURITY DEFINER RPC 26건과 기존 leaked-password protection 경고 1건을 반환했다. Performance advisor의 unindexed foreign key 경고는 새 인덱스로 해소됐고, 사용되지 않은 index 안내 17건은 조회 workload가 아직 없는 상태라 보존했다. Health advisor는 비어 있다. 상세 결과와 검증 한계는 `harness/verification-log.md`에 기록했다.
 
 ## 14. 진행·완료 보고
 
@@ -1263,14 +1272,14 @@ npm run demo:reset -- --apply
 | 상태 | 조건 | 현재 |
 | --- | --- | --- |
 | 계획 단독 실행 준비 | 범위·기본값·타입·권한·순서·검증·외부조건 | 문서 보완·정적 교차 검토 완료 |
-| 백엔드 로컬 완료 | B-01~18 코드·필수로컬검증 | 진행 중: 기존 ordered migrations·seed·7개 local 계정·SDK·5개 Edge 함수가 있고 B-18 migration/SDK source는 작성됐다. 새 migration의 local 적용·권한/상태 검증은 미실행이다. 앞선 `typecheck`, Node 3 + Deno 113, pgTAP 113, SQL lint 결과는 새 변경 검증으로 재사용하지 않는다. 나머지 cross-ticket `verify:backend` 시나리오, browser·Realtime·Storage·live AI, 전체 acceptance는 별도 미검증 |
+| 백엔드 로컬 완료 | B-01~18 코드·필수로컬검증 | 진행 중: local stack에 14개 migration이 모두 적용됐다. SQL test suite 4 files/121 assertions, Edge check 5개 진입점, Deno 150 tests, DB lint 오류 0을 확인했다. B-18 전용 SQL/JWT 통합 테스트, 전체 cross-ticket `verify:backend` 시나리오, browser·Realtime·Storage·live AI, 전체 acceptance는 미검증 |
 | LLM hosted Secrets 준비 | `TYPESAFE_API_KEY`·`ANTHROPIC_API_KEY` 존재 여부와 회전된 값의 실제 호출 검증 | Dashboard에서 두 Secret 이름 저장 확인. 값·회전 여부 미열람·미확인, live 호출 미실행 |
 | 실제AI 검증 | live 호출·3판정·장애 | 미검증 |
 | 팀화면 통합 | PR #29에서 실제 Auth·SDK Provider 코드 연결, E2E 목 모드 고정 | 코드 병합 완료. 사용자 JWT browser flow·Realtime·Storage는 미검증; 관리자 월 조회 SDK는 자성P UI에 아직 연결되지 않음 |
 | Supabase 관리 연결 | 프로젝트·DB 관리 경로 | Supabase MCP로 대상 읽기/적용 확인. CLI deploy는 로컬 `SUPABASE_ACCESS_TOKEN` 부재로 실패했으나 MCP deploy로 계속함 |
-| Supabase 로그인·프로젝트 권한 | 계정/PAT 범위/프로젝트 멤버십 및 Owner/Administrator Secret 쓰기 권한 | MCP에서 §2.1 ref 접근 및 migration/function 반영 성공. Secret 권한은 사용하지 않았고 별도 확인하지 않음. Production 직접 적용은 사용자 명시 지시 |
+| Supabase 로그인·프로젝트 권한 | 계정/PAT 범위/프로젝트 멤버십 및 Owner/Administrator Secret 쓰기 권한 | MCP에서 §2.1 ref 접근 및 migration/function 반영 성공. Secret 권한은 사용하지 않았고 별도 확인하지 않음. 일반 migration/function sync 대상은 상시 사용자 지시로 지정됨 |
 | 원격 preflight | target ref·환경·DB major version·기존 데이터/schema baseline | 2026-11-12 MCP read-only: `main / PRODUCTION`, PostgreSQL 17.11, ACTIVE_HEALTHY. profiles 7, influencers 11(verified 10), rooms 10, templates 30, unnamed influencers 0. Synthetic authenticated role/JWT claim SQL probe의 `room_catalog`은 10행/10개 이름을 반환했다. 실제 브라우저·사용자 JWT smoke 증거는 아님 |
-| 원격 적용 | 승인환경 migration/Functions/Secrets·스모크 | 이번 작업에서 hosted migration·Function·Secret·Auth 설정은 변경하지 않았다. 신규 `get_admin_demo_month` migration은 원격 미적용 상태이며, 사용자 요청과 target 확인 뒤 별도로 적용해야 한다 |
+| 원격 적용 | 승인환경 migration/Functions/Secrets·스모크 | 2026-11-13 사용자 요청으로 hosted `main / PRODUCTION`에 14개 migration과 5개 JWT-검증 Edge Function version 2를 반영했다. Secret·Auth redirect·CORS는 변경하지 않았고, 실제 JWT·브라우저·Realtime·Storage·live AI 스모크는 미실행 |
 | 데모 완료 | 동결 후 전체리허설2회 | 미실행 |
 
 보고 순서는 변경 파일 → 명령/증거 → 완료 티켓 → 외부 조건/미검증 → 재개 방법이다. 외부 권한·AI 모듈이 없어도 독립 가능한 구현은 끝까지 진행한다.
@@ -1400,7 +1409,7 @@ docs/홍주P_plan.md 계약 1.6의 §§6~9·12·15와 내 담당 *_plan.md를 �
 
 **착수 문장:** `md 파일 기반으로 개발 시작해`
 
-이 문장으로 홍주P 구현·로컬검증을 시작하고 완료한 작업은 보존하며 이어간다. 외부계정권한·실제AI자격증명·실행환경은 문서가 대신 만들 수 없다. 원격적용은 명시적 요청과 대상 확인 후 수행한다.
+이 문장으로 홍주P 구현·로컬검증을 시작하고 완료한 작업은 보존하며 이어간다. 외부계정권한·실제AI자격증명·실행환경은 문서가 대신 만들 수 없다. 일반 Supabase backend 변경은 로컬 검증 후 `AGENTS.md`에 지정된 hosted 대상에 같은 작업에서 동기화한다. Secret·Auth origin/CORS·파괴적 데이터 변경은 별도 입력이 필요하다.
 
 ### 15.5 2026-11-11 — 외부 담당 산출물 대기 중 local fixture 연결
 
