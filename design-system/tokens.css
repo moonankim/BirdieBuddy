@@ -1,49 +1,143 @@
-/* 앱과 정적 시안이 공유하는 토큰 원본 */
+/* 앱과 정적 시안이 공유하는 토큰 원본.
+   구조: 원시 스케일(1~12) → 의미 토큰 → 등급·카드 토큰.
+   스케일 단계 규칙은 Radix Colors를 참고한다. 1~2 배경, 3~5 컴포넌트 배경, 6~8 테두리, 9~10 단색, 11~12 텍스트.
+   값은 실제 카드 아트(BASIC 그린·RARE 레드·LEGEND 블랙+골드, 아이보리 바탕)에서 추출했다. */
 :root {
-  --pine-950: #062a19;
-  --pine-800: #00532c;
-  --green-500: #37734e;
+  /* 원시 스케일 — 화면 코드에서 직접 쓰지 않고 의미·등급 토큰을 거친다. */
+  --sand-1: #faf8f5;
+  --sand-2: #f3eee9;
+  --sand-3: #ece6df;
+  --sand-4: #e5ded6;
+  --sand-5: #dcd4cb;
+  --sand-6: #cfc6bc;
+  --sand-7: #bcb2a7;
+  --sand-8: #a0968b;
+  --sand-9: #7c7670;
+  --sand-10: #6b655f;
+  --sand-11: #57524d;
+  --sand-12: #24211e;
+  --green-1: #f4f7f3;
+  --green-2: #e8f0e9;
+  --green-3: #d7e6da;
+  --green-4: #c2d8c7;
+  --green-5: #a8c6b0;
+  --green-6: #86ae92;
+  --green-7: #5e9171;
+  --green-8: #37734e;
+  --green-9: #00532c;
+  --green-10: #006b39;
+  --green-11: #023e17;
+  --green-12: #062a19;
+  --red-1: #fcf6f5;
+  --red-2: #f8ecea;
+  --red-3: #f2dad7;
+  --red-4: #eac4c0;
+  --red-5: #dfa9a4;
+  --red-6: #cf8780;
+  --red-7: #b85c56;
+  --red-8: #a0303a;
+  --red-9: #880612;
+  --red-10: #740312;
+  --red-11: #5e0a10;
+  --red-12: #4a0809;
+  --gold-1: #fdf9f0;
+  --gold-2: #f8eeda;
+  --gold-3: #f5ead2;
+  --gold-4: #f7e0a8;
+  --gold-5: #e6cb8c;
+  --gold-6: #d8b672;
+  --gold-7: #c49a45;
+  --gold-8: #b08435;
+  --gold-9: #a37229;
+  --gold-10: #8e6223;
+  --gold-11: #795722;
+  --gold-12: #4a3410;
+  --ink-1: #f6f6f5;
+  --ink-2: #ecebea;
+  --ink-3: #deddda;
+  --ink-4: #cdccca;
+  --ink-5: #b8b7b5;
+  --ink-6: #a2a2a1;
+  --ink-7: #8c8b8a;
+  --ink-8: #6f6d6c;
+  --ink-9: #2c2b2a;
+  --ink-10: #1f1e1d;
+  --ink-11: #141414;
+  --ink-12: #0a0a0a;
+
+  /* 이전 원시 이름 — 기존 화면·시안 호환용 별칭. 신규 코드는 스케일·의미 토큰을 사용한다. */
+  --pine-950: var(--green-12);
+  --pine-800: var(--green-9);
+  --green-500: var(--green-8);
   --mint-100: #e4eadd;
-  --mint-50: #f4f1eb;
+  --mint-50: var(--sand-2);
   --surface: #fff;
-  --ink-muted: #596457;
-  --border: #ccd2c5;
-  --special: #c49a45;
+  --ink-muted: var(--sand-11);
+  --border: var(--sand-6);
+  --special: var(--gold-7);
   --danger: #a84c4d;
-  --text-primary: var(--pine-950);
-  --text-secondary: var(--ink-muted);
-  --text-accent: var(--pine-800);
+
+  /* 의미 토큰 — 이름은 유지하고 값만 카드 팔레트로 재연결한다. */
+  --text-primary: var(--green-12);
+  --text-secondary: var(--sand-11);
+  --text-accent: var(--green-9);
   --text-inverse: var(--surface);
-  --surface-page: #e5e4dc;
-  --surface-screen: var(--mint-50);
+  --surface-page: var(--sand-4);
+  --surface-screen: var(--sand-2);
   --surface-raised: var(--surface);
-  --surface-subtle: var(--mint-100);
-  --action-primary: var(--pine-800);
-  --action-hover: #006b39;
-  --action-pressed: var(--pine-950);
-  --action-disabled: #e1e3da;
-  --text-disabled: #626a5f;
-  --border-subtle: var(--border);
-  --border-input: #75836e;
+  --surface-subtle: var(--green-2);
+  --action-primary: var(--green-9);
+  --action-hover: var(--green-10);
+  --action-pressed: var(--green-12);
+  --action-disabled: var(--sand-4);
+  --text-disabled: #5f5a55;
+  --border-subtle: var(--sand-6);
+  --border-input: var(--sand-9);
   --focus-ring: #287245;
   --status-error: #923c3f;
   --surface-error: #faeeed;
+  /* 이전 4등급 epic 표시용. 신규 화면에서 사용하지 않는다. */
   --surface-epic: #eee7f9;
   --text-epic: #68469c;
-  --surface-special: #f5ead2;
-  --text-special: #795722;
-  --surface-neutral: #eeeee5;
+  --surface-special: var(--gold-3);
+  --text-special: var(--gold-11);
+  --surface-neutral: var(--sand-3);
   --surface-success: #e1f0e5;
   --text-success: #255b3c;
   --nav-muted: #c7d4c5;
-  --nav-active: #f4f1eb;
+  --nav-active: var(--sand-2);
   --hero-start: #003b20;
-  --hero-end: #00532c;
+  --hero-end: var(--green-9);
   --hero-text: #e4eadd;
   --art-green: #a4c9af;
   --art-peach: #d5be9e;
   --art-lavender: #bfb0d8;
   --art-skin: #d9ac82;
+
+  /* 등급 토큰 — 카드의 LEVEL 트랙과 프레임 색. 등급은 색과 함께 항상 텍스트로 표시한다.
+     solid/on: 채운 태그, soft/text: 옅은 배경 위 텍스트, border: 프레임, glow: 강조 그림자 */
+  --grade-basic-solid: var(--green-11);
+  --grade-basic-on: #fff;
+  --grade-basic-soft: var(--green-2);
+  --grade-basic-text: var(--green-11);
+  --grade-basic-border: var(--green-9);
+  --grade-basic-glow: rgb(0 83 44 / 28%);
+  --grade-rare-solid: var(--red-9);
+  --grade-rare-on: #fff;
+  --grade-rare-soft: var(--red-2);
+  --grade-rare-text: var(--red-11);
+  --grade-rare-border: var(--red-9);
+  --grade-rare-glow: rgb(136 6 18 / 30%);
+  --grade-legend-solid: var(--ink-11);
+  --grade-legend-on: var(--gold-4);
+  --grade-legend-soft: var(--gold-3);
+  --grade-legend-text: var(--gold-11);
+  --grade-legend-border: var(--gold-9);
+  --grade-legend-glow: rgb(196 154 69 / 55%);
+  --grade-inactive-solid: var(--ink-8);
+  --grade-inactive-on: #fff;
+  --grade-crown: var(--gold-7);
+
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -53,6 +147,7 @@
   --space-8: 32px;
   --space-10: 40px;
   --space-12: 48px;
+  --type-hero: 44px;
   --type-display: 32px;
   --type-page: 28px;
   --type-heading: 20px;
@@ -62,6 +157,7 @@
   --line-body: 1.65;
   --line-heading: 1.3;
   --tracking-heading: -.04em;
+  --tracking-label: .2em;
   --radius-sm: 6px;
   --radius-md: 12px;
   --radius-lg: 20px;
@@ -77,7 +173,14 @@
   --motion-feedback: 120ms;
   --motion-loading: 800ms;
   --ease-feedback: ease-out;
+  /* 형태 토큰 — 카드의 평행사변형 태그·사선 띠·LEGEND 모서리 깎기 */
+  --skew-tag: -12deg;
+  --band-angle: 104deg;
+  --cut-corner: 12px;
   --font-display: "Arial Narrow", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+  /* 카드 포스터 타이포(카드 화면 전용). Anton·Black Han Sans는 단일 굵기이므로 font-weight 400으로 사용한다. */
+  --font-poster: "Anton", "Black Han Sans", "Arial Narrow", "Noto Sans KR", sans-serif;
+  --font-label: "Oswald", "Arial Narrow", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
   --card-radius: 16px;
   --font: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
 }

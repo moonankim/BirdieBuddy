@@ -1,0 +1,75 @@
+/* 카드 아트의 디자인 언어(AFFILIATION·LEVEL·평행사변형·사선 띠)를 앱과 정적 시안이 공유한다.
+   토큰은 tokens.css의 --grade-*·--font-poster·--font-label·--skew-tag 등을 사용한다. */
+/* 신규 3등급 배지: 카드 LEVEL 트랙과 같은 평행사변형. 이전 등급(common/epic/special)은 위 알약형을 유지한다. */
+.bb-badge[data-grade="basic"], .bb-badge[data-grade="rare"], .bb-badge[data-grade="legend"] { padding: 2px var(--space-3); border-radius: 0; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); font: 600 var(--type-caption)/1.5 var(--font-label); letter-spacing: .06em; }
+.bb-badge[data-grade="basic"] { background: var(--grade-basic-solid); color: var(--grade-basic-on); }
+.bb-badge[data-grade="rare"] { background: var(--grade-rare-solid); color: var(--grade-rare-on); }
+.bb-badge[data-grade="legend"] { background: var(--grade-legend-solid); color: var(--grade-legend-on); }
+
+/* ── 카드 언어 공통 패턴 (카드 아트의 AFFILIATION·LEVEL 구성) ── */
+/* 포스터 제목: 압축 대문자. Anton·Black Han Sans는 단일 굵기라 합성 굵기를 막는다. */
+.bb-poster-title { font: 400 clamp(32px, 10vw, var(--type-hero))/1.05 var(--font-poster); font-synthesis: none; letter-spacing: .01em; text-transform: uppercase; color: var(--text-primary); overflow-wrap: anywhere; }
+/* 자간 라벨: "— LEVEL —" 형태. --start는 오른쪽 선만 그린다("AFFILIATION ——"). */
+.bb-eyebrow { display: flex; align-items: center; gap: var(--space-2); margin: 0; color: var(--text-accent); font: 600 var(--type-caption)/1.4 var(--font-label); letter-spacing: var(--tracking-label); text-transform: uppercase; }
+.bb-eyebrow::before, .bb-eyebrow::after { content: ""; flex: 0 0 var(--space-5); height: 2px; background: currentColor; }
+.bb-eyebrow--start::before { display: none; }
+.bb-eyebrow--start::after { flex: 1 1 auto; max-width: 96px; }
+/* 평행사변형 태그: 소속·등급. 텍스트 왜곡이 없도록 skew 대신 clip-path를 쓴다. */
+.bb-tag { display: inline-flex; align-items: center; justify-content: center; min-height: 32px; padding: 2px var(--space-5); background: var(--grade-basic-solid); color: var(--grade-basic-on); font: 800 var(--type-label)/1.3 var(--font); clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); }
+.bb-tag[data-grade="rare"] { background: var(--grade-rare-solid); color: var(--grade-rare-on); }
+.bb-tag[data-grade="legend"] { background: var(--grade-legend-solid); color: var(--grade-legend-on); }
+/* 사선 띠: 장식 배경. 색은 --band-color로 등급에 맞춘다. */
+.bb-band { position: relative; isolation: isolate; overflow: hidden; }
+.bb-band::before { content: ""; position: absolute; z-index: -1; inset: 0; background: linear-gradient(var(--band-angle), transparent 0 60%, var(--band-color, var(--grade-basic-solid)) 60% 72%, transparent 72% 75%, var(--band-color, var(--grade-basic-solid)) 75% 77%, transparent 77%); opacity: .92; pointer-events: none; }
+.bb-band[data-level="rare"] { --band-color: var(--grade-rare-solid); }
+.bb-band[data-level="legend"] { --band-color: var(--grade-legend-solid); }
+
+/* LEVEL 트랙: BASIC/RARE/LEGEND 3칸. 현재 등급만 등급색·왕관, 나머지는 회색 태그이며 텍스트로도 구분한다. */
+.bb-level-track { margin: 0; list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-1); padding-top: var(--space-4); }
+.bb-level { position: relative; display: grid; justify-items: center; gap: var(--space-1); min-height: var(--touch-target); color: var(--text-secondary); text-decoration: none; }
+.bb-level-tag { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 32px; background: var(--grade-inactive-solid); color: var(--grade-inactive-on); font: 600 var(--type-label)/1 var(--font-label); letter-spacing: .04em; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
+.bb-level small { font-size: var(--type-caption); }
+.bb-detail-levels { display: grid; gap: var(--space-1); }
+.bb-level[aria-current] { color: var(--text-primary); font-weight: 700; }
+.bb-level[aria-current][data-grade="basic"] .bb-level-tag { background: var(--grade-basic-solid); color: var(--grade-basic-on); }
+.bb-level[aria-current][data-grade="rare"] .bb-level-tag { background: var(--grade-rare-solid); color: var(--grade-rare-on); }
+.bb-level[aria-current][data-grade="legend"] .bb-level-tag { background: var(--grade-legend-solid); color: var(--grade-legend-on); }
+.bb-level[aria-current]::before { content: ""; position: absolute; top: calc(var(--space-4) * -1); left: 50%; width: 20px; height: 14px; translate: -50% 0; background: var(--grade-crown); clip-path: polygon(0 100%, 0 25%, 27% 60%, 50% 0, 73% 60%, 100% 25%, 100% 100%); }
+.bb-level:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+
+/* 카드 화면 표면: 수집 수치·목록 등급 표시를 포스터 타이포와 등급색으로 맞춘다. */
+.bb-album .bb-album-count { font: 400 44px/1 var(--font-poster); font-synthesis: none; letter-spacing: .01em; }
+
+/* ── 목록 필터·현황 (컬렉션·보유 카드) ── */
+/* 칩 필터: 디자인 시스템 .filter 칩을 카드 언어로 확장. 선택은 aria-pressed와 채움, 등급 칩은 등급색. 넘치면 가로 스크롤. */
+.bb-filter-bar { display: grid; gap: var(--space-2); min-width: 0; }
+.bb-chip-group { display: flex; gap: var(--space-2); overflow-x: auto; scrollbar-width: none; padding-block: 2px; }
+.bb-chip-group::-webkit-scrollbar { display: none; }
+.bb-chip { flex: 0 0 auto; min-height: var(--touch-target); padding: 0 var(--space-4); border: 1px solid var(--border-input); border-radius: var(--radius-sm); background: var(--surface-raised); color: var(--text-secondary); font: 700 var(--type-label)/1 var(--font); cursor: pointer; touch-action: manipulation; transition: background-color var(--motion-feedback) var(--ease-feedback), color var(--motion-feedback) var(--ease-feedback); }
+.bb-chip[data-grade] { border-radius: 0; border-color: transparent; background: var(--surface-neutral); font: 600 var(--type-label)/1 var(--font-label); letter-spacing: .04em; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); padding: 0 var(--space-5); }
+.bb-chip[aria-pressed="true"] { border-color: var(--action-primary); background: var(--action-primary); color: var(--text-inverse); }
+.bb-chip[aria-pressed="true"][data-grade="basic"] { background: var(--grade-basic-solid); color: var(--grade-basic-on); }
+.bb-chip[aria-pressed="true"][data-grade="rare"] { background: var(--grade-rare-solid); color: var(--grade-rare-on); }
+.bb-chip[aria-pressed="true"][data-grade="legend"] { background: var(--grade-legend-solid); color: var(--grade-legend-on); }
+.bb-chip:focus-visible, .bb-segmented button:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+@media (hover: hover) { .bb-chip[aria-pressed="false"]:hover { background: var(--surface-subtle); color: var(--text-accent); } }
+/* 보조 필터(선수 등 선택지가 많은 항목)는 한 줄 select로 둔다. */
+.bb-filter-select { display: flex; align-items: center; gap: var(--space-3); color: var(--text-secondary); font-size: var(--type-label); font-weight: 700; }
+.bb-filter-select .bb-field { flex: 1; min-height: var(--touch-target); padding: var(--space-2) var(--space-3); font-size: var(--type-label); }
+/* 정렬 토글 */
+.bb-segmented { display: inline-flex; padding: 2px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--surface-neutral); }
+.bb-segmented button { min-height: var(--touch-target); min-width: var(--touch-target); padding: 0 var(--space-3); border: 0; border-radius: calc(var(--radius-sm) - 2px); background: transparent; color: var(--text-secondary); font: 700 var(--type-caption)/1 var(--font); cursor: pointer; }
+.bb-segmented button[aria-pressed="true"] { background: var(--surface-raised); color: var(--text-accent); box-shadow: var(--shadow); }
+/* 현황 패널: 라벨·포스터 숫자·보조·진행률·등급별 수. 카드의 LEVEL 구성을 요약한다. */
+.bb-stat { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--space-1) var(--space-4); padding: var(--space-4) var(--space-5); border: 1px solid var(--border-subtle); border-left: 4px solid var(--action-primary); border-radius: var(--radius-md); background: var(--surface-raised); }
+.bb-stat p { margin: 0; }
+.bb-stat-label { grid-column: 1; color: var(--text-secondary); font: 600 var(--type-caption)/1.4 var(--font-label); letter-spacing: .08em; }
+.bb-stat-value { grid-column: 2; grid-row: 1 / span 2; color: var(--text-accent); font: 400 44px/1 var(--font-poster); font-synthesis: none; font-variant-numeric: tabular-nums; }
+.bb-stat-value small { margin-left: var(--space-1); color: var(--text-secondary); font: 700 var(--type-label)/1 var(--font); }
+.bb-stat-sub { grid-column: 1; color: var(--text-primary); font-size: var(--type-label); font-weight: 700; }
+.bb-stat-progress { grid-column: 1 / -1; width: 100%; height: 6px; margin-top: var(--space-2); }
+.bb-stat-grades { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin: var(--space-2) 0 0; padding: var(--space-3) 0 0; border-top: 1px solid var(--border-subtle); list-style: none; }
+.bb-stat-grades li { display: inline-flex; align-items: center; gap: var(--space-2); font: 700 var(--type-label)/1 var(--font); font-variant-numeric: tabular-nums; }
+/* 컬렉션(도감)의 미보유 카드: 아트를 흑백·반투명으로 보여 준다. 미보유 여부는 텍스트로도 표시한다. */
+.bb-card-art[data-state="locked"] { border: 1px dashed var(--border-input); background: var(--surface-neutral); }
+.bb-card-art[data-state="locked"] > img { filter: grayscale(1); opacity: .5; border-radius: var(--card-radius); }
