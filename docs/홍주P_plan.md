@@ -20,10 +20,10 @@
 
 ## 0. 한 문장으로 시작하는 실행 지시
 
-사용자가 이 계획을 바탕으로 개발을 요청하면 이 파일을 실행 명세로 삼는다. 현재는 로컬 구현·검증을 보완 중이다. 이번 main 병합 후속 작업은 로컬 코드·문서의 대조와 필요한 업데이트만 반영하며 hosted 데이터·schema·배포는 변경하지 않는다.
+사용자가 이 계획을 바탕으로 개발을 요청하면 이 파일을 실행 명세로 삼는다. 현재는 로컬 구현·검증을 보완 중이다. 이번 main 병합 후속 작업은 홍주P 소유 B-18 읽음 상태 backend와 필요한 계약·검증 문서를 반영하며 hosted 데이터·schema·배포는 변경하지 않는다.
 
 1. 저장소 상태와 작업 지침을 확인하고 기존 수정사항을 보존한다. 아래 체크리스트와 실제 파일을 비교해 미완료 지점부터 진행한다. 체크 표시만으로 구현 완료를 가정하지 않는다.
-2. B-01~B-17을 구현한다. 제품 규칙은 PRD를 적용하고, 미정인 기술 세부사항은 아래 계약을 사용한다. 다른 담당자의 화면·AI 코드·최종 이미지가 없다는 이유로 독립 가능한 백엔드 구현을 중단하지 않는다.
+2. B-01~B-18을 구현한다. 제품 규칙은 PRD를 적용하고, 미정인 기술 세부사항은 아래 계약을 사용한다. 다른 담당자의 화면·AI 코드·최종 이미지가 없다는 이유로 독립 가능한 백엔드 구현을 중단하지 않는다.
 3. migration → 권한/RPC → 시드·계정 → SDK → Edge Function → 통합 검증 순서로 진행한다. 화면 대신 SDK 테스트로 P0/P1을 먼저 완성한다.
 4. 정상·거부·재시도·동시성 검증을 실행하고 실패를 수정한다. 티켓별 환경과 증거를 기록하며 구현 시 harness/verification-log.md도 갱신한다.
 5. 자격증명·컨테이너 등 외부 조건이 없으면 가능한 구현과 정적 검사를 계속한다. 필요한 사용자 조치와 재개 방법만 구체적으로 보고한다. 없는 권한·키·검증 결과를 만들어내지 않는다.
@@ -49,7 +49,7 @@
 
 ### 0.2 최종 검토 판정과 실행 전제
 
-**최신 PRD의 제품 규칙을 백엔드 계약에 반영한 B-01~B-17 실행 기준이다.** 구현 중의 라이브러리 설치·타입 생성·공식 도구 사용법 확인은 일반 개발 작업이며, PRD에 없는 기술 세부사항을 정하기 위해 별도 제품 결정을 다시 받을 이유가 없다.
+**최신 PRD의 제품 규칙을 백엔드 계약에 반영한 B-01~B-18 실행 기준이다.** 구현 중의 라이브러리 설치·타입 생성·공식 도구 사용법 확인은 일반 개발 작업이며, PRD에 없는 기술 세부사항을 정하기 위해 별도 제품 결정을 다시 받을 이유가 없다.
 
 - 로컬 필수 환경은 Node.js 24, 기존 package manager(신규 저장소는 npm), Deno 2, 실행 중인 Docker 호환 런타임이다. 존재 여부·버전을 먼저 확인하고 의존성은 lockfile에 고정한다. 없는 환경은 구체적으로 보고하고 가능한 코드·정적 검증을 계속한다.
 - 로컬 Supabase는 자체 Auth/DB 관리 연결 값을 사용한다. **사용자가 제공한 원격 키나 CLI 로그인은 로컬 구현·통합 검증의 선행 조건이 아니다.** 로컬 값을 얻는 순서는 §10.3에 고정한다.
@@ -318,6 +318,8 @@ bigint 정밀도를 전송 전에 보존한다. id_text/reply_to_text는 일반 
 | moderation_events | id PK, actor_id, room_id, request_id, verdict, category nullable, created_at. 원문·수정안 미보관, 7일 보관 |
 | verification_reviews | id PK, verification_id UQ/FK, reviewer_id, decision, reason nullable, reviewed_at. 변경 불가 |
 | answer_question_links | answer_id FK→messages, question_id FK→messages, room_id FK, PK(answer_id,question_id). 같은 방의 answer→user_question 관계를 검증한 불변 snapshot. 단일 답변 1개/묶음 답변의 전체 원 질문(퇴장 팬 포함)을 연결하고 soft delete·재묶기 후에도 보존. 직접 SELECT/변경 금지 |
+| room_read_states | PK(room_id,user_id), last_read_message_id nullable FK→messages(room_id,id), updated_at. 사용자별 방 읽음 cursor. 직접 쓰기는 금지하고 본인 행 SELECT만 허용 |
+| inbox_read_states | PK(room_id,user_id), last_checked_message_id nullable FK→messages(room_id,id), updated_at. 방 소유 인플루언서의 인박스 확인 cursor. 직접 접근 금지 |
 | rate_windows | PK(actor_id,operation,scope_id,window_start), count, blocked_until nullable. DB 속도 제한·연속 도배 30초 차단 |
 | demo_fixture_runs | fixture_version text PK, completed_at. 로컬 demo setup의 최초 주입 완료 표시 |
 
@@ -330,6 +332,7 @@ Edge의 processing 행은 lease_token/lease_until 필수다. 일반 RPC의 성�
 - anon은 DB 카탈로그·사용자 데이터·RPC에 접근하지 못한다. 공개 Storage 읽기만 허용.
 - admin은 인증 심사·데모 관리만 추가 허용. 다른 사람의 카드·대화·인박스나 influencer 명의 답변 권한은 없다.
 - user는 활성 방에서 본인 질문, 본인의 입장 구간과 created_at이 겹치는 전체 메시지·인사말·답변, 그리고 퇴장 기간에 달린 본인 질문의 답변을 읽는다. 재입장 후에는 과거의 본인 입장 구간 대화가 다시 보인다. 퇴장 중에는 메시지 SELECT를 허용하지 않는다. greeting은 recipient_user_id=auth.uid()인 팬만 읽는다. 다른 팬 질문 행은 SELECT·Realtime에서 항상 제외한다. 질문 인용은 답변의 안전한 snapshot만 허용하며 질문의 passes_all_filters가 false면 reply_context를 저장하지 않는다. 팬에게는 본인 메시지의 cluster_id와 답변 reply_context만 제공한다.
+- 읽음 상태는 `private.room_read_states`와 `private.inbox_read_states`에 계정·방 단위로 보존한다. 직접 읽기/쓰기는 열지 않고 actor·role·membership/room ownership을 재검사하는 RPC만 사용한다. 첫 팬 방문은 cursor가 없으므로 divider·unread count 없이 시작하고, null cursor를 mark하면 이후 받은 메시지는 unread로 셈한다. 저장된 cursor는 항상 큰 ID 방향으로만 전진한다. 새 메시지 집계는 삭제되지 않은 influencer 메시지 중 `private.can_read_message`가 허용하는 행만 사용해 퇴장 기간 답변 예외와 입장 기간을 적용한다.
 - message_clusters는 방 소유자만 SELECT할 수 있다. 방 소유자는 대표 질문과 활성 참여자 수를 확인하고, 팬은 cluster 행을 직접 읽지 않는다.
 - influencer broadcast는 생성 시각에 활성 room_member_periods가 있는 멤버만 읽는다. 첫 입장 greeting은 해당 사용자의 최초 membership 기간만 생성하며 재입장 때 재발송하지 않는다.
 - 방 소유자는 본인 방 멤버십·전체 대화·인박스·필터·인사말 설정·AI 기능에 접근한다. 답변·전체 메시지만 본인 권한으로 soft delete할 수 있다. 인박스는 저장된 own_score와 support_badge snapshot을 읽는다.
@@ -462,14 +465,16 @@ type Message = {
 type MessageChangeCursor = { updatedAt: string; id: MessageId };
 type InboxItemBase = {
   inboxKey: string; priority: number; tieMessageId: MessageId;
-  replyTo: MessageId; answered: boolean; replyId: MessageId | null;
+  replyTo: MessageId; answered: boolean; replyId: MessageId | null; isNew: boolean;
 };
 type InboxItem =
   | (InboxItemBase & { kind: 'question'; expectedClusterId: null; expectedClusterVersion: null; question: Message })
   | (InboxItemBase & { kind: 'cluster'; expectedClusterId: UUID; expectedClusterVersion: number;
       clusterId: UUID; representative: string; memberCount: number;
       activeMessageIds: MessageId[] });
-type InboxPage = Page<InboxItem> & { revision: string };
+type InboxPage = Page<InboxItem> & {
+  revision: string; newCount: number; checkedThroughMessageId: MessageId | null;
+};
 ```
 
 조회·mutation SDK 메서드는 Promise<Result<T>>이며 구독 helper는 §6.5의 해제 함수를 반환한다. SDK만 snake_case→camelCase, numeric, 문자열 ID를 정규화한다. database.types.ts는 CLI로 생성하고 수동 수정하지 않는다. SQL RPC는 표의 camelCase 도메인 payload를 JSONB로 만들되 template은 imageUrl 대신 imagePath를 전달한다. SDK가 Storage 공개 URL을 만들어 최종 CardTemplate.imageUrl로 바꾼다. DB에 환경별 절대 URL을 하드코딩하지 않는다.
@@ -511,7 +516,12 @@ SQL 업무 오류는 SQLSTATE P0001, MESSAGE=고정code, DETAIL=비기밀JSON. E
 | --- | --- | --- |
 | getCollection() | security_invoker collection_view, 본인·미보유 템플릿 포함 | `{items:CollectionItem[]}` |
 | getOwnedCards() | security_invoker inventory_view, 본인·count>0 | `{items:OwnedCardItem[]}` |
-| getRooms() | security_invoker room_catalog, 본인 누적발급·멤버십·월 재입장 자격·현재 표시 이미지·카드 준비 상태 | `{items:RoomCatalogItem[]}` |
+| getRooms() | security_invoker room_catalog, 본인 누적발급·멤버십·월 재입장 자격·현재 표시 이미지·카드 준비 상태, 별도 unread count RPC 실패는 해당 값만 null 처리 | `{items:RoomCatalogItem[]}` |
+| getRoomReadState({roomId}) | 본인 활성 멤버십과 messages SELECT 범위의 대화 | `RoomReadState`; 저장 상태가 없는 첫 입장은 `firstUnreadMessageId=null`, `unreadCount=0` |
+| markRoomRead({roomId,lastReadMessageId}) | 본인 활성 멤버십, null 또는 실제로 읽을 수 있는 방 메시지 ID | `{lastReadMessageId}`; null도 방문 상태로 기록하고 기존 cursor보다 작은 값은 무시 |
+| getInboxReadState({roomId}) | verified 방 소유자 전용 inbox cursor | `InboxReadState` |
+| markInboxChecked({roomId,lastCheckedMessageId}) | verified 방 소유자, 같은 방의 통과 질문 ID. 새 전진은 활성 팬의 현재 열린 입장 기간에 속해야 하며, 저장 cursor 이하 재시도는 membership 변경 뒤에도 허용 | `{lastCheckedMessageId}`; 단조 증가. 현재 목록 snapshot의 `checkedThroughMessageId`를 전달 |
+| getRoomInbox({roomId,...}) | 기존 priority/revision 페이지에 read-state를 더함. NEW는 현재 열린 membership 기간의 미답변 질문 중 cursor 이후만 포함 | `InboxPage`; `newCount`는 질문 수, cluster `isNew`는 새 미답변 질문이 하나 이상일 때 true, `checkedThroughMessageId`는 page 순서와 무관한 snapshot high-water mark |
 | getMyInfluencerProfile() | get_my_influencer_profile, auth.uid()에 연결된 본인 정보 | `MyInfluencerProfile` |
 | getMyMembership({roomId}) | room_members의 본인/방 1행 | Membership 또는 null |
 | getMyRoundGaugeSummary() | auth.uid()의 유효 현재 월·전체 라운드 집계 | `RoundGaugeSummary` |
@@ -540,8 +550,13 @@ type RoomCatalogItem = {
   cardStatus: 'ready' | 'preparing'; canJoin: boolean;
   joinReason: 'eligible' | 'need_cards' | 'already_active' | 'rejoin_rounds_needed' | 'card_preparing';
   currentMonthRoundCount: number; requiredRoundsToRejoin: number;
-  membership: Membership | null;
+  membership: Membership | null; unreadCount: number | null;
 };
+type RoomReadState = {
+  roomId: UUID; lastReadMessageId: MessageId | null;
+  firstUnreadMessageId: MessageId | null; unreadCount: number;
+};
+type InboxReadState = { roomId: UUID; lastCheckedMessageId: MessageId | null };
 type RoomGreeting = { roomId: UUID; text: string; isDefault: boolean; maxLength: 200; version: number };
 type RoomDailyBlockCount = { roomId: UUID; day: string; count: number };
 type MyInfluencerProfile = {
@@ -563,7 +578,7 @@ collection_view는 카드 템플릿30행·grade별0을 채운다. 별도 보유 
 
 ### 6.4 일반 mutation 멱등성
 
-모든 mutation은 UUID requestId 필수. 최초 동작에서 생성하고 네트워크 재전송은 같은 값을 쓴다. SQL 인자는 p_request_id.
+게임·메시지·설정 변경 mutation은 UUID requestId 필수다. 최초 동작에서 생성하고 네트워크 재전송은 같은 값을 쓴다. SQL 인자는 p_request_id. §B-18의 읽음 cursor 기록은 값 자체가 idempotency key인 단조 증가 upsert라 requestId와 operations 행을 쓰지 않는다.
 
 - 키=(auth.uid(),operation,requestId). 정규화 payload의 SHA-256 저장. 문자열 trim·배열 정렬 규칙은 함수마다 일관되게 적용.
 - 같은 키/같은 성공 payload는 최초 결과 반환, 다른 payload는 IDEMPOTENCY_CONFLICT.
@@ -637,7 +652,12 @@ ownedCount/upgradedCount는 해당 template/grade의 갱신 직후 count. `entry
 
 | 읽기 SDK → RPC | 입력 | 반환data / 권한 |
 | --- | --- | --- |
-| getRoomInbox → get_room_inbox | p_room_id uuid, p_include_answered bool default false, p_cursor jsonb default null, p_limit int default50 | InboxPage / 방 소유 influencer |
+| getRoomReadState → get_room_read_state | p_room_id uuid | `RoomReadState` / active user 본인 방 |
+| markRoomRead → mark_room_read | p_room_id uuid, p_last_read_message_id text nullable | `{lastReadMessageId}` / active user 본인 방, null cursor 기록 가능·단조 증가 |
+| getMyRoomUnreadCounts → get_my_room_unread_counts | 없음. `auth.uid()`만 사용 | `{roomId,unreadCount}[]` / active user 본인 방들 |
+| getInboxReadState → get_inbox_read_state | p_room_id uuid | `InboxReadState` / verified 방 소유 influencer |
+| markInboxChecked → mark_inbox_checked | p_room_id uuid, p_last_checked_message_id text nullable | `{lastCheckedMessageId}` / verified 방 소유 influencer, 현재 열린 입장 기간의 통과 질문만 cursor 전진 대상으로 허용. 기존 cursor 이하 재시도는 허용하고 null 기록 가능·단조 증가 |
+| getRoomInbox → get_room_inbox_with_read_state | p_room_id uuid, p_include_answered bool default false, p_cursor jsonb default null, p_limit int default50 | InboxPage / verified 방 소유 influencer |
 | getRoomFilters → get_room_filters | p_room_id uuid | `{roomId,disabledFilters,mandatoryFilters,version}` / 방 소유 influencer |
 | getRoomGreeting → get_room_greeting | p_room_id uuid | `RoomGreeting` / 방 소유 verified influencer |
 | getRoomDailyBlockCount → get_room_daily_block_count | p_room_id uuid | `RoomDailyBlockCount` / verified 방 소유 influencer, 오늘 count만 |
@@ -649,7 +669,9 @@ ownedCount/upgradedCount는 해당 template/grade의 갱신 직후 count. `entry
 
 `answer_question_links`는 답변 시점의 전체 대상 질문을 고정한다. 팬의 퇴장 기간 답변 예외 RLS와 `isReplyToMe`는 auth.uid()의 질문에 대한 이 링크를 좁은 private helper로 확인하며, 변경 가능한 cluster_id의 일치만으로 판단하지 않는다. `get_my_answer_links`는 public SECURITY INVOKER wrapper·권한 검증 private helper 경계를 사용하고 링크 테이블 SELECT를 브라우저에 주지 않는다. 본인이 읽을 수 없는 답변이나 다른 팬 질문의 ID/내용은 반환하지 않는다. SDK는 history/변경 page와 Realtime 답변을 이 RPC로 보강한 뒤 Message/onMessage를 제공한다. 보강 실패 시 조회/복구를 성공 처리하지 않고 checkpoint를 보존한다. owner 조회 및 답변 이외 종류의 isReplyToMe는 false다. 원시 Realtime 행에 사용자별 값을 넣거나 전체 대상 질문 ID를 공개하지 않는다.
 
-`getRoomInbox`는 §6.1의 `InboxPage`를 반환한다. 묶이지 않은 질문은 `kind='question'`, 묶음은 `kind='cluster'` 한 행으로 조회하며 묶음 안 질문을 별도 항목으로 중복 반환하지 않는다. 대표문장·활성 고유 질문자 수·활성 질문 ID는 저장된 관계에서 매 조회 계산하므로 새로고침 후에도 동일 계약을 사용한다. 팬에게 이 조회를 허용하지 않는다.
+`getRoomInbox`는 기존 `get_room_inbox` priority/revision 페이지를 유지하며 새 wrapper가 §6.1의 `InboxPage`로 확장한다. 묶이지 않은 질문은 `kind='question'`, 묶음은 `kind='cluster'` 한 행으로 조회하며 묶음 안 질문을 별도 항목으로 중복 반환하지 않는다. 대표문장·활성 고유 질문자 수·활성 질문 ID는 저장된 관계에서 매 조회 계산한다. `newCount`는 마지막 cursor 이후 현재 활성 입장 기간에서 제출된 미답변 통과 질문 수이며, `isNew`는 묶음에 그 질문이 하나 이상 있을 때 true다. `checkedThroughMessageId`는 priority page에 없는 질문까지 포함한 현재 snapshot의 최대 eligible ID다. 화면은 이 값을 사용해 확인 cursor를 저장한다. 팬에게 인박스 조회를 허용하지 않는다.
+
+읽음 상태는 계정별·방별 비공개 bigint cursor로 저장한다. 팬의 unread count와 첫 unread는 `private.can_read_message` 결과를 사용하며 본인 질문·삭제 메시지·접근 불가능 기간을 제외한다. 퇴장 중 본인 질문에 달린 답변은 재입장 후 해당 helper가 허용하는 대로 unread에 포함한다. 처음 방문해 저장 row가 없으면 0건과 divider 없음으로 시작하고, `markRoomRead(null)`은 방문 사실만 남겨 이후 수신분을 계산하게 한다. influencer 확인 cursor는 현재 active membership 기간 질문만 NEW 대상으로 하므로 재입장 질문은 재노출되어도 새 항목이 아니다. 두 mark RPC는 대상 방·행을 검사하고 cursor를 후퇴시키지 않는다. `getRooms`는 unread-count RPC가 실패하면 전체 방 조회를 실패시키지 않고 count를 null로 둔다.
 
 - 개별 항목의 priority는 질문의 저장 snapshot이다. 묶음 priority는 현재 active 질문들의 priority 최댓값, `tieMessageId`는 해당 묶음의 활성 질문 중 가장 큰 ID다. 정렬은 priority DESC,tieMessageId DESC,inboxKey ASC다. `inboxKey`는 `question:<id>` 또는 `cluster:<uuid>`이며 방 안에서 유일하다.
 - `memberCount`는 활성 질문자의 고유 수이고 `activeMessageIds`는 그들의 질문 ID다. 같은 팬의 질문을 임의로 하나만 남기지 않는다. 활성 팬이 1명이어도 묶음을 유지하고, 0명이면 인박스에서 숨기되 DB 구성은 보존한다. 재입장하면 원래 질문 점수로 다시 집계한다.
@@ -968,6 +990,7 @@ P0/P1/P2는 PRD 순서이며 전체완료 요청에서 P2를 임의 제외하는
 | B-15 | 인사말 조회·설정 Edge·첫 입장 snapshot | P2/B-05,B-10 | 200자·필수 필터/MESSAGE_BLOCKED·차단 시 기존 문구 유지·빈 값 reset·최초 1회·재입장 미발송 |
 | B-16 | influencer broadcast Edge·SDK | P2/B-05,B-08,B-10 | 필수 필터/MESSAGE_BLOCKED·방 잠금 후 생성 시각의 active 팬만 열람·입장 기간 RLS·실시간 전달 |
 | B-17 | influencer answer/broadcast soft delete·Realtime UPDATE | P2/B-08,B-16 | 본인 answer/broadcast만 삭제·삭제 표시 실시간 반영·답변 삭제 시 질문/묶음 재개방·greeting/팬 메시지 불가 |
+| B-18 | fan/influencer read-state RPC·SDK, room unread count와 inbox NEW | P2/B-05,B-06,B-08 | 개인 cursor 저장·단조 증가·첫 입장/삭제/재입장/퇴장 중 답변·priority pagination·무권한 거부 |
 
 순서:
 
@@ -977,12 +1000,12 @@ P0/P1/P2는 PRD 순서이며 전체완료 요청에서 P2를 임의 제외하는
 2. B-03→B-04→P0 SDK 통합(Auth→draw→collection→upgrade).
 3. B-05→B-06→B-08→P1 SDK 통합(join→판정→Realtime→inbox→reply).
 4. B-07 연결→퇴장·신규이벤트거부·퇴장 효력 월 3회 달성 후 재입장.
-5. P2는 PRD 순서대로 B-09 인증 → B-12 유사 질문 묶기 → B-12 대화 요약 → B-10 필터 설정 → B-15 인사말 → B-16 전체 메시지 → B-17 influencer 답변/전체 메시지 삭제 → B-14 프로필 사진 순으로 구현한다. 실제 AI가 없어도 fixture 계약을 구현한다.
+5. P2는 PRD 순서대로 B-09 인증 → B-18 여기까지 읽었어요 → B-12 유사 질문 묶기 → B-12 대화 요약 → B-10 필터 설정 → B-15 인사말 → B-16 전체 메시지 → B-17 influencer 답변/전체 메시지 삭제 → B-14 프로필 사진 순으로 구현한다. 실제 AI가 없어도 fixture 계약을 구현한다.
 6. P2 마지막 B-14 이후 B-13→fresh reset 재검증→SDK 인계. 원격조건·요청 충족 시 B-11 적용, 팀화면 리허설2회.
 
 일정 참고: 1일차 오전 기반·추첨, 오후 강화·입장·전송, 저녁P0, 밤게이지·인박스. 2일차 오전인증·필터·AI계층, 점심P1, 오후수정·동결·리허설. 생략한 티켓은 완료로 표시하지 않는다.
 
-migration 순서: core/config→private/Auth→RLS/helpers→문환P A-09 `issue_card`→cards/views의 `complete_round`→rooms/month→messages/score/inbox→verification/filters/config→AI/cleanup→Storage/Realtime. `issue_card`는 private/Auth 이후, `complete_round` 전에 추가한다. B-01 병합 전에 만든 migration은 B-01 병합 후 타임스탬프 순서를 다시 확인한다. CLI로 기존 파일과 충돌 없는 이름을 만들고 적용된 migration은 수정하지 않고 새 migration으로 보완한다.
+migration 순서: core/config→private/Auth→RLS/helpers→문환P A-09 `issue_card`→cards/views의 `complete_round`→rooms/month→messages/score/inbox/read-state→verification/filters/config→AI/cleanup→Storage/Realtime. `issue_card`는 private/Auth 이후, `complete_round` 전에 추가한다. B-01 병합 전에 만든 migration은 B-01 병합 후 타임스탬프 순서를 다시 확인한다. CLI로 기존 파일과 충돌 없는 이름을 만들고 적용된 migration은 수정하지 않고 새 migration으로 보완한다.
 
 ## 12. 필수 검증
 
@@ -1233,13 +1256,14 @@ npm run demo:reset -- --apply
 - [ ] B-15 인사말 조회·설정·최초 입장 snapshot
 - [ ] B-16 인플루언서 전체 메시지
 - [ ] B-17 답변·전체 메시지 삭제
+- [ ] B-18 여기까지 읽었어요: room/inbox cursor·counts·NEW
 
 ### 14.2 상태 구분
 
 | 상태 | 조건 | 현재 |
 | --- | --- | --- |
 | 계획 단독 실행 준비 | 범위·기본값·타입·권한·순서·검증·외부조건 | 문서 보완·정적 교차 검토 완료 |
-| 백엔드 로컬 완료 | B-01~17 코드·필수로컬검증 | 진행 중: 로컬 11 ordered migrations·seed·7개 local 계정·SDK·5개 Edge 함수. 현재 `typecheck`, Node 3 + Deno 113, pgTAP 113, SQL lint 통과. A-09 1,000회 표본과 `complete_round` 재시도·단일 draw·force 권한·4→5/5→6 경계·실패 rollback도 local transaction에서 통과. 나머지 cross-ticket `verify:backend` 시나리오, browser·Realtime·Storage·live AI, 전체 acceptance는 별도 미검증 |
+| 백엔드 로컬 완료 | B-01~18 코드·필수로컬검증 | 진행 중: 기존 ordered migrations·seed·7개 local 계정·SDK·5개 Edge 함수가 있고 B-18 migration/SDK source는 작성됐다. 새 migration의 local 적용·권한/상태 검증은 미실행이다. 앞선 `typecheck`, Node 3 + Deno 113, pgTAP 113, SQL lint 결과는 새 변경 검증으로 재사용하지 않는다. 나머지 cross-ticket `verify:backend` 시나리오, browser·Realtime·Storage·live AI, 전체 acceptance는 별도 미검증 |
 | LLM hosted Secrets 준비 | `TYPESAFE_API_KEY`·`ANTHROPIC_API_KEY` 존재 여부와 회전된 값의 실제 호출 검증 | Dashboard에서 두 Secret 이름 저장 확인. 값·회전 여부 미열람·미확인, live 호출 미실행 |
 | 실제AI 검증 | live 호출·3판정·장애 | 미검증 |
 | 팀화면 통합 | PR #29에서 실제 Auth·SDK Provider 코드 연결, E2E 목 모드 고정 | 코드 병합 완료. 사용자 JWT browser flow·Realtime·Storage는 미검증; 관리자 월 조회 SDK는 자성P UI에 아직 연결되지 않음 |
@@ -1274,6 +1298,7 @@ npm run demo:reset -- --apply
 | B-15 | greeting read/update Edge·RPC와 first-entry snapshot 구현 | 자성P 설정/첫 입장 UI 통합 |
 | B-16 | influencer broadcast Edge/RPC·SDK 구현 | 자성P compose/수신 화면·Realtime 통합 |
 | B-17 | owner message soft-delete RPC·SDK 및 UPDATE 전달 구현 | 자성P 삭제/질문 재개방/Realtime UI 통합 |
+| B-18 | read-state migration/RPC·SDK source와 타입 계약 구현, 정적 검토 완료 | 새 migration의 local DB 적용·권한/상태 검증, typecheck, 자성P 화면 연동 및 팬·인플루언서 실제 세션 통합 |
 
 #### 정책 결정 권한과 타 담당자 영향
 
@@ -1415,3 +1440,12 @@ docs/홍주P_plan.md 계약 1.6의 §§6~9·12·15와 내 담당 *_plan.md를 �
 - 홍주P AI 경로: PR #18의 `deobfuscate`·키워드별 우회 적중과 Jev 본경로 `illegal_ad` 승격을 검토했다. §8.2와 공통 architecture에 실제 코드 경계를 기록했다. adapter 반환 형식·Edge 저장/RPC 경계 변경은 필요하지 않았다.
 - 홍주P API와 UI: PR #19 인박스 화면의 페이지 `revision`, question/cluster 항목, 예상 cluster ID/version 답변 입력을 `lib/api`의 `getRoomInbox`·`replyToMessage`·`clusterQuestions` 계약과 대조했다. 백엔드 API 추가 변경은 필요하지 않았다. PR #21의 R12 제한 대응은 앞선 `a01f482`에 반영된 상태로 보존됐다.
 - 검증: 병합 후 소스·계약 정적 대조와 `git diff --check`를 수행했다. 테스트와 `npm run verify:backend`는 실행하지 않았으며, 이 병합으로 hosted·실사용자 경로가 검증된 것으로 처리하지 않는다.
+
+### 15.10 2026-11-13 — main PR #33/#34 병합 및 B-18 읽음 상태 backend
+
+- 병합: `origin/main`의 `1c34f94`를 `feature/hongjoo`에 merge commit `7dfc231`로 반영했다. 충돌은 없었다. PR #33/#34는 카드 이미지 생성 가이드와 자성P v3 계획 문서이며 runtime 변경은 없다. push·PR 생성은 하지 않았다.
+- 담당 범위: 새 v3 계약에서 홍주P 담당인 팬 방별 읽음 cursor, 인플루언서 inbox 확인 cursor, 방 unread count, 질문 NEW를 B-18로 반영했다. 앱 화면과 시연 계획은 수정하지 않았다.
+- 구현: `20261113011530_read_state_checkpoints.sql`에 private cursor 테이블과 본인 행 RLS, 최소 권한 RPC를 추가했다. 팬 unread는 삭제/본인 메시지를 제외하고 `can_read_message`의 현재·과거 입장 기간 및 본인 답변 예외를 적용한다. 첫 방문은 0건/구분선 없음이며 null mark는 방문 상태를 저장한다. Inbox NEW는 열린 현재 입장 기간의 미답변 질문으로 계산하고 priority page 밖까지 포함하는 snapshot high-water를 반환한다. cursor는 큰 ID 방향으로만 전진한다.
+- SDK/계약: `BackendApi`에 네 read-state 메서드와 반환 타입을 추가하고 `getRooms()`에 선택적 unread count를 결합했다. count RPC 실패 시 방 목록은 유지하고 count만 null로 둔다. 목 SDK는 타입 호환 값을 반환한다. 자성P v3의 제안은 그대로 보존하고 구현 source로 삼았으며, 홍주P 계획·공통 architecture·verification matrix를 갱신했다.
+- 정적 보완: `markInboxChecked`가 오래된/비활성 입장 기간의 통과 질문 ID로 새 cursor를 건너뛰지 못하게 검사한다. 이미 저장된 cursor 이하 재시도는 이후 팬 membership 변경 뒤에도 허용한다.
+- 미실행: 테스트 추가/실행, typecheck/build, migration local 적용, local Supabase, 브라우저·UI, hosted read/write와 migration 배포는 수행하지 않았다. 새 migration은 local/hosted 어디에도 적용되지 않았다. 기존 검증 결과를 이번 코드의 증거로 재사용하지 않는다.
