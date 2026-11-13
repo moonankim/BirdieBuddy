@@ -30,7 +30,7 @@
 | 1 | 길이 | 약 3분. 2분 컷이 필요하면 ✂️ 장면을 뺍니다 | 제출 규정의 최대 길이. PRD 8절의 "사내 제출 양식 확인"도 아직 미확인 |
 | 2 | 화면 비율 | 16:9 가로 | 세로 영상을 요구하는지 |
 | 3 | 실사풍 컷 | **AI 영상 생성 도구로 만듦**(촬영 없음). 앱 화면은 실제 스크린샷을 편집으로 넣음 | 쓸 영상 생성 도구(Sora, Veo, Runway, Kling 등). 도구마다 클립 길이·참조 이미지 지원이 다름 |
-| 4 | 인물 일관성 | 팬은 1막·3막에 같은 사람이어야 하므로 **기준 이미지 1장을 먼저 만들고 이미지→영상 방식**으로 생성. 인플루언서는 CDN의 최나비 카드 그림(`https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/media-choi-na-bee-rare.png`)을 기준 이미지로 써서 A03 카드 속 인물과 같은 사람으로 만듦 | 현호P가 문환P의 AI 카드 36장 안(Downloads 폴더)은 반영하지 않고 현재 CDN 카드를 유지하기로 함(`40791a9`). 그래서 Downloads 사진은 쓰지 않음 |
+| 4 | 인물 일관성 | AI 영상의 인물(1막·3막 팬 A01·A02·C01·C03, 2막 인플루언서 B01)은 모두 **뒷모습만 나오고 얼굴은 나오지 않게** 만듦. 그래서 얼굴 대신 체형·머리·옷으로 같은 사람임을 보여 줌. 장면마다 **뒷모습 기준 이미지 1장을 먼저 만들고 이미지→영상 방식**으로 생성. 인플루언서의 갈색 긴 머리와 버건디 니트 폴로는 CDN 최나비 RARE 카드 그림(`https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/media-choi-na-bee-rare.png`)과 맞춤 | 현호P 결정(`40791a9`)으로 Downloads 사진은 쓰지 않음 |
 | 5 | 인물 이름 | **인플루언서 최나비 프로(미디어), 팬 김버디로 확정.** 목업 1차본은 목 계정 이름("인플루언서 1", "팬 A")을 찍는 순간 화면 글자만 바꿔서 맞춤(`screenshot-a/README.md`) | 실제 모드로 다시 찍으면 DB 시드가 예전 이름(한별 김 등)이라 같은 교체가 필요함. 홍주P에게 시연용 계정 이름 변경을 요청하거나 편집에서 덮음. 예전 데이터 이관은 보류됨(`40791a9`) |
 | 6 | 실제 모드 | 채팅·인박스 장면(A06·A07·B02~B05·C02)은 실제 모드 필수. 카드 장면(A03·A04·A05)은 모드와 관계없이 목업 데이터로 나오는 화면 | 목 모드의 AI는 가짜입니다. 요약은 고정 문구, 필터는 `[suggest]` 같은 태그로만 동작. 실제 모드 계정은 홍주P 발급 대기(문환P 계획 R13) |
 | 7 | 카드 화면 | 실제 발급 화면 `/draw`는 아직 예전 4등급(일반·레어·에픽·스페셜)·스타일(일러스트·레트로·홀로그램)과 예전 DB 인물로 나와 자막의 3등급과 맞지 않음. 그래서 **카드 공개는 3등급 뽑기 연출 목업 `/draw/preview`로 찍음**. 미리보기 인물이 김홍차로 고정돼 있어, 카드 그림 요청을 최나비 RARE 그림으로 바꿔 응답하고 이름·유형 글자를 바꿔 찍음. 보유 카드 목록과 강화 화면은 공통 디폴트 그림(강화 화면은 "앗!!" 글자가 든 그림)이 나옴 | 예전 데이터 이관이 보류돼(`40791a9`) 2차 제출 전에 실제 `/draw`가 3등급으로 바뀔 가능성은 낮음 |
@@ -98,6 +98,7 @@
 | --- | --- |
 | 종류 | AI 영상 |
 | 화면 | 스크린골프 타석. 뒤에서 스윙 → 스크린의 공이 날아감 |
+| 인물 | 30대 초반 젊은 남성 팬. **뒷모습만 나오고 얼굴은 나오지 않음** |
 | 동작 | 어드레스 → 스윙 → 피니시. 피니시 자세에서 0.5초 정지 느낌 |
 | 소리 | 배경음 시작, 타구음 |
 | 영상 | `footage/A01-swing.mp4` |
@@ -112,6 +113,7 @@
 | --- | --- |
 | 종류 | AI 영상 |
 | 화면 | 스크린에 라운드 종료 화면 → 팬이 주머니에서 폰을 꺼내 화면을 봄 |
+| 인물 | A01과 같은 팬. **뒷모습과 어깨 너머만 나오고 얼굴은 나오지 않음** |
 | 동작 | 마지막 2초는 폰 화면이 화면 가운데에 오도록 어깨 너머로 |
 | 영상 | `footage/A02-phone-out.mp4` |
 
@@ -222,9 +224,9 @@
 | 항목 | 내용 |
 | --- | --- |
 | 종류 | AI 영상 |
-| 화면 | 연습장 벤치. 인플루언서가 쉬는 중 폰을 확인. 어깨 너머로 폰 화면 |
-| 동작 | 폰을 집어 화면을 켬 → 폰 화면 클로즈업으로 끝남 |
-| 인물 | 카드 속 가상 인물 사진을 기준 이미지로 사용(가정 4) |
+| 화면 | 방송 스튜디오. 인플루언서가 방송 중간에 잠시 의자에 앉아 쉬며 폰을 확인. 뒤에서 어깨 너머로 폰 화면 |
+| 동작 | 의자에 앉아 쉬는 뒷모습 → 폰을 집어 화면을 봄 → 폰 화면 클로즈업으로 끝남 |
+| 인물 | 20대 후반~30대 초반, 갈색 긴 머리의 여리여리한 여성. **뒷모습만 나오고 얼굴은 나오지 않음.** 머리색·길이·옷(버건디 니트 폴로)은 A03 최나비 카드와 맞춤(가정 4) |
 | 영상 | `footage/B01-influencer-phone.mp4` |
 
 자막:
@@ -313,7 +315,8 @@
 | --- | --- |
 | 종류 | AI 영상 |
 | 화면 | A01·A02와 같은 팬. 다음 라운드 대기 중이거나 매장 휴게 공간에서 폰을 집어 듦 |
-| 동작 | 폰 화면을 봄 → 화면 쪽으로 천천히 확대 |
+| 인물 | **뒷모습과 어깨 너머만 나오고 얼굴은 나오지 않음** |
+| 동작 | 폰이 울림 → 폰 화면을 봄 → 뒤에서 어깨 너머로 화면 쪽으로 천천히 확대 |
 | 영상 | `footage/C01-fan-phone.mp4` |
 
 자막:
@@ -342,7 +345,8 @@
 | 항목 | 내용 |
 | --- | --- |
 | 종류 | AI 영상 |
-| 화면 | 팬이 화면을 보고 웃음 → 폰을 주머니에 넣고 다시 타석으로 |
+| 화면 | 팬이 폰을 보고 기뻐함 → 폰을 주머니에 넣고 다시 타석으로 |
+| 인물 | **뒷모습만 나오고 얼굴은 나오지 않음.** 웃는 얼굴 대신 작은 주먹 쥐기, 들썩이는 어깨 같은 몸짓으로 기쁨을 보여 줌 |
 | 동작 | 마지막은 타석으로 걸어가는 뒷모습(다음 라운드로 이어짐) |
 | 영상 | `footage/C03-fan-reaction.mp4` |
 
@@ -380,6 +384,7 @@ Claude Code는 영상을 직접 생성하지 못하므로, 아래 프롬프트�
 
 - **스윙 클로즈업**: AI 영상은 골프 스윙 동작(클럽 궤적, 손목)을 자주 틀리게 만듭니다. A01은 뒤에서 넓게 잡고, 임팩트 순간보다 피니시와 스크린 속 공에 비중을 둡니다.
 - **로고·글자**: 골프존 로고나 화면 글자는 뭉개져 나옵니다. 매장과 스크린은 로고 없는 일반 스크린골프장으로 만들고, 서비스 이름은 자막과 로고 그래픽으로만 보여 줍니다.
+- **얼굴**: AI 영상 장면(A01·A02·B01·C01·C03)은 모두 뒷모습만 씁니다. 프롬프트에 "seen only from behind, face never visible"을 넣고, 부정 프롬프트를 받는 도구는 `face, profile view, looking at camera`를 넣습니다. 고개를 돌려 옆얼굴이 보이는 결과는 다시 뽑습니다.
 - **폰 화면 내용**: 폰 화면은 "밝게 빛나는 빈 화면(blank glowing screen)"으로 만들고, 실제 앱 화면은 편집에서 넣습니다.
 
 ### 공통 스타일
@@ -392,19 +397,29 @@ cinematic commercial look, warm indoor lighting, shallow depth of field, smooth 
 
 ### 팬 기준 이미지
 
+1막·3막(A01·A02·C01·C03) 공통 뒷모습:
+
 ```
-Korean man in his early 30s, casual golf outfit (navy polo shirt, white cap), friendly face, standing in a modern indoor screen golf room with a large projection screen showing a green fairway, cinematic commercial photo
+Back view of a slim Korean man in his early 30s, navy polo shirt, white cap, beige golf pants, standing on the hitting mat of a modern indoor screen golf room facing a large projection screen showing a green fairway, seen only from behind, face not visible, cinematic commercial photo
+```
+
+### 인플루언서 기준 이미지
+
+2막(B01)용 뒷모습:
+
+```
+Back view of a slender, delicate Korean woman in her late 20s to early 30s with long wavy brown hair, wearing a burgundy knit polo shirt, sitting on a chair in a broadcast studio with soft studio lights and a camera in the background, seen only from behind, face not visible, cinematic commercial photo
 ```
 
 ### 장면별 프롬프트
 
 | 장면 | 파일 | 기준 이미지 | 프롬프트 | 길이 |
 | --- | --- | --- | --- | --- |
-| A01 | `footage/A01-swing.mp4` | 팬 | Wide shot from behind a golfer in a modern indoor screen golf room. He swings a driver and holds a balanced finish pose. On the large screen, a golf ball flies down a bright green fairway. Camera slowly pushes in. | 8초 |
-| A02 | `footage/A02-phone-out.mp4` | 팬 | The same golfer relaxes after the round, takes a smartphone from his pocket and looks at it with curiosity. Over-the-shoulder shot that ends in a close-up of the phone with a blank glowing screen. | 6초 |
-| B01 | `footage/B01-influencer-phone.mp4` | 인플루언서 카드 사진 | A professional golfer sits on a bench at an outdoor driving range during a break, wearing a golf glove, picks up a smartphone and smiles while reading. Over-the-shoulder shot that ends in a close-up of the phone with a blank glowing screen. | 7초 |
-| C01 | `footage/C01-fan-phone.mp4` | 팬 | The same man sits in the lounge area of the screen golf venue, his phone buzzes, he picks it up and looks at the screen. Camera slowly moves toward the phone, ending in a close-up of a blank glowing screen. | 7초 |
-| C03 | `footage/C03-fan-reaction.mp4` | 팬 | The man smiles widely at his phone, makes a small happy fist pump, puts the phone in his pocket, picks up his driver and walks back toward the hitting bay. Medium shot, ends on his back. | 6초 |
+| A01 | `footage/A01-swing.mp4` | 팬 뒷모습 | Wide shot from directly behind a slim Korean man in his early 30s in a modern indoor screen golf room, wearing a navy polo shirt and a white cap. He is seen only from behind and his face is never visible. He swings a driver and holds a balanced finish pose facing the large screen. On the screen, a golf ball flies down a bright green fairway. Camera slowly pushes in from behind. | 8초 |
+| A02 | `footage/A02-phone-out.mp4` | 팬 뒷모습 | The same man, seen only from behind, relaxes after the round while the large screen shows the end of the round. He takes a smartphone out of his pants pocket and looks down at it. Over-the-shoulder shot from behind his back, his face never visible, ending in a close-up of the phone with a blank glowing screen. | 6초 |
+| B01 | `footage/B01-influencer-phone.mp4` | 인플루언서 뒷모습 | A slender, delicate Korean woman in her late 20s to early 30s with long wavy brown hair, wearing a burgundy knit polo shirt, sits on a chair in a broadcast studio during a short break, seen only from behind. Studio lights, a camera and a microphone stand are softly blurred around her. She picks up a smartphone and looks down at it. Over-the-shoulder shot from behind her, her face never visible, ending in a close-up of the phone with a blank glowing screen. | 7초 |
+| C01 | `footage/C01-fan-phone.mp4` | 팬 뒷모습 | The same man in a navy polo shirt and white cap, seen only from behind, sits in the lounge area of the screen golf venue. His phone buzzes, he picks it up and looks down at the screen. Over-the-shoulder shot from behind, his face never visible, the camera slowly moves toward the phone and ends in a close-up of a blank glowing screen. | 7초 |
+| C03 | `footage/C03-fan-reaction.mp4` | 팬 뒷모습 | The same man, seen only from behind, reads his phone, then makes a small happy fist pump with his shoulders lifting in excitement. He puts the phone in his pocket, picks up his driver and walks back toward the hitting bay. Medium shot from behind the whole time, his face never visible, ending on his back as he steps onto the hitting mat. | 6초 |
 
 같은 장면을 도구가 한 번에 못 만들면 두 클립으로 나눠 이어 붙입니다(예: C03의 반응과 걸어가는 뒷모습).
 
@@ -464,7 +479,7 @@ Korean man in his early 30s, casual golf outfit (navy polo shirt, white cap), fr
 
 - [ ] 제출 규정 확인: 길이, 비율, 형식, 업로드 위치 (가정 1·2)
 - [ ] 영상 생성 도구 정하기 (가정 3)
-- [ ] 팬 기준 이미지 만들기, 인플루언서 기준 사진 정하기 (가정 4)
+- [ ] 팬 뒷모습·인플루언서 뒷모습 기준 이미지 만들기 (가정 4)
 - [x] 인플루언서 최나비 프로, 팬 김버디로 확정 (가정 5)
 - [x] 카드 공개 장면을 `/draw/preview`로 찍기로 결정 (가정 7)
 - [ ] 실제 모드 시연용 계정 발급 요청(홍주P): 새 팬 1명(1막·3막), 질문용 팬 3명 이상(B02·B03), 인플루언서 계정 1개. 인플루언서 이름을 최나비 프로로 바꿔 달라고 함께 요청 (안 되면 편집에서 이름 덮기)
@@ -489,11 +504,11 @@ Korean man in his early 30s, casual golf outfit (navy polo shirt, white cap), fr
 
 | 파일 | 장면 | 내용 | 완료 |
 | --- | --- | --- | --- |
-| `footage/A01-swing.mp4` | A01 | 타석 뒤에서 드라이버 샷, 피니시까지 | [ ] |
-| `footage/A02-phone-out.mp4` | A02 | 폰 꺼내 보기, 폰 클로즈업으로 끝남 | [ ] |
-| `footage/B01-influencer-phone.mp4` | B01 | 연습장 벤치에서 폰 확인, 폰 클로즈업으로 끝남 | [ ] |
-| `footage/C01-fan-phone.mp4` | C01 | 같은 팬이 휴게 공간에서 폰 확인, 폰 클로즈업으로 끝남 | [ ] |
-| `footage/C03-fan-reaction.mp4` | C03 | 웃는 반응 → 타석으로 걸어가는 뒷모습 | [ ] |
+| `footage/A01-swing.mp4` | A01 | 30대 초반 남성 팬의 뒷모습 드라이버 샷, 피니시까지(얼굴 안 보임) | [ ] |
+| `footage/A02-phone-out.mp4` | A02 | 뒷모습으로 주머니에서 폰 꺼내 보기, 폰 클로즈업으로 끝남(얼굴 안 보임) | [ ] |
+| `footage/B01-influencer-phone.mp4` | B01 | 방송 스튜디오 의자에서 쉬며 폰 확인하는 갈색 긴 머리 여성의 뒷모습, 폰 클로즈업으로 끝남(얼굴 안 보임) | [ ] |
+| `footage/C01-fan-phone.mp4` | C01 | 같은 팬이 휴게 공간에서 폰 확인하는 뒷모습, 폰 클로즈업으로 끝남(얼굴 안 보임) | [ ] |
+| `footage/C03-fan-reaction.mp4` | C03 | 뒷모습으로 기뻐하는 몸짓 → 타석으로 걸어가는 뒷모습(얼굴 안 보임) | [ ] |
 
 ### 앱 스크린샷 목록
 
