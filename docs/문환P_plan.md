@@ -10,7 +10,7 @@
 
 **역할:** AI 활용 — 의사결정 모델(jev)·AI API로 메시지 필터링 등, 카드 확률 계산과 발급
 
-**최종 갱신:** 2026-11-13 (`main` 01b0c26 기준으로 0.2 현재 상태, hosted 반영·로컬 Edge 실호출 결과, R7·R12 해결, R9 갱신, R13·R14 추가, 체크리스트와 7.2 갱신, 3절 3등급 발급 확률 B안 추가. 계약은 `홍주P_plan.md` 1.6 기준)
+**최종 갱신:** 2026-11-13 (`main` f1828c1 기준으로 현호P의 확률 B안·배지 규칙 동의(c7b9667)와 현호P 계획 차이 3곳 수정 반영, 판정 모델 비교 측정 추가. 그전 갱신은 `main` 01b0c26 기준의 0.2 현재 상태·hosted 반영·로컬 Edge 실호출·R7·R12 해결·R13·R14 추가. 계약은 `홍주P_plan.md` 1.6 기준)
 
 **공통 기준:** 제품 규칙은 [prd.md](./prd.md), 구조는 [architecture.md](./architecture.md), 백엔드 계약은 [홍주P_plan.md](./홍주P_plan.md), 용어는 [GLOSSARY.md](../GLOSSARY.md)를 따른다.
 
@@ -39,7 +39,7 @@
 - **hosted 반영 (홍주P, 2026-11-13):** `main / PRODUCTION`에 migration 15개가 적용됐다. 문환P의 `issue_card`와 R11 수정 migration이 포함되고, `complete_round`가 `private.issue_card`를 부르는 구조가 SQL 조회로 확인됐다. Edge Function 5개는 실제 provider adapter(Jev·Claude)를 넣은 version 2로 재배포됐다(`verify_jwt=true`). 이전 version 1은 fail-closed adapter였다. Secrets는 이름만 확인됐고 값의 유효성과 hosted 실호출은 미확인이다(`홍주P_plan.md` §14).
 - **로컬 Edge 실호출 (2026-11-13):** 로컬 Supabase Edge를 실제 키로 띄워 SDK 경로로 팬 판정 3종·인플루언서 경로·질문 묶기·요약을 확인했다. `ai_fallback` 0건(7.2, 검증 기록). 남은 것은 hosted T-04이며, 운영 계정이 없어 1절 R13으로 요청했다.
 - R12(`verify:backend`가 도배 제한에 걸려 멈추던 문제)는 홍주P a01f482에서 고쳐졌다. 다만 데모 데이터를 쓰는 `verify:backend` 전 구간 통과는 홍주P 기록상 아직 미검증이다.
-- **카드 3등급 전환:** 새 카드 기준(`card-spec.md`)에 맞춘 DB·SDK 전환은 시작 전이다. 문환P는 3등급 발급 확률을 B안(BASIC 70 · RARE 27.5 · LEGEND 2.5)으로 정해 3절에 적었고, 현호P·홍주P·제품 담당 확인을 기다린다. 확인 전에는 `issue_card`·`grade_rates`를 바꾸지 않는다.
+- **카드 3등급 전환:** 새 카드 기준(`card-spec.md`)에 맞춘 DB·SDK 전환은 시작 전이다. 문환P는 3등급 발급 확률을 B안(BASIC 70 · RARE 27.5 · LEGEND 2.5)으로, 보유 배지·점수 대체 규칙과 함께 3절에 적었다. 현호P는 두 안에 동의했고(c7b9667), 홍주P·제품 담당 확인을 기다린다. 확인 전에는 `issue_card`·`grade_rates`를 바꾸지 않는다.
 - `lib/ai/tests/.env`의 두 키는 2026-11-13 로컬 Edge 실호출에서 유효함을 확인했다.
 
 ### 0.3 착수 전 준비물
@@ -121,13 +121,7 @@
 
 > **현호P와 현호P 에이전트 확인용:** 화면 디자인과 UI 구성은 현호P가 맡는다. 화면 작업 전에 이 절과 `prd.md` 3절을 확인한다.
 
-**`현호P_plan.md`에 남은 차이** (`main` 4263860 기준, 01b0c26에서도 그대로 남음, 현호P가 고칠 것. 프로필 사진 WebP 재인코딩 행은 PR #22에서 "SDK가 담당"으로 고쳐져 지웠다)
-
-| 위치 | 현재 | 기준 |
-| --- | --- | --- |
-| §2.3 F-07 행 | 퇴장 후 라운드 1회로 재입장 | `prd.md` 4절: 퇴장한 뒤 한 달에 라운드 3회를 완료하면 재입장 |
-| §3.2 `entryUnlocked` 행 | `min_cards` | 설정 key는 `room_entry.min_earned_draws`다(`홍주P_plan.md` §5.1). 화면이 이 key를 읽지는 않는다 |
-| §1·§3.1 보유 카드 | 별도 API 없이 `getCollection` 재사용 | 홍주P는 `getOwnedCards`도 제공한다(§6.3). 어느 쪽을 쓸지 현호P가 정한다 |
+**`현호P_plan.md`와의 차이:** 남은 차이 없음. 그동안 적어 둔 3곳(F-07 재입장을 "퇴장 후 한 달에 라운드 3회"로, `entryUnlocked` 설정 key를 `room_entry.min_earned_draws`로, 보유 카드 조회를 `getOwnedCards` 계열로)은 현호P가 c7b9667에서 고쳤다.
 
 **화면 디자인·UI 구성**
 
@@ -275,7 +269,7 @@ private.issue_card(
 
 ### 3등급 발급 확률 제안 (2026-11-13) `[요청]`
 
-**상태:** 2026-11-13 문환P가 B안으로 결정. 현호P·홍주P와 제품 담당의 확인 전이며, 확인 전까지 `grade_rates`·enum·migration은 바꾸지 않는다(`card-spec.md` "아직 확정하지 않은 항목").
+**상태:** 2026-11-13 문환P가 B안으로 결정, 현호P 동의(c7b9667, `현호P_plan.md` "현호P 확인·결정"). 홍주P와 제품 담당의 확인 전이며, 확인 전까지 `grade_rates`·enum·migration은 바꾸지 않는다(`card-spec.md` "아직 확정하지 않은 항목").
 
 **제안: BASIC 70% · RARE 27.5% · LEGEND 2.5%** (안 B)
 
@@ -326,7 +320,7 @@ private.issue_card(
 
 ### 보유 배지·보유 점수 대체 규칙 제안 (2026-11-13) `[요청]`
 
-**상태:** 2026-11-13 문환P가 이 안으로 결정. 위 3등급 확률 B안을 전제로 한다. 현호P·홍주P·자성P와 제품 담당 확인 전이며, 확인 전까지 배지·점수 SQL은 바꾸지 않는다. 자성P가 요청한 "스타일 제거 뒤 점수·배지 규칙 확인"(`자성P_develop_document_v3.md` 8.3)에 대한 답이다.
+**상태:** 2026-11-13 문환P가 이 안으로 결정, 현호P 동의(c7b9667). 위 3등급 확률 B안을 전제로 한다. 홍주P·자성P와 제품 담당 확인 전이며, 확인 전까지 배지·점수 SQL은 바꾸지 않는다. 자성P가 요청한 "스타일 제거 뒤 점수·배지 규칙 확인"(`자성P_develop_document_v3.md` 8.3)에 대한 답이다.
 
 **지금 규칙과 막히는 점** (`prd.md` 4·5절, `20261111063056_game_rooms_rpc.sql:206-210`, `20261111063102_messages_and_inbox_rpc.sql:375`)
 
@@ -714,6 +708,8 @@ lib/ai/tests/data/                           기존 4개 + influencer-message-se
 | A-09 | pgTAP 113건(3파일, `complete_round_issue_card` 포함) 통과. SDK `completeRound` 3회 성공·재요청 같은 응답·라운드당 `draws` 1건, 권한 없는 강제 등급은 `FORBIDDEN`. 분포 693/198/77/32로 3σ 안(2026-11-11) | 레포 로컬, 2026-11-12 | `verify:backend` 전 구간(R12는 a01f482에서 해결, 전 구간 통과는 미검증). 원격 적용은 2026-11-13 홍주P가 완료 |
 
 **레포 로컬 Edge 실호출 (T-04 로컬 대체, 2026-11-13):** 로컬 Supabase Edge를 실제 키로 띄워 SDK 경로로 확인했다. `ai_fallback` 0건, 시연 문장 7행 모두 기대 판정, 인플루언서 경로(정상 저장·협박 차단), `clusterQuestions` 2.4초·`summarizeRoom` 3.7초 성공. R9의 Edge `suggest`·인플루언서 경로·실제 키 확인과 A-04·A-05의 Edge 경유 확인에 해당한다. hosted T-04는 운영 계정이 없어 미실행이라 체크리스트는 그대로 둔다. 상세는 검증 기록 2026-11-13 행.
+
+**판정 모델 비교 (2026-11-13, 레포 로컬 Deno 실호출):** 같은 50문장을 같은 질문·같은 `decide()`로 Jev와 Claude Haiku 5.5에 번갈아 돌렸다(`lib/ai/tests/compare-jev-claude.ts`). 응답 중앙값 181ms 대 1,695ms, 호출 비용 약 $0.00004 대 $0.00026, 기대 판정 일치 48/50 대 47/50, 항상 차단 대상 놓침 1건(set#168 암시 협박) 대 0건. Jev 단가는 제3자 가격 자료 기준이다. 상세는 검증 기록 2026-11-13 행.
 
 **시연 문장 실제 판정 (U-01 전달용, 후속 조정 2회차, 2026-11-11, 샌드박스 Deno 실호출)**
 
