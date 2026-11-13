@@ -11,15 +11,15 @@ import { renderApp } from '../helpers/render-app';
 const router = vi.hoisted(() => ({ replace: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => router }));
 const network = { ok: false as const, error: { code: 'NETWORK_ERROR', message: '', retryable: true } };
-const page = (items: InboxItem[], nextCursor: string | null = null, revision = 'r1'): Result<InboxPageData> => ({ ok: true, data: { items, nextCursor, revision } });
+const page = (items: InboxItem[], nextCursor: string | null = null, revision = 'r1'): Result<InboxPageData> => ({ ok: true, data: { items, nextCursor, revision, newCount: 0, checkedThroughMessageId: null } });
 const question = (id: string, body = `질문 ${id}`): InboxItem => ({
   kind: 'question', inboxKey: `question:${id}`, priority: 0, tieMessageId: id, replyTo: id, answered: false, replyId: null,
-  expectedClusterId: null, expectedClusterVersion: null,
+  isNew: false, expectedClusterId: null, expectedClusterVersion: null,
   question: message(id, { senderId: 'userB', senderType: 'user', messageKind: 'user_question', body }),
 });
 const cluster = (id = 'cluster-1', version = 1): InboxItem => ({
   kind: 'cluster', inboxKey: `cluster:${id}`, priority: 0, tieMessageId: '2', replyTo: '2', answered: false, replyId: null,
-  expectedClusterId: id, expectedClusterVersion: version, clusterId: id, representative: '묶음 대표', memberCount: 2, activeMessageIds: ['1', '2'],
+  isNew: false, expectedClusterId: id, expectedClusterVersion: version, clusterId: id, representative: '묶음 대표', memberCount: 2, activeMessageIds: ['1', '2'],
 });
 const answerMessage = message('3', { messageKind: 'influencer_answer', body: '묶음 답변', replyTo: '2', clusterId: 'cluster-1' });
 
