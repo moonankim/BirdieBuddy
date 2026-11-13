@@ -1297,7 +1297,7 @@ npm run demo:reset -- --apply
 | B-05 | catalog/join/re-entry RPC와 SDK 구현 | 자성P 화면·세션 흐름 통합 |
 | B-06 | submission RPC·JWT Edge·SDK·Realtime history/recovery와 Jev moderation adapter 연결. 과거 대화 nextCursor 중복 조회 수정 및 DB 회귀 11건 통과 | live provider 호출/장애 조건, 화면 Realtime delivery와 실제 권한 통합 |
 | B-07 | demo clock·월 정산·round gauge 및 `get_admin_demo_month` RPC/SDK 구현·hosted 적용. 권한 SQL·SDK test 통과, PR #37 관리자 UI 연결 병합 | 실제 관리자 JWT·브라우저 월 변경 및 퇴장/재입장 통합 |
-| B-08 | score·inbox/revision·filtered answer·answer history 구현. R14에 따라 방 소유자 inbox/NEW는 모든 pass 질문을 포함하고 타 팬 공개·답변 인용·AI source는 엄격한 필터 통과를 유지 | 인박스 UI와 실제 두 세션 흐름 통합 |
+| B-08 | score·inbox/revision·filtered answer·answer history 구현. R14에 따라 방 소유자 inbox/NEW는 모든 pass 질문을 포함하고 타 팬 공개·답변 인용·AI source는 엄격한 필터 통과를 유지. R14 migration `20261113052554`는 commit `487a31a`에 있음 | 인박스 UI와 실제 두 세션 흐름 통합. migration은 hosted와 `feature/hongjoo`에는 있지만 `origin/main` source에는 없어 branch 통합이 필요 |
 | B-09 | verification 신청·심사·이력 backend 구현 | 자성P 관리자 신청/승인 UI 통합 |
 | B-10 | filters/version/rate-limit/metadata cleanup 구현 | latest fixture 이후 회귀 검증, 운영 cron 실제 실행 관찰 |
 | B-11 | hosted migration 16개·Functions 5개 version 2/JWT 상태 재확인, 대화 paging·R14 inbox 보완 동기화 및 local history 정렬 | exact Auth/CORS origin, user JWT/Storage/Realtime smoke |
