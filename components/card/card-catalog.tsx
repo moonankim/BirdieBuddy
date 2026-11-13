@@ -38,7 +38,9 @@ export function CardCatalog({templates=mockCollectionTemplates,ownership='ready'
       {cards.length===0?<StatusPanel tone="empty" title="조건에 맞는 카드가 없어요" onRetry={()=>setFilters(initialCatalogFilters)} retryLabel="필터 초기화">등급·유형 조건을 바꿔 보세요.</StatusPanel>:<div className="bb-card-grid">
         {cards.map(card=>{
           const owned=card.count>0;
-          return <article className="card-tile" key={`${card.id}-${card.grade}`}><Link className="bb-card-detail-link" href={`/collection/${encodeURIComponent(card.id)}?grade=${card.grade}`} aria-label={`${card.name} ${cardLevelLabels[card.grade]} 카드 상세 보기`}><CardArtwork src={card.imageUrl} name={`${card.name} ${cardLevelLabels[card.grade]}`} locked={showOwnership&&!owned}/><h3>{card.name}</h3><p>{cardCategoryLabels[card.category]}</p><GradeBadge grade={card.grade} label={cardLevelLabels[card.grade]}/>{showOwnership&&<strong className="bb-collection-count">{owned?`${card.count}장 보유 (예시)`:'미보유'}</strong>}</Link></article>;
+          const body=<><CardArtwork src={card.imageUrl} name={`${card.name} ${cardLevelLabels[card.grade]}`} locked={showOwnership&&!owned}/><h3>{card.name}</h3><p>{cardCategoryLabels[card.category]}</p><GradeBadge grade={card.grade} label={cardLevelLabels[card.grade]}/>{showOwnership&&<strong className="bb-collection-count">{owned?`${card.count}장 보유 (예시)`:'미보유'}</strong>}</>;
+          // 상세는 보유 카드만 제공한다. 미보유이거나 보유 현황을 아직 모르면 링크를 두지 않는다.
+          return <article className="card-tile" key={`${card.id}-${card.grade}`}>{showOwnership&&owned?<Link className="bb-card-detail-link" href={`/collection/${encodeURIComponent(card.id)}?grade=${card.grade}`} aria-label={`${card.name} ${cardLevelLabels[card.grade]} 카드 상세 보기`}>{body}</Link>:<div className="bb-card-detail-link">{body}</div>}</article>;
         })}
       </div>}
     </>}
