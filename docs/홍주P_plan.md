@@ -1483,3 +1483,11 @@ docs/홍주P_plan.md 계약 1.6의 §§6~9·12·15와 내 담당 *_plan.md를 �
 - 로컬·hosted 검증: 기존 local stack과 새 임시 DB에서 16 migrations와 SQL 6 files/200 assertions, DB lint 오류 0을 확인했다. Hosted `BirdieBuddy Project`의 16개 migration 이력과 세 RPC의 false pass 포함, `search_path=''`, anon execute 거부/authenticated execute 허용을 확인했다. hosted Secret·Function·Auth/CORS 설정과 사용자/메시지 데이터는 바꾸지 않았다. 전체 증거는 `harness/verification-log.md` 2026-11-13 R14 항목에 있다.
 - 대기·미검증: 사용자 회신에서 계정·Secret 상태의 실제 값은 전달되지 않아 hosted T-04를 실행하지 못했다. Secret 값은 열람·요청·기록하지 않는다. 실제 사용자 JWT·browser/Realtime/Storage 및 hosted AI 호출은 미검증이다. 3등급 카드 정책/데이터 이관 결정 전까지 기존 카드 DB·RPC는 변경하지 않는다.
 - 작업 상태: 로컬 branch는 merge commit 기준 `origin/feature/hongjoo`보다 9 commits ahead다. 이 작업에서 commit/push하지 않았다.
+
+### 15.14 2026-11-13 — main PR #46 병합 및 담당 영향 확인
+
+- 병합·PR 확인: merged PR #46 (`711c252`)의 두 commit `eb4c1c5`·`40791a9`를 `origin/main`에서 `feature/hongjoo`에 merge commit `7794ba5`로 반영했다. 충돌 없이 완료했다. 원격 push는 하지 않았다.
+- main 변경: `eb4c1c5`는 홈 카드 배너 제목의 한글 줄바꿈과 글자 크기만 조정한다. `40791a9`는 AI 카드안 미반영, 현 CDN 카드 36장 유지, 10명·4등급에서 12명·3등급으로의 데이터 이관 보류, 디자인 시스템 2차 적용 중단을 담당 계획에 기록한다. 카드 확률 B안과 점수·배지 대체 규칙은 현호P 동의까지이며 홍주P·제품 담당 확인 전에는 제품 확정으로 취급하지 않는다.
+- 홍주P 영향: backend runtime/API 변경은 필요하지 않았다. 기존 DB·SDK는 스타일·4등급 계약을 유지한다. 홍주P와 제품 담당이 확률·보상 정책·기존 데이터 처리·선수 key/UUID 매핑을 확정하기 전까지 신규 schema/RPC/SDK migration 또는 데이터 변경을 만들지 않는다. CDN 36장 세트는 유지하고 AI 카드안은 반영하지 않는다. 채팅·인박스·관리자 디자인 2차 적용도 홍주P 소유 범위가 아니며 진행하지 않는다.
+- 문서 반영: 이 항목과 `docs/architecture.md`의 최신 PR 상태·카드 정책을 갱신했다. 다음 병합 때 재사용할 추적 문서 지침을 [main 병합 후 담당자 영향 확인 지침](./main-merge-workflow.md)에 작성했다. 로컬 `AGENTS.md`에도 같은 상시 지시를 추가했다. 이후 main 병합 시 등록 PR·커밋 diff를 담당 경계별로 대조하고, 분명한 홍주P 후속 변경은 같은 작업에서 반영한다.
+- 검증 범위: PR 설명·등록 상태·두 commit diff와 로컬 코드/계약을 정적으로 대조했다. upstream PR은 build, UI tests 240건, lint 오류 0(기존 경고 4건)을 보고했지만 이 브랜치에서 다시 실행하지 않았다. 브라우저 육안 확인도 미검증이다. 이번 병합은 CSS/문서만 바꿔 backend test, typecheck/build, Supabase local/hosted 변경은 수행하지 않았다.

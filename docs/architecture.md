@@ -4,11 +4,11 @@
 
 > **카드 기준 변경 · 2026-11-12:** 디자인 스타일 없음, 카드 유형 `kpga / klpga / gtour / media`, 등급 `basic / rare / legend`가 최신 사용자 확정 사항입니다. 최종 카드 path는 `<유형>-<선수명>-<레벨>.png`이며 레벨은 `basic/rare/legend`, MIME은 `image/png`입니다. 스타일 기반 WebP 경로를 신규 규칙으로 사용하지 않습니다. [카드 변경 명세·담당자 인계](./card-spec.md)를 먼저 읽습니다. 이 문서의 이전 3스타일·4등급·30종 계약보다 최신 명세를 우선하며, DB·SDK·화면 전환 완료를 의미하지 않습니다. 미확정 확률·데이터 이관을 임의로 정하지 않습니다.
 
-**최종 갱신:** 2026-11-13 — main PR #41 병합, R14 인박스 정책·백엔드 반영
+**최종 갱신:** 2026-11-13 — main PR #46 병합 및 카드 담당 영향 대조
 
 > 제품 규칙은 [prd.md](./prd.md)를 기준으로 한다. 이 문서는 공통 아키텍처와 담당 경계를 설명하고, Supabase 백엔드의 상세 데이터·권한·SDK/RPC/Edge 계약과 구현 순서는 [홍주P_plan.md](./홍주P_plan.md)를 따른다.
 >
-> 홍주P 백엔드는 로컬 구현·검증을 진행 중이다. 현재 branch에는 main PR #41 병합 commit `2320663`까지 반영되어 있다. PR #41은 시연 스토리보드·담당 계획·검증 로그 문서 변경이며 runtime 변경은 없다. PR #29는 실제 Auth·SDK, PR #36은 B-18 backend, PR #37은 발급 재시도·읽음 상태·관리자 월 UI, PR #38/#39는 뽑기 미리보기·디자인 변경을 포함한다. 기존 스타일·4등급 DB/SDK와 신규 3등급 카드 목업의 통합 정책은 아직 별도 결정이 필요하다. 현재 local/hosted에는 migration 16개가 적용됐고 Edge Function 5개는 version 2/JWT 검증 상태다. 로컬 검증된 일반 Supabase 변경은 같은 작업에서 지정 hosted 대상으로 동기화한다(루트 `AGENTS.md`). R14에 따라 인플루언서 본인 인박스는 전송 판정이 pass인 질문을 전체 필터 통과 여부와 관계없이 표시한다. 다른 팬 공개·답변 인용·AI source는 계속 `passes_all_filters=true`를 요구한다. SQL 회귀·타입·build는 통과했으며 실제 사용자 JWT·브라우저·Realtime·Storage·hosted live AI 흐름은 미검증이다. 필요한 공개 Supabase 환경값이 있으면 실제 모드를 쓰고, `NEXT_PUBLIC_DATA_MODE=mock` 또는 연결값 누락 시 목 모드를 쓴다. 로그인 역할·닉네임은 본인 `profiles` 행에서 읽고 권한은 RLS/RPC가 재검사한다. 상세 환경별 증거는 `harness/verification-log.md`에 기록했다.
+> 홍주P 백엔드는 로컬 구현·검증을 진행 중이다. 현재 `feature/hongjoo`에는 main PR #46 merge commit `711c252`와 이를 가져온 로컬 merge commit `7794ba5`까지 반영되어 있다. PR #46은 홈 제목 줄바꿈 CSS와 카드 담당 결정 문서 변경이며 backend runtime 변경은 없다. 기존 스타일·4등급 DB/SDK와 신규 3등급 카드 화면을 연결하는 schema/SDK 전환은 여전히 별도 합의가 필요하다. 문환P의 3등급 확률·보상 규칙 제안에는 현호P가 동의했으나 홍주P·제품 담당 확인 전에는 적용하지 않으며, 이전 카드·인물 데이터 이관도 보류한다. AI 카드안은 적용하지 않고 현재 CDN 36장을 유지한다. 현재 local/hosted에는 migration 16개가 적용됐고 Edge Function 5개는 version 2/JWT 검증 상태다. 로컬 검증된 일반 Supabase 변경은 같은 작업에서 지정 hosted 대상으로 동기화한다(루트 `AGENTS.md`). R14에 따라 인플루언서 본인 인박스는 전송 판정이 pass인 질문을 전체 필터 통과 여부와 관계없이 표시한다. 다른 팬 공개·답변 인용·AI source는 계속 `passes_all_filters=true`를 요구한다. SQL 회귀·타입·build는 통과했으며 실제 사용자 JWT·브라우저·Realtime·Storage·hosted live AI 흐름은 미검증이다. 필요한 공개 Supabase 환경값이 있으면 실제 모드를 쓰고, `NEXT_PUBLIC_DATA_MODE=mock` 또는 연결값 누락 시 목 모드를 쓴다. 로그인 역할·닉네임은 본인 `profiles` 행에서 읽고 권한은 RLS/RPC가 재검사한다. 상세 환경별 증거는 `harness/verification-log.md`에 기록했다.
 >
 > 제품 요구사항과 다른 구현 기본값이 생기면 PRD와 담당 계획을 함께 갱신한다. 런타임에서는 CSR·RLS·Supabase 호출 계약을 따른다.
 
@@ -175,6 +175,11 @@ lib/api는 브라우저 SDK이며 서버 구현 위치가 아니다. 클라이�
 - PR #32의 목록·상세·강화도 UI 목업이다. 새 카드 기준은 [card-spec.md](./card-spec.md)와 [CDN manifest](./assets/card-images.json)에 기록돼 있다. DB의 `card_style`, `card_grade`, `card_templates.image_path`, 발급·강화 RPC, seed/config와 SDK는 기존 스타일·4등급·Supabase Storage 계약을 사용하므로 데이터 전환 전에 계약 결정과 migration이 필요하다. 유형 4개를 기존 계정의 `influencer_type`에 대입하지 않는다.
 - 3등급 발급 확률, 기존 카드·등급 데이터 이관, manifest의 playerSlug와 DB 인물 UUID 연결, 스타일 기반 보상·배지 제거/대체는 미확정이다. 이 결정 없이 schema·seed·RPC를 바꾸거나 원격 데이터를 이관하지 않는다. 필요한 담당자 확인과 백엔드 작업 순서는 [홍주P 계획 §13.14](./홍주P_plan.md)에 기록했다.
 - 실제 모드의 라운드 완료는 연결 프로젝트의 데이터를 변경한다. 공유 hosted 프로젝트를 기본 개발 환경으로 유지하고 기존 시연 데이터를 남겨 둔 채 새 팬 계정으로 시연한다. 로컬 전체 재현은 `demo:reset`의 계획 확인 후 `--apply`로 실행한다. `demo:setup`은 재초기화 명령이 아니며 로컬 도구는 브라우저 환경값을 보존한다.
+
+### main PR #46 담당 영향 확인 (2026-11-13)
+
+- PR #46 (`711c252`)의 `eb4c1c5`는 홈 배너 제목 줄바꿈 CSS만 수정했고, `40791a9`는 카드 에셋·확률·보상·이관·디자인 적용 결정을 문서화했다. 홍주P 런타임 변경은 필요하지 않았다.
+- 현재 CDN 카드 36장 세트와 기존 카드 backend를 유지한다. 새 카드 schema/RPC/SDK 및 실제 데이터 이관은 홍주P·제품 담당이 정책을 확정한 뒤 설계한다. 확률 B안과 배지·점수 대체 규칙은 현호P 동의 상태이며 제품 확정이 아니다. AI 카드 36장 안과 채팅·인박스·관리자 카드 디자인 2차 적용은 진행하지 않는다. 세부 담당 기록은 [홍주P 계획 §15.14](./홍주P_plan.md)에, 다음 병합 때 반복할 절차는 [main 병합 후 담당자 영향 확인 지침](./main-merge-workflow.md)에 있다.
 
 ## 3. 데이터 모델과 권한
 
