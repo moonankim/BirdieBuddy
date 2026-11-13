@@ -110,6 +110,7 @@ UI 배지는 신규 basic/legend와 기존 common/epic/special을 함께 지원�
 | 단계 | `data-phase`: intro → heartbeat → ready(탭 또는 자동 공개) → flip → result. 시간은 `lib/cards/presentation.ts`의 `drawRevealTiming` |
 | 등급 암시 | 박동 BASIC 2·RARE 3·LEGEND 4회, `data-grade`별 빛 색, RARE 이상 반짝임, LEGEND 플래시·광택 |
 | 접근성 | 단계 문구 `role="status"`, 카드는 ready 단계에서만 열리는 버튼, 건너뛰기, 동작 줄이기 시 결과만, 결과 제목 포커스 |
+| 카드 뒷면 | R2 `draw-card.png`(2:3, `drawCardBackImageUrl`, 2026-11-13 교체). 이미지 실패 시 `.bb-draw-face--back`의 CSS 뒷면(딥그린·사선·골드 라인)이 보임 |
 | 목업 데이터 | `app/(user)/_mock/draw.ts`: 김홍차(manifest 실제 아트), 보유 장수는 목업 +1 |
 | 진입점 | `/draw`의 결과 없음 화면과 결과 화면 하단 링크 "새 뽑기 연출 미리보기 (목업)"(`PreviewLink`). 연출을 `/draw`에 적용하면 링크와 `/draw/preview`를 제거 |
 

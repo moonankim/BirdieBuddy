@@ -52,6 +52,12 @@
 
 `moon_seo_rap`의 표시명은 slug 발음(문서랩)과 다른 **문서랍**입니다. slug와 파일명은 바꾸지 않습니다.
 
+## 채팅 인플루언서 썸네일 (임시, 2026-11-13)
+
+- 임시 이미지: `https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/thumbnail/choi-na-bee-thumb.png` (128×128 PNG). 채팅방 목록·방 상단·인플루언서 말풍선의 `Avatar`가 모든 방에서 이 이미지를 씁니다(`components/ui/avatar.tsx`의 `TEMP_INFLUENCER_THUMBNAIL`). 업로드된 프로필 사진보다 우선하는 임시 조치이며 인박스 설정 화면에는 쓰지 않습니다.
+- 경로 규칙(안): `thumbnail/<playerSlug>-thumb.png`. 현재는 `choi-na-bee` 1장만 있고, 나머지 선수 썸네일은 현호P가 제작 후 올립니다.
+- **홍주P 확인 요청:** 선수(인플루언서)별 썸네일 URL을 `RoomCatalogItem`에 속성으로 추가할 수 있는지 확인 부탁드립니다. 현재 `profileImageUrl`은 "업로드 프로필 사진 → 카드 이미지" 순의 합쳐진 값이라 화면에서 썸네일과 업로드 사진을 구분할 수 없습니다. 제안: `thumbnailUrl: string | null`(R2 `thumbnail/<playerSlug>-thumb.png`)을 추가하고, 화면은 업로드 프로필 사진 → 썸네일 → 기본 프로필 → 이름 첫 글자 순으로 표시합니다. 속성 이름·저장 위치(DB 경로 vs 규칙 생성)는 홍주P가 정합니다. 속성이 생기면 `TEMP_INFLUENCER_THUMBNAIL`을 제거합니다.
+
 ## DB·SDK 담당자 적용
 
 1. manifest의 `category`, `playerSlug`, `grade`와 인물 UUID의 매핑을 확정합니다. 기존 가상 시드의 UUID에 순서대로 배정하지 않습니다.

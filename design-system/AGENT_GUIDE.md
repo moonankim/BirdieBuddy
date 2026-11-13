@@ -19,7 +19,7 @@
 | --- | --- | --- |
 | 딥그린·아이보리 토큰, 버튼·입력·탭·하단 탐색 | 실제 앱에서 공유 | 기존 공통 원본을 재사용 |
 | 홈 카드 쇼케이스·컬렉션 표면 깊이 | 브랜치의 목업 화면에 적용 | API 연결 화면에 시각 구조만 통합 |
-| CSS 스피너·오류·404 레이아웃 | 공통 스타일·정적 샘플 준비 | 실제 Spinner·오류 경계·라우트 연결은 별도 |
+| CSS 스피너·오류·404 레이아웃 | 공통 스타일·정적 샘플 준비, 앱 연결 완료(자성P `bedf9d6`) | `Spinner`(`.bb-loading`·`.bb-spinner`), `StatusScreen`, `app/error.tsx`·`app/not-found.tsx` |
 | 기본 프로필 SVG | 에셋·크기별 샘플 준비 | Avatar의 기존 이름 첫 글자 대체는 아직 유지 |
 | 강화 `/collection/upgrade?cardId=…` | 확인·기본 강화 연출(건너뛰기·동작 줄이기)·결과 목업, 상세에서 진입 | 실제 차감·API·저장·서버 확정 후 연출 연결·오류 복구는 후속 |
 | 컬렉션·보유 목록 | 전체·등급별 보유를 분리한 목업, 필터/정렬/상태·강화 진입 | 사용자 지시로 API 연결 제외, 실제 장수는 미조회 |
@@ -76,10 +76,10 @@
 ## 공통 구성과 에셋
 
 - `components/ui/card-artwork.tsx`: CardArtwork·GradeBadge·StatusPanel. 이미지 실패·미보유 대체를 재사용합니다. CardGrade·배지는 basic/legend를 추가 지원하며 이전 화면 호환용 common/epic/special도 유지합니다. rare의 기본 라벨은 기존 화면 호환을 위해 레어이며 상세는 명시적 RARE 라벨을 사용합니다. 실제 SDK enum은 아직 이전 4등급이므로 등급을 임의 매핑하지 않습니다.
-- `components/ui/index.tsx`: 기존 Button·Spinner·ErrorState·EmptyState. 이름이 있다고 새 상태 샘플이 적용됐다고 판단하지 않습니다. Spinner는 현재 텍스트 표시입니다.
-- `components/ui/avatar.tsx`: 현재 이미지 실패 시 이름 첫 글자를 표시합니다. 새 기본 프로필 연결은 후속입니다.
+- `components/ui/index.tsx`: Button·Spinner·ErrorState·EmptyState·StatusScreen. Spinner는 `states.css`의 `.bb-loading`·`.bb-spinner`이고, StatusScreen은 오류·404 화면(`app/error.tsx`·`app/not-found.tsx`)에 쓰입니다(자성P `bedf9d6`).
+- `components/ui/avatar.tsx`: 사진이 없거나 실패하면 기본 프로필(`/assets/avatar-default.svg`), 그마저 실패하면 이름 첫 글자를 표시합니다(자성P `bedf9d6`).
 - `/assets/avatar-default.svg`: `public/assets/avatar-default.svg` 단일 원본. 메시지 32px·목록 44px·설정 72px. 이름이 옆에 있으면 `alt=""`를 사용합니다.
-- `design-system/assets/connection-error.svg`: 오류 샘플의 장식용 일러스트. 현재 public URL은 없습니다. 실제 라우트 적용 시 공개 제공 방법을 정하고 존재하지 않는 `/assets/connection-error.svg`를 참조하지 않습니다.
+- `design-system/assets/connection-error.svg`: 오류 샘플의 장식용 일러스트. 앱에서는 복사본 `public/assets/connection-error.svg`(`/assets/connection-error.svg`)를 씁니다. 원본을 고치면 두 파일을 함께 맞춥니다.
 - `design-system/assets/course-contours.svg`: club.css의 상대 URL로 불러오는 배너 장식.
 - 예전 카드 목업 스타일(`card-picture`·`portrait`·`peach`·`lavender`·`empty`)과 초상화용 토큰(`--art-*`)은 2026-11-13에 삭제했습니다(자성P v3 §4 요청). 앱은 `CardArtwork`(`.bb-card-art`), 정적 시안은 실제 카드 PNG(`.sample-card-art`)를 씁니다. `card-grid`·`card-tile`은 사용 중이라 유지합니다.
 - `design-system/assets/card-placeholder.svg`: 정적 시안용 이전 자리표시자. 민트 색상이 남아 있으므로 최신 최종 카드 아트로 취급하지 않습니다.

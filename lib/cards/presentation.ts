@@ -9,6 +9,8 @@ export const nextCardLevel:Record<CardLevel,CardLevel|null>={basic:'rare',rare:'
 export const previewUpgradeCost=10;
 
 // 목업 공통 카드 이미지(R2 CDN). 선수·등급별 실제 아트가 아니며, SDK 연결 시 등급별 imageUrl로 교체한다.
+// 뽑기 연출에서 공개 전 보여 주는 카드 뒷면(R2, 2:3 PNG). 이미지 실패 시 .bb-draw-face--back의 CSS 뒷면이 보인다.
+export const drawCardBackImageUrl='https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/draw-card.png';
 export const previewCardImageUrl='https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/default-card-at.png';
 
 // 기본 강화 연출 시간(시안). 높은 등급일수록 길게 보여 주며 서버 확정 이후에만 재생한다.

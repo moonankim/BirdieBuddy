@@ -1,8 +1,9 @@
 'use client';
+import Image from 'next/image';
 import Link from 'next/link';
 import {useEffect,useRef,useState,type CSSProperties} from 'react';
 import {CardArtwork} from '@/components/ui/card-artwork';
-import {cardCategoryLabels,cardLevelLabels,drawRevealTiming,type CardPreview} from '@/lib/cards/presentation';
+import {cardCategoryLabels,cardLevelLabels,drawCardBackImageUrl,drawRevealTiming,type CardPreview} from '@/lib/cards/presentation';
 import {cardLevels} from '@/lib/cards/collection';
 import {prefersReducedMotion} from '@/lib/cards/motion';
 
@@ -46,7 +47,7 @@ export function CardDrawReveal({result,autoRevealMs=drawRevealTiming.autoRevealM
       {card.grade!=='basic'&&<div className="bb-draw-sparkles" aria-hidden="true">{sparkles.map(([x,y],i)=><span key={i} style={{left:`${x}%`,top:`${y}%`,animationDelay:`${i*180}ms`}}/>)}</div>}
       <button type="button" className="bb-draw-card" onClick={()=>{if(phase==='ready')setPhase('flip');}} aria-disabled={phase!=='ready'} aria-label={revealed?`${card.name} ${cardLevelLabels[card.grade]} 카드`:phase==='ready'?'카드 열기':'카드 준비 중'}>
         <span className="bb-draw-card-inner">
-          <span className="bb-draw-face bb-draw-face--back" aria-hidden="true"><span className="bb-draw-back-mark">BB</span><span className="bb-draw-back-word">Birdie Buddy</span></span>
+          <span className="bb-draw-face bb-draw-face--back" aria-hidden="true"><Image className="bb-draw-back-art" src={drawCardBackImageUrl} alt="" fill sizes="(max-width: 480px) 70vw, 320px" unoptimized priority draggable={false}/></span>
           <span className="bb-draw-face bb-draw-face--front">{revealed&&<CardArtwork src={card.imageUrl} name={`${card.name} ${cardLevelLabels[card.grade]}`}/>}</span>
         </span>
       </button>
