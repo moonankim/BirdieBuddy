@@ -176,3 +176,13 @@ describe('influencer inbox NEW', () => {
     expect(screen.queryByText('NEW')).not.toBeInTheDocument();
   });
 });
+
+describe('room list entry link', () => {
+  it('links to a room the fan is already in although canJoin is false, like the real server', async () => {
+    const api = createMockChatApi();
+    api.setActor(accounts.userB);
+    expect(unwrap(await api.getRooms()).items.find((room) => room.roomId === 'room-1')).toMatchObject({ joinReason: 'already_active', canJoin: false });
+    renderApp(<ChatListPage />, api, 'userB');
+    expect(await screen.findByRole('link', { name: /들어가기/ })).toHaveAttribute('href', '/chat/room-1');
+  });
+});
