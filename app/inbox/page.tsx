@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import {useCallback,useEffect,useRef,useState} from 'react';
-import {Modal,Button} from '@/components/ui';
+import {Modal,Button,Spinner} from '@/components/ui';
 import {OwnedRoom} from '@/components/chat/owned-room';
 import {Guard} from '@/components/chat/shell';
 import {useChatApi} from '@/components/chat/api/chat-api';
@@ -122,7 +122,7 @@ function Inbox({roomId}:{roomId:string}){
     <InfluencerOpenNotice roomId={roomId}/>
     <nav className="my-3 flex gap-2"><Link className="button small secondary no-underline" href="/inbox/settings">설정</Link><Link className="button small secondary no-underline" href="/inbox/verification">인증 신청</Link></nav>
     {countError?<p role="alert" className="notice error">{errorText(countError.code,countError.details)} {countError.retryable&&<button onClick={()=>void load()}>다시 시도</button>}</p>
-      :count===null?<p className="muted">차단 수를 불러오는 중...</p>:<p className="notice my-3">오늘 AI가 {count}건을 걸러냈어요</p>}
+      :count===null?<Spinner label="차단 수를 불러오는 중..."/>:<p className="notice my-3">오늘 AI가 {count}건을 걸러냈어요</p>}
 
     <form className="card stack my-3" onSubmit={async e=>{e.preventDefault();const r=await send.run({roomId,body});if(r.ok){applyLocal(r.data);setBody('');}}}>
       <label>전체 메시지<textarea className="input" value={body} onChange={e=>setBody(e.target.value)}/></label>
@@ -144,7 +144,7 @@ function Inbox({roomId}:{roomId:string}){
     {!listError&&newCount!==null&&newCount>0&&<p role="status" className="notice my-3">지난 확인 이후 새 질문 <span className="bb-count-badge">{newCount}</span>건</p>}
     {listNotice&&<p role="status" className="notice my-3">{listNotice}</p>}
     {listError&&<p role="alert" className="notice error">{errorText(listError.code,listError.details)} {listError.retryable&&<button onClick={()=>void load()}>다시 시도</button>}</p>}
-    {items===null&&!listError?<p className="muted py-6 text-center">불러오는 중...</p>
+    {items===null&&!listError?<Spinner label="불러오는 중..."/>
       :items?.length===0?<p className="muted py-6 text-center">질문이 없어요.</p>
       :items?.map(item=>item.kind==='question'
         ?<article className="card stack my-3" key={item.inboxKey}>
