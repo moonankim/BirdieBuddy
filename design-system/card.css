@@ -47,10 +47,11 @@
 .bb-chip-group::-webkit-scrollbar { display: none; }
 .bb-chip { flex: 0 0 auto; min-height: var(--touch-target); padding: 0 var(--space-4); border: 1px solid var(--border-input); border-radius: var(--radius-sm); background: var(--surface-raised); color: var(--text-secondary); font: 700 var(--type-label)/1 var(--font); cursor: pointer; touch-action: manipulation; transition: background-color var(--motion-feedback) var(--ease-feedback), color var(--motion-feedback) var(--ease-feedback); }
 .bb-chip[data-grade] { border-radius: 0; border-color: transparent; background: var(--surface-neutral); font: 600 var(--type-label)/1 var(--font-label); letter-spacing: .04em; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); padding: 0 var(--space-5); }
-.bb-chip[aria-pressed="true"] { border-color: var(--action-primary); background: var(--action-primary); color: var(--text-inverse); }
-.bb-chip[aria-pressed="true"][data-grade="basic"] { background: var(--grade-basic-solid); color: var(--grade-basic-on); }
-.bb-chip[aria-pressed="true"][data-grade="rare"] { background: var(--grade-rare-solid); color: var(--grade-rare-on); }
-.bb-chip[aria-pressed="true"][data-grade="legend"] { background: var(--grade-legend-solid); color: var(--grade-legend-on); }
+a.bb-chip { display: inline-flex; align-items: center; text-decoration: none; }
+.bb-chip:is([aria-pressed="true"],[aria-current="page"]) { border-color: var(--action-primary); background: var(--action-primary); color: var(--text-inverse); }
+.bb-chip:is([aria-pressed="true"],[aria-current="page"])[data-grade="basic"] { background: var(--grade-basic-solid); color: var(--grade-basic-on); }
+.bb-chip:is([aria-pressed="true"],[aria-current="page"])[data-grade="rare"] { background: var(--grade-rare-solid); color: var(--grade-rare-on); }
+.bb-chip:is([aria-pressed="true"],[aria-current="page"])[data-grade="legend"] { background: var(--grade-legend-solid); color: var(--grade-legend-on); }
 .bb-chip:focus-visible, .bb-segmented button:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
 @media (hover: hover) { .bb-chip[aria-pressed="false"]:hover { background: var(--surface-subtle); color: var(--text-accent); } }
 /* 보조 필터(선수 등 선택지가 많은 항목)는 한 줄 select로 둔다. */
@@ -73,3 +74,70 @@
 /* 컬렉션(도감)의 미보유 카드: 아트를 흑백·반투명으로 보여 준다. 미보유 여부는 텍스트로도 표시한다. */
 .bb-card-art[data-state="locked"] { border: 1px dashed var(--border-input); background: var(--surface-neutral); }
 .bb-card-art[data-state="locked"] > img { filter: grayscale(1); opacity: .5; border-radius: var(--card-radius); }
+
+/* ── 뽑기 연출 (두근두근 → 탭해서 뒤집기) ──
+   단계는 data-phase(intro·heartbeat·ready·flip·result), 등급 암시는 data-grade로 바꾼다.
+   시간은 JS(drawRevealTiming)가 --beat-ms·--beats·--flip-ms로 넘긴다. 색은 등급 토큰 계열을 쓴다. */
+.bb-draw { display: grid; gap: var(--space-4); }
+.bb-draw-stage { --draw-glow: rgb(255 255 255 / 70%); --draw-ray: rgb(255 255 255 / 22%); position: relative; isolation: isolate; overflow: hidden; display: grid; justify-items: center; align-content: center; gap: var(--space-5); min-height: 440px; padding: var(--space-8) var(--space-4) var(--space-6); border-radius: var(--radius-lg); background: radial-gradient(ellipse at 50% 38%, var(--green-9), var(--green-12) 72%); perspective: 1200px; }
+.bb-draw-stage[data-grade="rare"] { --draw-glow: rgb(214 44 58 / 85%); --draw-ray: rgb(214 44 58 / 32%); }
+.bb-draw-stage[data-grade="legend"] { --draw-glow: rgb(247 224 168 / 95%); --draw-ray: rgb(232 190 100 / 42%); }
+.bb-draw-status { min-height: 1.6em; margin: 0; color: var(--hero-text); font: 700 var(--type-label)/1.5 var(--font); text-align: center; }
+
+/* 카드: 뒷면(딥그린·사선·골드 라인·BB 모노그램)과 앞면(실제 아트)을 3D로 뒤집는다. */
+.bb-draw-card { position: relative; width: min(62%, 220px); aspect-ratio: 2 / 3; padding: 0; border: 0; border-radius: var(--card-radius); background: none; cursor: default; touch-action: manipulation; }
+.bb-draw-stage[data-phase="ready"] .bb-draw-card { cursor: pointer; }
+.bb-draw-card:focus-visible { outline: 3px solid var(--gold-4); outline-offset: 6px; }
+.bb-draw-card-inner { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform var(--flip-ms) cubic-bezier(.2, .8, .2, 1); }
+.bb-draw-stage:is([data-phase="flip"], [data-phase="result"]) .bb-draw-card-inner { transform: rotateY(180deg); }
+.bb-draw-face { position: absolute; inset: 0; display: grid; overflow: hidden; border-radius: var(--card-radius); backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.bb-draw-face--front { transform: rotateY(180deg); }
+.bb-draw-face--front .bb-card-figure { gap: 0; }
+.bb-draw-face--back { place-content: center; justify-items: center; gap: var(--space-2); border: 3px solid var(--sand-2); background: repeating-linear-gradient(var(--band-angle), transparent 0 18px, rgb(196 154 69 / 22%) 18px 20px), linear-gradient(160deg, var(--green-9), var(--green-11)); box-shadow: inset 0 0 0 6px var(--green-11), inset 0 0 0 7px var(--gold-7); color: var(--sand-2); }
+.bb-draw-back-mark { color: var(--gold-4); font: 400 64px/1 var(--font-poster); font-synthesis: none; letter-spacing: .02em; }
+.bb-draw-back-word { font: 600 var(--type-caption)/1 var(--font-label); letter-spacing: var(--tracking-label); text-transform: uppercase; }
+
+/* 1 intro: 아래에서 떠오름 · 2 heartbeat: 쿵-쿵 2단 박동과 등급색 빛 · 3 ready: 숨쉬기 */
+.bb-draw-stage[data-phase="intro"] .bb-draw-card { animation: bb-draw-rise 600ms ease-out both; }
+.bb-draw-stage[data-phase="heartbeat"] .bb-draw-card { animation: bb-draw-beat var(--beat-ms) ease-in-out var(--beats); }
+.bb-draw-stage[data-phase="ready"] .bb-draw-card { box-shadow: 0 0 28px 6px var(--draw-glow); animation: bb-draw-breathe 1.6s ease-in-out infinite; }
+.bb-draw-stage[data-grade="legend"][data-phase="ready"]::after { content: ""; position: absolute; inset: 0; background: var(--gold-4); pointer-events: none; animation: bb-draw-flash 520ms ease-out forwards; }
+
+/* 등급 암시용 반짝임(RARE·LEGEND) */
+.bb-draw-sparkles { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.bb-draw-sparkles span { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: var(--draw-glow); box-shadow: 0 0 10px 2px var(--draw-glow); opacity: 0; }
+.bb-draw-stage:not([data-phase="intro"]) .bb-draw-sparkles span { animation: bb-draw-twinkle 1.6s ease-in-out infinite; }
+
+/* 4 flip·5 result: 등급색 방사형 빛줄기, LEGEND 광택 스윕 */
+.bb-draw-burst { position: absolute; z-index: -1; inset: -40%; background: repeating-conic-gradient(from 0deg, var(--draw-ray) 0 6deg, transparent 6deg 18deg); -webkit-mask: radial-gradient(circle, #000 18%, transparent 58%); mask: radial-gradient(circle, #000 18%, transparent 58%); opacity: 0; transition: opacity var(--flip-ms) ease-out; }
+.bb-draw-stage:is([data-phase="flip"], [data-phase="result"]) .bb-draw-burst { opacity: 1; animation: bb-draw-spin 14s linear infinite; }
+.bb-draw-stage[data-grade="legend"][data-phase="result"] .bb-draw-face--front::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 35%, rgb(255 255 255 / 55%) 50%, transparent 65%); transform: translateX(-120%); pointer-events: none; animation: bb-draw-sheen 1.4s ease-out 200ms forwards; }
+
+/* 결과 정보 */
+.bb-draw-result { display: grid; gap: var(--space-3); animation: bb-draw-rise 420ms ease-out both; }
+.bb-draw-result-meta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
+.bb-draw-new { padding: 2px var(--space-3); background: var(--gold-4); color: var(--gold-12); font: 400 var(--type-label)/1.5 var(--font-poster); font-synthesis: none; letter-spacing: .08em; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+.bb-draw-new--dup { background: var(--surface-neutral); color: var(--text-accent); font: 800 var(--type-label)/1.5 var(--font); letter-spacing: 0; }
+.bb-draw-result-line { margin: 0; color: var(--text-secondary); font-size: var(--type-label); }
+.bb-draw-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+.bb-draw-actions > :first-child { grid-column: 1 / -1; }
+.bb-draw-skip { justify-self: center; }
+
+@keyframes bb-draw-rise { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: none; } }
+@keyframes bb-draw-beat {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+  12% { transform: scale(1.07); }
+  24% { transform: scale(1); }
+  36% { transform: scale(1.11); box-shadow: 0 0 40px 10px var(--draw-glow); }
+  62% { transform: scale(1); box-shadow: 0 0 12px 2px var(--draw-glow); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+}
+@keyframes bb-draw-breathe { 50% { transform: scale(1.03); } }
+@keyframes bb-draw-flash { from { opacity: .75; } to { opacity: 0; } }
+@keyframes bb-draw-twinkle { 0%, 100% { opacity: 0; transform: scale(.4); } 50% { opacity: 1; transform: scale(1); } }
+@keyframes bb-draw-spin { to { transform: rotate(1turn); } }
+@keyframes bb-draw-sheen { to { transform: translateX(120%); } }
+@media (prefers-reduced-motion: reduce) {
+  .bb-draw-stage *, .bb-draw-stage::after, .bb-draw-result { animation: none !important; }
+  .bb-draw-card-inner, .bb-draw-burst { transition: none; }
+}

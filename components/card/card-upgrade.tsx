@@ -3,11 +3,11 @@ import Link from 'next/link';
 import {useEffect,useId,useRef,useState,type CSSProperties} from 'react';
 import {CardArtwork,GradeBadge} from '@/components/ui/card-artwork';
 import {cardLevels} from '@/lib/cards/collection';
+import {prefersReducedMotion} from '@/lib/cards/motion';
 import {cardCategoryLabels,cardLevelLabels,nextCardLevel,previewUpgradeCost,previewCardImageUrl,upgradeRevealMs,type CardLevel,type CardPreview} from '@/lib/cards/presentation';
 
 // 연출용으로 겹쳐 보이는 카드 위치. 실제 소모 장수와 무관한 장식이다.
 const gatherOffsets=[[-72,-36,-12],[72,-28,10],[-60,52,8],[64,60,-9],[0,-84,4]] as const;
-function prefersReducedMotion(){return typeof window!=='undefined'&&typeof window.matchMedia==='function'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;}
 
 type Phase='confirm'|'revealing'|'result';
 

@@ -14,6 +14,15 @@ export const previewCardImageUrl='https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r
 // 기본 강화 연출 시간(시안). 높은 등급일수록 길게 보여 주며 서버 확정 이후에만 재생한다.
 export const upgradeRevealMs:Record<Exclude<CardLevel,'basic'>,number>={rare:3000,legend:5000};
 
+// 뽑기 연출 시간(시안). 등급이 높을수록 박동이 늘어 기대감을 키운다. 결과는 이미 확정된 값을 공개할 뿐이다.
+export const drawRevealTiming={
+  introMs:600,
+  beatMs:800,
+  beats:{basic:2,rare:3,legend:4} as Record<CardLevel,number>,
+  autoRevealMs:6000,
+  flipMs:700,
+};
+
 export type CardPreview = {
   id:string;
   name:string;
