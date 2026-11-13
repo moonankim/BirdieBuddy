@@ -38,7 +38,7 @@
 @import '../design-system/app.css';
 ```
 
-- `design-system/app.css`가 `tokens.css`, `club.css`, `states.css`와 `card.css`(components 레이어)를 직접 불러옵니다.
+- `design-system/app.css`가 `tokens.css`, `club.css`, `states.css`와 `card.css`·`chat.css`(components 레이어)를 직접 불러옵니다.
 - `app/design-system.css`는 기존 화면 호환용입니다. 신규 공통 구성요소는 `design-system/app.css`에 추가하고 화면별로 복제하지 않습니다.
 - `design-system/styles.css`, `foundation.css`, `.phone`, `.sample-*`는 시안 전용입니다. 앱에 통째로 import하거나 휴대폰 외곽 프레임을 실제 화면에 옮기지 않습니다.
 - `app.css`의 공통 구성요소는 `components` 레이어, `club.css`·`states.css`는 일반 규칙입니다. 유틸리티가 항상 덮어쓴다고 가정하지 말고 충돌 시 원본의 역할과 선택자를 확인합니다.
@@ -69,6 +69,7 @@
 | 소속·유형 표시 | `.bb-tag` | 인증 유형과 카드 유형을 혼동하지 않음 |
 | 배너·강조 | `.bb-band`·`.bb-feature` | 채팅·설정 본문에는 사선·골드를 쓰지 않음 |
 | 상태·오류 | 기존 `--status-error`·`StatusPanel` | 등급 레드(`--grade-rare-*`)를 오류 색으로 쓰지 않음 |
+| 읽음 상태(구분선·안 읽은 수·NEW·최신 이동) | `chat.css`의 `.bb-read-divider`·`.bb-count-badge`·`.bb-new-badge`·`.bb-jump-latest` | 시안 완료(2026-11-13). 임시 클래스 교체표는 [개발 적용 가이드](./DEVELOPMENT.md#채팅-읽음-상태-표시-2026-11-13-자성p-요청-v3-35) |
 
 체크리스트: 모바일 390px 줄바꿈, 44px 조작 영역, 포커스, 대비, 동작 줄이기, `lint`·`test:ui`·`build`.
 
@@ -80,6 +81,7 @@
 - `/assets/avatar-default.svg`: `public/assets/avatar-default.svg` 단일 원본. 메시지 32px·목록 44px·설정 72px. 이름이 옆에 있으면 `alt=""`를 사용합니다.
 - `design-system/assets/connection-error.svg`: 오류 샘플의 장식용 일러스트. 현재 public URL은 없습니다. 실제 라우트 적용 시 공개 제공 방법을 정하고 존재하지 않는 `/assets/connection-error.svg`를 참조하지 않습니다.
 - `design-system/assets/course-contours.svg`: club.css의 상대 URL로 불러오는 배너 장식.
+- 예전 카드 목업 스타일(`card-picture`·`portrait`·`peach`·`lavender`·`empty`)과 초상화용 토큰(`--art-*`)은 2026-11-13에 삭제했습니다(자성P v3 §4 요청). 앱은 `CardArtwork`(`.bb-card-art`), 정적 시안은 실제 카드 PNG(`.sample-card-art`)를 씁니다. `card-grid`·`card-tile`은 사용 중이라 유지합니다.
 - `design-system/assets/card-placeholder.svg`: 정적 시안용 이전 자리표시자. 민트 색상이 남아 있으므로 최신 최종 카드 아트로 취급하지 않습니다.
 
 카드 상세 구성요소는 `components/card/card-detail.tsx`, 최신 UI 표시 타입은 `lib/cards/presentation.ts`입니다. 현재 데이터 원본은 `app/(user)/_mock/cards.ts`이며 CDN URL·보유 정보의 대체 데이터로 사용하지 않습니다. 수량이 충분한 상세는 강화 확인·결과 목업으로 연결합니다. 강화 구성요소는 `components/card/card-upgrade.tsx`, 시안 비용·목업 이미지·연출 시간은 `lib/cards/presentation.ts`의 `previewUpgradeCost`·`previewCardImageUrl`·`upgradeRevealMs`입니다. 결과는 화면 내 상태만 바꾸며 실제 요청·소유 수량·저장은 변경하지 않습니다. 구성요소 props·API 연결 시 교체 지점은 [카드 UI 인계](../docs/card-ui-handoff.md)를 따릅니다.

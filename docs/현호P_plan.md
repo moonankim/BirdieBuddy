@@ -41,6 +41,12 @@
 - 2026-11-13 사용자 결정: 컬렉션(`/collection`)은 API와 무관한 정적 도감(manifest 선수×등급 36장, 실제 아트, 미보유 흑백)으로, 보유 카드(`/collection/owned`)는 실제 데이터 화면으로 역할을 나눴습니다. 컬렉션의 수집 현황만 보유 조회 결과를 겹쳐 씁니다. PRD의 컬렉션 정의(getCollection 기반 템플릿 목록)와 다르며, `getCollection`의 미보유 0 채움은 화면 필수 요건에서 제외합니다.
 - 목록 필터를 select 그리드에서 디자인 시스템 칩·정렬 토글·현황 패널로 교체했습니다.
 
+### 채팅 읽음 상태 시안 (2026-11-13, 자성P v3 §3.5 요청)
+
+- "여기까지 읽었어요"의 구분선·안 읽은 수 배지(99+)·NEW 배지·"최신 메시지로" 버튼을 `design-system/chat.css`(`.bb-read-divider`·`.bb-count-badge`·`.bb-new-badge`·`.bb-jump-latest`)로 만들었습니다. foundation 페이지의 "읽음 상태" 절과 `sample/chat.html`·`sample/screens.html`(채팅방 목록·인박스)에 반영했습니다.
+- 자성P 코드의 임시 클래스를 교체하는 표는 `design-system/DEVELOPMENT.md`에 있습니다. 자성P 파일은 수정하지 않았습니다.
+- 자성P v3 §4 요청에 따라 쓰지 않는 예전 카드 목업 스타일(`card-picture`·`portrait`·`peach`·`lavender`·`empty`)과 `--art-*` 토큰을 삭제하고, 정적 시안의 초상화 자리표시자를 실제 카드 PNG로 교체했습니다.
+
 ### 뽑기 연출 목업 (2026-11-13)
 
 - 사용자 결정: 뒷면 카드 두근두근 박동 → 탭해서 3D 뒤집기, 등급 암시(박동 BASIC 2·RARE 3·LEGEND 4회, 흰빛·붉은 빛·골드, RARE 이상 반짝임, LEGEND 플래시·광택), 별도 목업 경로 `/draw/preview`.
