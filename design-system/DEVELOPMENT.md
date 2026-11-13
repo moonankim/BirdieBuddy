@@ -117,7 +117,7 @@ import {Icon} from '@/components/ui/icon';
 
 ## 로딩·오류·프로필 샘플
 
-`sample/states.html`에 화면 로딩, 버튼 처리 중, 연결 오류, 404와 프로필 예시가 있습니다. 실제 앱의 Spinner·Avatar·오류 라우트 적용은 별도입니다.
+`sample/states.html`에 화면 로딩, 버튼 처리 중, 연결 오류, 404와 프로필 예시가 있습니다. 앱에는 자성P가 연결했습니다(`bedf9d6`): Spinner, Avatar 기본 프로필, `app/error.tsx`·`app/not-found.tsx`의 `StatusScreen`.
 
 - `.bb-spinner`: 24px CSS 스피너. 버튼 안에서는 `.bb-spinner--small`로 16px을 사용합니다. 스피너는 `aria-hidden="true"`, 안내 컨테이너는 `role="status"`로 제공하며 읽을 수 있는 문구를 함께 둡니다. 중복 요청을 막을 버튼에는 `disabled`와 `aria-busy`를 사용합니다.
 - `.bb-status-screen`: 오류·404 샘플 레이아웃. 실제 비동기 오류 안내에는 적절한 alert를 제공하되 정적 샘플 전체를 live region으로 감싸지 않습니다.
