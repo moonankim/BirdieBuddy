@@ -47,6 +47,7 @@
 | 정렬 토글 | `<div class="bb-segmented" role="group" aria-label="정렬"><button aria-pressed="true">등급순</button>…` | 2~3개 선택지에만 사용 |
 | 현황 패널 | `.bb-stat` > `.bb-stat-label`·`.bb-stat-value`·`.bb-stat-sub`·`.bb-stat-progress`·`.bb-stat-grades` | 숫자는 포스터 글꼴, 등급별 수는 배지와 텍스트로 |
 | 미보유 아트 | `CardArtwork locked` → `data-state="locked"` 흑백·반투명 | 대체 텍스트에 "(미보유)", 화면에 "미보유" 텍스트 병기 |
+| 뽑기 연출 | `.bb-draw-stage[data-grade][data-phase]` > `.bb-draw-card`(button) > `.bb-draw-card-inner` > `.bb-draw-face--back`·`--front` | 단계 문구는 `role="status"`, 동작 줄이기 시 애니메이션 없음. 구성요소는 `CardDrawReveal` 사용 |
 | LEVEL 트랙 | 링크: `<nav class="bb-level-track"><a class="bb-level" data-grade aria-current="page"><span class="bb-level-tag">…</span><small>…</small></a>` · 표시만: `<ol class="bb-level-track"><li class="bb-level" aria-current="step">` | 현재 등급은 `aria-current`, 등급색·왕관 외에 텍스트·수량으로 구분 |
 | 사선 띠 | `class="bb-band" data-level="rare"` | 장식 의사 요소. 색은 `--band-color`로 조정 |
 

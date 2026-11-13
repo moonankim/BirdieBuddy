@@ -207,6 +207,12 @@
 </div>
 <div class="bb-segmented" role="group" aria-label="정렬 예시"><button type="button" aria-pressed="true">등급순</button><button type="button" aria-pressed="false">장수순</button></div>
 </div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-width:420px" aria-label="뽑기 연출 등급 암시 예시">
+<section class="bb-draw-stage" data-grade="basic" data-phase="ready" style="min-height:220px;padding:16px 8px;--beat-ms:800ms;--beats:1;--flip-ms:700ms" aria-label="BASIC 대기 예시"><span class="bb-draw-card" style="width:80%"><span class="bb-draw-card-inner"><span class="bb-draw-face bb-draw-face--back" aria-hidden="true"><span class="bb-draw-back-mark" style="font-size:32px">BB</span><span class="bb-draw-back-word" style="font-size:9px">Birdie Buddy</span></span></span></span><p class="bb-draw-status" style="font-size:12px">BASIC</p></section>
+<section class="bb-draw-stage" data-grade="rare" data-phase="ready" style="min-height:220px;padding:16px 8px;--beat-ms:800ms;--beats:1;--flip-ms:700ms" aria-label="RARE 대기 예시"><span class="bb-draw-card" style="width:80%"><span class="bb-draw-card-inner"><span class="bb-draw-face bb-draw-face--back" aria-hidden="true"><span class="bb-draw-back-mark" style="font-size:32px">BB</span><span class="bb-draw-back-word" style="font-size:9px">Birdie Buddy</span></span></span></span><p class="bb-draw-status" style="font-size:12px">RARE</p></section>
+<section class="bb-draw-stage" data-grade="legend" data-phase="ready" style="min-height:220px;padding:16px 8px;--beat-ms:800ms;--beats:1;--flip-ms:700ms" aria-label="LEGEND 대기 예시"><span class="bb-draw-card" style="width:80%"><span class="bb-draw-card-inner"><span class="bb-draw-face bb-draw-face--back" aria-hidden="true"><span class="bb-draw-back-mark" style="font-size:32px">BB</span><span class="bb-draw-back-word" style="font-size:9px">Birdie Buddy</span></span></span></span><p class="bb-draw-status" style="font-size:12px">LEGEND</p></section>
+</div>
+<p class="footnote">뽑기 연출 뒷면 카드와 등급 암시 빛(BASIC 흰빛·RARE 붉은 빛·LEGEND 골드)이야. 실제 순서는 떠오름 → 두근두근 → 탭 대기 → 뒤집기 → 결과이고, 앱의 <code>/draw/preview?grade=legend</code>에서 확인해.</p>
 <p class="footnote">실제 카드 아트(아이보리 바탕·딥그린 사선·세로 압축 이름·LEVEL 트랙)에서 가져온 패턴이야. 등급은 색과 함께 항상 BASIC·RARE·LEGEND 텍스트로 표시하고, 골드는 LEGEND와 왕관에만 써. 사선 띠는 장식이라 보조 기술에서 숨겨. 목록 필터는 select 대신 칩(등급 칩은 평행사변형·등급색), 정렬은 토글, 현황은 <code>bb-stat</code> 패널을 써. 스타일은 <code>card.css</code>, 색은 <code>tokens.css</code>의 <code>--grade-*</code>야.</p>
 </section>
 <section class="section">
