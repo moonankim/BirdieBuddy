@@ -35,7 +35,7 @@
 .bb-home .quick { border: 1px solid var(--border-subtle); box-shadow: 0 2px 0 var(--border-subtle); }
 .bb-home .section-head h2 { font-size: var(--type-heading); font-weight: 800; }
 .bb-home .card-tile h3, .bb-album .card-tile h3 { font-size: var(--type-body); font-weight: 800; }
-.bb-home .bb-card-art, .bb-album .bb-card-art, .bb-home .card-picture, .bb-album .card-picture { box-shadow: var(--shadow-card); }
+.bb-home .bb-card-art, .bb-album .bb-card-art { box-shadow: var(--shadow-card); }
 .bb-home .bb-card-art[data-state="image"], .bb-album .bb-card-art[data-state="image"] { border-radius: var(--card-radius); }
 .bb-home .bb-card-art[data-state="unowned"], .bb-album .bb-card-art[data-state="unowned"] { box-shadow: none; }
 .bb-album-summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2) var(--space-4); align-items: baseline; margin-top: var(--space-6); padding: var(--space-5); border: 1px solid var(--border-subtle); border-top: 3px solid var(--action-primary); border-radius: var(--radius-md); background: var(--surface-raised); box-shadow: var(--shadow-panel); }
