@@ -43,6 +43,10 @@
 | 자간 라벨 | `<p class="bb-eyebrow" aria-hidden="true">Level</p>`, 왼쪽 정렬은 `bb-eyebrow--start` | 영문 장식 라벨은 숨기고 의미는 주변 텍스트로 전달 |
 | 소속·등급 태그 | `<span class="bb-tag" data-grade="rare">KLPGA</span>` | 텍스트 필수 |
 | 3등급 배지 | `GradeBadge` 또는 `<span class="bb-badge" data-grade="legend">LEGEND</span>` | 이전 등급(common/epic/special)은 기존 알약형 유지 |
+| 칩 필터 | `<div class="bb-chip-group" role="group" aria-label="등급"><button class="bb-chip" data-grade="rare" aria-pressed="true">RARE</button>…` | 선택은 `aria-pressed`. 넘치면 가로 스크롤, 조작 영역 44px |
+| 정렬 토글 | `<div class="bb-segmented" role="group" aria-label="정렬"><button aria-pressed="true">등급순</button>…` | 2~3개 선택지에만 사용 |
+| 현황 패널 | `.bb-stat` > `.bb-stat-label`·`.bb-stat-value`·`.bb-stat-sub`·`.bb-stat-progress`·`.bb-stat-grades` | 숫자는 포스터 글꼴, 등급별 수는 배지와 텍스트로 |
+| 미보유 아트 | `CardArtwork locked` → `data-state="locked"` 흑백·반투명 | 대체 텍스트에 "(미보유)", 화면에 "미보유" 텍스트 병기 |
 | LEVEL 트랙 | 링크: `<nav class="bb-level-track"><a class="bb-level" data-grade aria-current="page"><span class="bb-level-tag">…</span><small>…</small></a>` · 표시만: `<ol class="bb-level-track"><li class="bb-level" aria-current="step">` | 현재 등급은 `aria-current`, 등급색·왕관 외에 텍스트·수량으로 구분 |
 | 사선 띠 | `class="bb-band" data-level="rare"` | 장식 의사 요소. 색은 `--band-color`로 조정 |
 
@@ -108,8 +112,8 @@ import {Icon} from '@/components/ui/icon';
 
 ## 목록 목업 구성과 연결 경계
 
-`CardCollection`은 전체/보유 두 모드에서 사용합니다. `owned`는 양수 수량의 템플릿·등급 조합을 표시하며 기본 정렬은 높은 등급순입니다. `templates`는 `CollectionTemplate[]`, `status`는 ready/loading/error, `onRetry`는 오류 안내의 재시도 콜백입니다. 미등록·전체 미보유(컬렉션은 템플릿을 유지하고 라운드 완료 안내)·필터 결과 없음은 구분합니다. 임의의 네트워크 지연이나 오류를 생성하지 않습니다.
+컬렉션(`/collection`)은 `CardCatalog`, 보유 카드(`/collection/owned`)는 `CardCollection`으로 화면을 분리했습니다. 두 화면은 `CardTabs`로만 오갑니다. `CardCatalog`는 정적 카드 목록(manifest의 선수×등급)을 전시하고 `ownership`(ready/loading/error) 상태로 보유 표시만 덧입힙니다. `CardCollection`은 `templates`·`status`(ready/loading/error)·`onRetry`를 받습니다. 임의의 네트워크 지연이나 오류는 만들지 않습니다.
 
-선수·유형·등급 필터와 정렬은 `lib/cards/collection.ts`를 사용합니다. 컬렉션의 등급 필터는 해당 등급을 표시 대상으로 선택하며 미보유 템플릿을 없애지 않습니다. 목록 링크는 `grade`를 상세·강화에 전달합니다. `from=owned` 복귀는 `/collection/owned`로 고정합니다.
+필터는 `ChipGroup`(등급·유형), 보유 카드의 선수 선택은 `.bb-filter-select`, 정렬은 `Segmented`(`components/card/card-controls.tsx`)를 사용합니다. 선택 규칙은 `lib/cards/collection.ts`의 `selectCatalog`·`selectOwned`를 따릅니다. 목록 링크는 `grade`를 상세·강화에 전달하고, 보유 카드에서 진입하면 `from=owned`로 `/collection/owned`에 복귀합니다.
 
-현재 `mockCollectionTemplates`는 CDN manifest에서 선수 식별자·유형만 가져오고 선수별 이미지는 요청하지 않습니다. 보유 카드에는 공통 목업 이미지, 미보유에는 실루엣을 사용합니다. 수량은 별도 UI 시나리오이며 실소유 데이터가 아닙니다. 사용자의 명시 지시로 API 연결은 제외했습니다. 실제 연결 시 백엔드의 3등급 계약 확정, 조회 실패 시 목업 대체 금지, 계정 전환 시 이전 수량 폐기와 강화 후 재조회가 필요합니다.
+현재 `mockCollectionTemplates`는 CDN manifest에서 선수 식별자·유형·등급별 이미지 URL(`imageUrls`)을 가져옵니다. 컬렉션은 실제 아트(미보유는 `CardArtwork locked` 흑백)를, 보유 카드·상세·강화는 공통 목업 이미지를 사용합니다. 수량은 별도 UI 시나리오이며 실소유 데이터가 아닙니다. 사용자의 명시 지시로 API 연결은 제외했습니다. 실제 연결 시 백엔드의 3등급 계약 확정, 조회 실패 시 목업 대체 금지, 계정 전환 시 이전 수량 폐기와 강화 후 재조회가 필요합니다.

@@ -14,8 +14,8 @@
 
 | 경로 | 구현 내용 |
 | --- | --- |
-| `/collection` | 미보유 포함 템플릿 목록·등급별 수량·수집 현황. 전체 미보유 시 라운드 완료 안내 |
-| `/collection/owned` | 양수 수량의 템플릿×등급 조합·보유 합계 |
+| `/collection` | **컬렉션(도감)**: 정적 카드 목록(manifest)의 선수×등급 전체 카드를 실제 아트로 전시. 보유 표시만 덧입히고 미보유는 흑백 |
+| `/collection/owned` | **보유 카드**: 양수 수량의 선수×등급 조합·보유 현황·필터·정렬·강화 진입. 실제 연결 대상 |
 | `/collection?tab=owned` | 기존 링크 호환용. `/collection/owned`로 이동 |
 | `/collection/[cardId]?grade=basic&from=owned` | 선택 등급의 상세·장수, 등급 전환, 미보유 표시, 인증 근거가 있을 때 배지 |
 | `/collection/upgrade?cardId=c2&grade=basic&from=owned` | 소모·획득·잔여·다음 등급 수량 확인 → 기본 강화 연출 → 결과 미리보기 |
@@ -26,7 +26,9 @@
 
 | 파일 | 역할 |
 | --- | --- |
-| `components/card/card-collection.tsx` | 전체/보유 목록·필터·정렬·상태 표시·강화 진입 |
+| `components/card/card-catalog.tsx` | 컬렉션(도감)·수집 현황·등급/유형 칩 필터 |
+| `components/card/card-collection.tsx` | 보유 카드 목록·칩 필터·선수 선택·정렬 토글·상태 표시·강화 진입 |
+| `components/card/card-controls.tsx` | `CardTabs`(컬렉션↔보유 카드), `ChipGroup`, `Segmented` |
 | `components/card/card-detail.tsx` | 카드 상세·등급 전환·미보유 표시 |
 | `components/card/card-upgrade.tsx` | 강화 확인·기본 강화 연출·일시적인 결과 미리보기 |
 | `lib/cards/presentation.ts` | 4유형·3등급 표시 타입, 다음 등급, 시안 비용·목업 이미지·연출 시간 상수 |
@@ -37,7 +39,8 @@
 
 | 구성요소 | props | 비고 |
 | --- | --- | --- |
-| `CardCollection` | `owned?`, `templates?`, `status?: 'ready'\|'loading'\|'error'`, `onRetry?` | `templates` 기본값은 목업. 실제 연결 시 조회 결과를 전달하고 실패를 목업으로 대체하지 않음 |
+| `CardCatalog` | `templates?`, `ownership?: 'ready'\|'loading'\|'error'`, `onRetryOwnership?` | 카드 목록은 정적. 보유 조회 실패 시에도 목록은 보이고 보유 표시만 숨김 |
+| `CardCollection` | `templates?`, `status?: 'ready'\|'loading'\|'error'`, `onRetry?` | `templates` 기본값은 목업. 실제 연결 시 조회 결과를 전달하고 실패를 목업으로 대체하지 않음 |
 | `CardDetail` | `card: CardPreview`, `counts?: Record<CardLevel, number>`, `returnToOwned?` | `counts`가 있을 때만 등급 전환 표시. `card.count===0`이면 미보유 표시 |
 | `CardUpgrade` | `card: CardPreview`, `nextCount?: number`, `returnToOwned?` | `nextCount`는 다음 등급의 현재 보유 수량. 없으면 해당 행을 숨김 |
 
@@ -51,12 +54,14 @@ UI 배지는 신규 basic/legend와 기존 common/epic/special을 함께 지원�
 
 ## 목록의 표시 규칙
 
-- 컬렉션은 미보유도 포함합니다. 등급 선택은 그 등급을 표시 대상으로 바꾸며 미보유 템플릿을 삭제하지 않습니다. 각 템플릿에서 세 등급 수량과 상세 진입을 제공합니다.
-- 보유 목록은 수량이 1장 이상인 조합만 표시합니다. 한 선수의 BASIC과 RARE는 별개 항목입니다.
-- 선수·유형·등급 필터와 등급 높은 순(기본)·장수 많은 순 정렬을 제공합니다. 컬렉션의 장수 정렬은 선택 등급의 수량, 등급 전체 선택 시 합계로 계산합니다. 획득 시각이 없으므로 최근 획득순은 제공하지 않습니다.
-- 수집한 종류는 양수 수량이 있는 템플릿 수, 전체 종류는 목록 길이입니다. 보유 합계는 등급별 수량을 합산합니다. 고정 3/12·이름 없는 미보유 카드 추가는 제거했습니다.
-- 충분한 수량과 다음 등급이 있는 조합만 목록·상세에서 강화 미리보기로 연결합니다.
-- 상태 구분: 등록 카드 없음, 컬렉션 전체 미보유(템플릿은 유지하고 라운드 완료 안내), 보유 카드 없음(라운드 완료 이동), 필터 결과 없음(필터 초기화), 로딩, 조회 오류/재시도. 현재 `status`·`onRetry`는 표시 인수용이며 실제 요청·인위적 지연/오류는 없습니다.
+**화면 분리 (2026-11-13 사용자 결정):** 컬렉션은 API와 무관한 정적 도감 화면, 보유 카드는 실제 데이터 화면으로 나눴습니다. PRD의 "컬렉션 = 미보유 포함 전체 템플릿(getCollection)"과 달리, 컬렉션의 카드 목록은 manifest가 원본입니다. 수집 현황은 보유 조회 결과(현재 목업)를 겹쳐 표시합니다. 따라서 `getCollection`의 미보유 0 채움은 화면 필수 요건이 아닙니다.
+
+- **컬렉션(`/collection`)**: 표시 단위는 선수×등급 카드(현재 12명×3 = 36장)입니다. 순서는 manifest 순·등급 순으로 고정하고 정렬은 두지 않습니다. 등급·유형 칩으로 거릅니다. 미보유 카드는 실제 아트를 흑백·반투명으로 보여 주고 "미보유"를 텍스트로 병기합니다. 현황은 모은 카드 n/36, 선수 n/12, 등급별 n/12입니다. 보유 조회가 실패하면 오류·재시도를 안내하되 목록은 유지하고 보유 표시(흑백·수량)만 숨깁니다.
+- **보유 카드(`/collection/owned`)**: 수량이 1장 이상인 선수×등급 조합만 표시하며, 한 선수의 BASIC과 RARE는 별개 항목입니다. 현황은 보유 합계·종류·등급별 장수입니다. 필터는 등급·유형 칩과 선수 선택(보유한 선수만)입니다. 정렬은 등급순(기본)·장수순 토글이며, 획득 시각이 없어 최근 획득순은 제공하지 않습니다. 필터 결과 없음에서 초기화해도 정렬은 유지합니다.
+- 필터 UI는 디자인 시스템 칩(`.bb-chip`, 등급 칩은 평행사변형·등급색)·정렬 토글(`.bb-segmented`)·현황 패널(`.bb-stat`)을 사용합니다. 입력 폼용 select 그리드는 사용하지 않습니다.
+- 충분한 수량과 다음 등급이 있는 조합만 보유 목록·상세에서 강화 미리보기로 연결합니다.
+- 상태 구분: 등록 카드 없음, 컬렉션 전체 미보유(라운드 완료 안내), 보유 카드 없음(라운드 완료 이동), 필터 결과 없음(필터 초기화), 로딩, 조회 오류/재시도. `status`·`ownership`·`onRetry`는 표시 인수용이며 실제 요청은 없습니다.
+- 이미지: 컬렉션은 manifest의 등급별 실제 아트, 보유 카드·상세·강화 목업은 공통 이미지(`previewCardImageUrl`)입니다. 상세·강화의 실제 아트 연결은 후속입니다.
 
 ## 카드 상세 규칙
 
@@ -101,10 +106,11 @@ UI 배지는 신규 basic/legend와 기존 common/epic/special을 함께 지원�
 
 `tests/ui/unit/card-collection.test.tsx`, `card-detail.test.tsx`, `card-upgrade.test.tsx`가 다음을 검증합니다.
 
-- 목록: 표시 단위, 필터/정렬, 수집 계산, 0장 제외, 전체 미보유 안내, 등급별 진입, 보유 카드에만 공통 CDN 이미지 사용
+- 컬렉션: 36장 전시·실제 아트·미보유 흑백, 수집 현황, 등급/유형 칩, 보유 조회 실패 시 목록 유지, 전체 미보유·등록 없음
+- 보유 카드: 양수만·등급순 기본, 칩·선수 선택·정렬 토글 조합과 필터만 초기화, 보유 선수만 선택지, 빈 상태·오류·로딩
 - 상세: 등급 전환, 미보유 표시, 카드 없음, 복귀 경로
 - 강화: 확인/결과, 등급별 연출 시간, 건너뛰기, 동작 줄이기, 이탈 시 타이머 정리, 다음 등급 수량
 
-실행 명령은 `npm run test:ui`, `npm run build`, `npm run lint`, `npm run typecheck:ui`이며 타입 검사는 빌드와 동시에 실행하지 않습니다. 2026-11-12 기준 UI 테스트 203개 통과, 타입 검사·빌드 성공, lint 오류 없음(기존 파일 경고 4건)입니다.
+실행 명령은 `npm run test:ui`, `npm run build`, `npm run lint`, `npm run typecheck:ui`이며 타입 검사는 빌드와 동시에 실행하지 않습니다. 2026-11-13 기준 UI 테스트 208개 통과, 타입 검사·빌드 성공, lint 오류 없음(기존 파일 경고 4건)입니다.
 
 브라우저·미리보기는 열지 않았습니다. 연출과 CDN 이미지의 실제 렌더링, 모바일 육안 검수, 실제 로그인 사용자의 카드 API 연동과 원격 배포는 미검증입니다. 기본 이미지 URL은 curl Range 요청으로 HTTP 206·image/png 응답만 확인했습니다.

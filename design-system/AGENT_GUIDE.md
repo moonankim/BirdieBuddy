@@ -84,7 +84,7 @@
 
 카드 상세 구성요소는 `components/card/card-detail.tsx`, 최신 UI 표시 타입은 `lib/cards/presentation.ts`입니다. 현재 데이터 원본은 `app/(user)/_mock/cards.ts`이며 CDN URL·보유 정보의 대체 데이터로 사용하지 않습니다. 수량이 충분한 상세는 강화 확인·결과 목업으로 연결합니다. 강화 구성요소는 `components/card/card-upgrade.tsx`, 시안 비용·목업 이미지·연출 시간은 `lib/cards/presentation.ts`의 `previewUpgradeCost`·`previewCardImageUrl`·`upgradeRevealMs`입니다. 결과는 화면 내 상태만 바꾸며 실제 요청·소유 수량·저장은 변경하지 않습니다. 구성요소 props·API 연결 시 교체 지점은 [카드 UI 인계](../docs/card-ui-handoff.md)를 따릅니다.
 
-목록의 공통 구성은 `components/card/card-collection.tsx`, 필터·정렬·합산 규칙은 `lib/cards/collection.ts`, 목업 원본은 `mockCollectionTemplates`입니다. 컬렉션은 전체 템플릿, `/collection/owned`는 양수 템플릿×등급입니다. `status`와 `onRetry`는 로딩·오류 표시 인수용이며 실제 API를 호출하지 않습니다. 사용자가 이번 목록 개선에서 API 연결을 명시적으로 제외했습니다.
+컬렉션(`/collection`)은 정적 도감 `components/card/card-catalog.tsx`, 보유 카드(`/collection/owned`)는 `components/card/card-collection.tsx`로 분리했습니다. 필터는 칩·정렬 토글·현황 패널(`card.css`의 `.bb-chip`·`.bb-segmented`·`.bb-stat`)을 쓰고 select 그리드는 쓰지 않습니다. 필터·정렬·합산 규칙은 `lib/cards/collection.ts`, 목업 원본은 `mockCollectionTemplates`입니다. 컬렉션 카드 목록은 manifest 기반 정적 데이터이며, API 연결 대상은 보유 수량뿐입니다.
 
 ## 담당자별 적용 경계
 
