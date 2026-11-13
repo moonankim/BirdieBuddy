@@ -1443,9 +1443,17 @@ docs/홍주P_plan.md 계약 1.6의 §§6~9·12·15와 내 담당 *_plan.md를 �
 
 ### 15.10 2026-11-13 — main PR #33/#34 병합 및 B-18 읽음 상태 backend
 
-- 병합: `origin/main`의 `1c34f94`를 `feature/hongjoo`에 merge commit `7dfc231`로 반영했다. 충돌은 없었다. PR #33/#34는 카드 이미지 생성 가이드와 자성P v3 계획 문서이며 runtime 변경은 없다. push·PR 생성은 하지 않았다.
+- 병합: `origin/main`의 `1c34f94`를 `feature/hongjoo`에 merge commit `7dfc231`로 반영했다. 충돌은 없었다. PR #33/#34는 카드 이미지 생성 가이드와 자성P v3 계획 문서이며 runtime 변경은 없다.
 - 담당 범위: 새 v3 계약에서 홍주P 담당인 팬 방별 읽음 cursor, 인플루언서 inbox 확인 cursor, 방 unread count, 질문 NEW를 B-18로 반영했다. 앱 화면과 시연 계획은 수정하지 않았다.
 - 구현: `20261113011530_read_state_checkpoints.sql`에 private cursor 테이블과 본인 행 RLS, 최소 권한 RPC를 추가했다. 팬 unread는 삭제/본인 메시지를 제외하고 `can_read_message`의 현재·과거 입장 기간 및 본인 답변 예외를 적용한다. 첫 방문은 0건/구분선 없음이며 null mark는 방문 상태를 저장한다. Inbox NEW는 열린 현재 입장 기간의 미답변 질문으로 계산하고 priority page 밖까지 포함하는 snapshot high-water를 반환한다. cursor는 큰 ID 방향으로만 전진한다.
 - SDK/계약: `BackendApi`에 네 read-state 메서드와 반환 타입을 추가하고 `getRooms()`에 선택적 unread count를 결합했다. count RPC 실패 시 방 목록은 유지하고 count만 null로 둔다. 목 SDK는 타입 호환 값을 반환한다. 자성P v3의 제안은 그대로 보존하고 구현 source로 삼았으며, 홍주P 계획·공통 architecture·verification matrix를 갱신했다.
 - 정적 보완: `markInboxChecked`가 오래된/비활성 입장 기간의 통과 질문 ID로 새 cursor를 건너뛰지 못하게 검사한다. 이미 저장된 cursor 이하 재시도는 이후 팬 membership 변경 뒤에도 허용한다.
 - 미실행: 테스트 추가/실행, typecheck/build, migration local 적용, local Supabase, 브라우저·UI, hosted read/write와 migration 배포는 수행하지 않았다. 새 migration은 local/hosted 어디에도 적용되지 않았다. 기존 검증 결과를 이번 코드의 증거로 재사용하지 않는다.
+
+### 15.11 2026-11-13 — main PR #35 카드 UI 후속 담당 대조
+
+- 병합: `origin/main`의 `4c40929` (PR #35)를 `feature/hongjoo`에 merge commit `b45510e`로 반영했다. 충돌은 없었다. 홍주P B-18 구현은 직전 feature commit `4b1f664`에 커밋되어 있다.
+- main 변경의 성격: PR #35는 카드 상세·강화·컬렉션 목업과 디자인 시스템을 보완했다. `docs/card-ui-handoff.md`는 `/collection`을 manifest 기반 정적 도감, `/collection/owned`를 실제 API 연결 대상으로 구분하지만 이번 UI 단계에서 API 연결은 제외한다고 명시한다. 현재 카드 화면의 장수/결과는 목업이며 이 PR은 DB/RLS/BackendApi 계약을 바꾸지 않았다.
+- 홍주P 담당 대조: 기존 `getOwnedCards`, `upgradeCard`, `getGameConfig`는 스타일·4등급 schema를 반환한다. 신규 카드 규격에 맞추려면 카드 전용 `cardType`/인물 key/등급별 R2 URL, template UUID 관계, 보유·강화 응답과 SQL migration이 필요하다. 그러나 이번 PR은 이를 요청하지 않았고, 현재 card-spec의 UUID 매핑·3등급 확률·구 등급 보유량 이관·스타일 기반 점수/배지/입장 대체 규칙도 미확정이다. 이 결정을 추정해 schema·seed·RPC·SDK를 바꾸지 않는다.
+- 협업/담당 경계: 현호P는 manifest 인물·유형 목록을 확정하고 자성P는 API 연동 단계·화면 소비를 맡는다. 문환P와 제품 담당자는 등급 확률·강화 규칙·보상 정책을 확정해야 한다. 이후 홍주P가 기존 계정 영향과 이관안을 설계한다. 다른 담당자 계획·코드는 수정하지 않았다.
+- 검증 범위: latest main 변경과 backend 계약·담당 handoff를 정적으로 대조했다. PR 문서에 기재된 upstream UI 208 tests·typecheck·build·lint 결과는 이번 branch에서 재실행하지 않았다. 테스트, typecheck/build, local/hosted Supabase, browser/API integration, 원격 변경은 수행하지 않았다. `git diff --check`만 확인했다.
