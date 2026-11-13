@@ -67,7 +67,7 @@ describe('카드 상세 주소',()=>{
   it('목록의 선택 카드만 표시하고 외부 복귀 주소를 받지 않는다',async()=>{
     const page=await CardDetailPage({params:Promise.resolve({cardId:'c2'}),searchParams:Promise.resolve({from:'https://example.com'})});
     render(page);
-    expect(screen.getByRole('heading',{level:1,name:'heo_in_saeng'})).toBeInTheDocument();
+    expect(screen.getByRole('heading',{level:1,name:'허인생'})).toBeInTheDocument();
     expect(screen.getByRole('link',{name:'컬렉션으로'})).toHaveAttribute('href','/collection');
   });
 });

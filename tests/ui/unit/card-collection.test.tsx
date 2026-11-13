@@ -34,7 +34,7 @@ describe('컬렉션(도감) — 정적 카드 목록',()=>{
     expect(screen.getAllByRole('article')).toHaveLength(12);
     fireEvent.click(within(screen.getByRole('group',{name:'유형'})).getByRole('button',{name:'KLPGA'}));
     expect(screen.getAllByRole('article')).toHaveLength(3);
-    expect(screen.getByRole('link',{name:'hwang_yu_ja RARE 카드 상세 보기'})).toHaveAttribute('href','/collection/preview-klpga-hwang_yu_ja?grade=rare');
+    expect(screen.getByRole('link',{name:'황유자 RARE 카드 상세 보기'})).toHaveAttribute('href','/collection/preview-klpga-hwang_yu_ja?grade=rare');
   });
   it('보유 현황 조회가 실패해도 카드 목록은 유지하고 보유 표시만 숨긴다',()=>{
     const retry=vi.fn();
@@ -65,13 +65,13 @@ describe('보유 카드',()=>{
     expect(screen.getByRole('region',{name:'보유 현황 (예시)'})).toHaveTextContent('17장');
     expect(screen.getByText('4종 보유')).toBeInTheDocument();
     expect(screen.getByRole('link',{name:'공태풍 BASIC 카드 상세 보기'})).toHaveAttribute('href','/collection/c1?grade=basic&from=owned');
-    expect(screen.getByRole('link',{name:'heo_in_saeng BASIC 강화 미리보기'})).toHaveAttribute('href','/collection/upgrade?cardId=c2&grade=basic&from=owned');
+    expect(screen.getByRole('link',{name:'허인생 BASIC 강화 미리보기'})).toHaveAttribute('href','/collection/upgrade?cardId=c2&grade=basic&from=owned');
   });
   it('칩 필터·선수 선택·정렬 토글을 조합하고 필터만 초기화한다',()=>{
     render(<CardCollection/>);
     fireEvent.click(screen.getByRole('button',{name:'장수순'}));
     expect(screen.getByRole('button',{name:'장수순'})).toHaveAttribute('aria-pressed','true');
-    expect(screen.getAllByRole('article')[0]).toHaveTextContent('heo_in_saeng');
+    expect(screen.getAllByRole('article')[0]).toHaveTextContent('허인생');
     fireEvent.change(screen.getByRole('combobox',{name:'선수'}),{target:{value:'c1'}});
     expect(screen.getAllByRole('article')).toHaveLength(2);
     fireEvent.click(within(screen.getByRole('group',{name:'유형'})).getByRole('button',{name:'G투어'}));
