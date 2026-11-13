@@ -319,6 +319,42 @@
 <div class="field disabled-field"><label for="foundation-disabled">표시 이름 · 사용 불가 예시</label><input class="input" id="foundation-disabled" value="심사 중에는 변경할 수 없어요" disabled></div>
 <p class="footnote">모션은 상태 피드백 120ms부터 시작하고, 동작 줄이기 설정에서는 전환·회전을 생략해. 라이트 테마 초안이며 다크 테마는 별도 검토가 필요해.</p>
 </section>
+<section class="foundation-section" aria-labelledby="read-state-title">
+<div class="foundation-heading">
+<div>
+<span class="eyebrow">읽음 상태</span>
+<h2 id="read-state-title">어디까지 읽었는지 한눈에</h2>
+</div>
+<p>"여기까지 읽었어요" 기능의 구분선·안 읽은 수·NEW·최신 이동을 같은 딥그린 체계로 표시해. 색만으로 전달하지 않고 항상 글자를 함께 써.</p>
+</div>
+<div class="state-grid">
+<div>
+<h3>읽은 위치 구분선</h3>
+<ul style="margin:0;padding:0">
+<li class="bb-read-divider" role="separator" aria-label="여기까지 읽었어요"><span>여기까지 읽었어요</span></li>
+</ul>
+<p class="footnote">첫 안 읽은 메시지 바로 위에 한 번만 둬. 채팅방을 처음 열 때 위치를 정하고, 새 메시지가 와도 움직이지 않아. <code>.bb-read-divider</code></p>
+</div>
+<div>
+<h3>안 읽은 수 · NEW</h3>
+<div class="component-row">
+<span class="bb-count-badge" aria-label="안 읽은 메시지 1개">1</span>
+<span class="bb-count-badge" aria-label="안 읽은 메시지 12개">12</span>
+<span class="bb-count-badge" aria-label="안 읽은 메시지 99개 이상">99+</span>
+<span class="bb-new-badge">NEW</span>
+</div>
+<p class="footnote">숫자는 채운 배지, NEW는 테두리 배지로 구분해. 0이나 값 없음이면 배지를 그리지 않아. 보유 배지(버디 등)와 섞어 쓰지 않아. <code>.bb-count-badge</code> <code>.bb-new-badge</code></p>
+</div>
+<div>
+<h3>최신 메시지로 이동</h3>
+<div class="component-row">
+<button class="bb-jump-latest" type="button" style="position:static">최신 메시지로 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14m-6-6 6 6 6-6"/></svg></button>
+<button class="bb-jump-latest" type="button" style="position:static" aria-label="최신 메시지로, 새 메시지 3개">최신 메시지로 <span class="bb-count-badge" aria-hidden="true">3</span></button>
+</div>
+<p class="footnote">맨 아래가 아닐 때만 목록 하단에 떠 있어. 누르면 최신 메시지로 이동하고 사라져. 새 메시지 수는 선택 사항이야. <code>.bb-jump-latest</code></p>
+</div>
+</div>
+</section>
 <footer class="foundation-footer">
 <span>BirdieBuddy Design System · Foundation</span>
 <span>초안 · 제품 적용 전 검토 필요</span>

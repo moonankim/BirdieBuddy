@@ -16,7 +16,7 @@
     <h1>화면과 상태</h1>
     <p>발급 결과부터 인박스와 운영 화면까지 공통 컴포넌트를 적용한 예시야.</p>
     <p class="footnote">가상 데이터로 구성한 정적 시안이야. 버튼은 실제 발급·전송·저장을 하지 않아.</p>
-    <nav class="screen-list" aria-label="화면 바로가기"><a class="screen-link" href="#result">발급 결과</a><a class="screen-link" href="#upgrade">강화</a><a class="screen-link" href="#inbox">인박스</a><a class="screen-link" href="#states">상태·설정</a></nav>
+    <nav class="screen-list" aria-label="화면 바로가기"><a class="screen-link" href="#result">발급 결과</a><a class="screen-link" href="#upgrade">강화</a><a class="screen-link" href="#rooms">채팅방 목록</a><a class="screen-link" href="#inbox">인박스</a><a class="screen-link" href="#states">상태·설정</a></nav>
   </div>
   <div class="sample-screens">
     <section class="sample-screen" id="result">
@@ -45,12 +45,22 @@
         <p class="footnote">버튼은 시안에서 비활성화되어 있어. 비용과 수량은 실제 서버 설정과 응답을 사용해.</p>
       </div></div>
     </section>
+    <section class="sample-screen" id="rooms">
+      <h2>채팅방 목록</h2>
+      <div class="phone"><div class="content sample-stack">
+        <h3 class="page-title">채팅</h3>
+        <article class="sample-panel"><div class="sample-meta"><span class="avatar">서</span><strong>서윤 프로</strong><span class="badge">인증됨</span><span class="bb-count-badge" aria-label="안 읽은 메시지 3개">3</span></div><p class="muted">퍼팅은 어깨 회전을 일정하게…</p></article>
+        <article class="sample-panel"><div class="sample-meta"><span class="avatar">민</span><strong>민준 프로</strong><span class="badge">인증됨</span><span class="bb-count-badge" aria-label="안 읽은 메시지 99개 이상">99+</span></div><p class="muted">오늘 라운드 다들 어땠나요?</p></article>
+        <article class="sample-panel"><div class="sample-meta"><span class="avatar">하</span><strong>하린 프로</strong><span class="badge">인증됨</span></div><p class="muted">안 읽은 메시지가 없으면 배지를 표시하지 않아요.</p></article>
+      </div></div>
+    </section>
     <section class="sample-screen" id="inbox">
       <h2>인박스</h2>
       <div class="phone"><div class="content sample-stack">
         <p class="muted">서윤 프로의 채팅방</p><h3 class="page-title">받은 질문</h3>
-        <article class="sample-panel"><div class="sample-meta"><span class="badge birdie">버디</span><span class="muted">개별 질문</span></div><h3>드라이버 연습은 어떻게 시작하면 좋을까요?</h3><button class="button outline" type="button" disabled>답변하기</button></article>
-        <article class="sample-panel"><div class="sample-meta"><span class="badge">묶인 질문</span><span class="muted">질문자 3명</span></div><h3>퍼팅 거리를 일정하게 맞추는 연습법이 궁금해요.</h3>
+        <p class="notice" role="status">지난 확인 이후 새 질문 <span class="bb-count-badge">2</span>건</p>
+        <article class="sample-panel"><div class="sample-meta"><span class="bb-new-badge">NEW</span><span class="badge birdie">버디</span><span class="muted">개별 질문</span></div><h3>드라이버 연습은 어떻게 시작하면 좋을까요?</h3><button class="button outline" type="button" disabled>답변하기</button></article>
+        <article class="sample-panel"><div class="sample-meta"><span class="bb-new-badge">NEW</span><span class="badge">묶인 질문</span><span class="muted">질문자 3명</span></div><h3>퍼팅 거리를 일정하게 맞추는 연습법이 궁금해요.</h3>
           <details class="sample-details"><summary>원래 질문 보기</summary><ul><li>퍼팅 거리를 맞추는 연습을 알려 주세요.</li><li>롱 퍼팅 거리감은 어떻게 익히나요?</li><li>집에서도 거리 연습을 할 수 있나요?</li></ul></details>
           <button class="button outline" type="button" disabled>묶음에 답변하기</button>
         </article>

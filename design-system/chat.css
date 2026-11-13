@@ -1,0 +1,24 @@
+/* 채팅 "여기까지 읽었어요" 읽음 상태 표시. 앱(app.css, components 레이어)과 정적 시안(styles.css)이 공유한다.
+   채팅·인박스는 글 위주 화면이므로 카드 언어(포스터 글꼴·사선·골드)를 쓰지 않고 딥그린 의미 토큰만 사용한다.
+   상태는 색만으로 전달하지 않고 항상 텍스트(여기까지 읽었어요·숫자·NEW)와 접근 가능한 이름을 함께 둔다. */
+
+/* 1. 읽은 위치 구분선: 메시지 목록 사이의 <li role="separator">. 양쪽 선 + 가운데 라벨. */
+.bb-read-divider { display: flex; align-items: center; gap: var(--space-3); margin: var(--space-4) 0; list-style: none; color: var(--text-accent); font: 700 var(--type-caption)/1.4 var(--font); }
+.bb-read-divider::before, .bb-read-divider::after { content: ""; flex: 1; height: 1px; background: var(--green-6); }
+.bb-read-divider > span { flex: 0 0 auto; padding: 2px var(--space-3); border: 1px solid var(--green-4); border-radius: var(--radius-pill); background: var(--surface-subtle); }
+
+/* 2. 안 읽은 수 배지: 방 목록 등. 99를 넘으면 "99+". 0·null이면 렌더링하지 않는다. */
+.bb-count-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--radius-pill); background: var(--action-primary); color: var(--text-inverse); font: 700 11px/1 var(--font); font-variant-numeric: tabular-nums; letter-spacing: 0; white-space: nowrap; }
+
+/* 3. NEW 배지: 지난 확인 이후 새 항목(인박스 질문 등). 채운 숫자 배지와 구분되도록 테두리형. */
+.bb-new-badge { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border: 1px solid var(--green-6); border-radius: var(--radius-sm); background: var(--surface-subtle); color: var(--green-11); font: 600 11px/1 var(--font-label); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+
+/* 4. 최신 메시지로 이동 버튼: 목록 하단에 떠 있는 알약형 버튼. 맨 아래에 있으면 숨긴다(렌더링 안 함).
+   선택적으로 안에 .bb-count-badge로 새 메시지 수를 붙일 수 있다. */
+.bb-jump-latest { position: sticky; bottom: var(--space-3); z-index: 2; display: flex; width: fit-content; margin-inline: auto; align-items: center; justify-self: center; align-self: center; gap: var(--space-2); min-height: var(--touch-target); padding: 0 var(--space-4); border: 1px solid var(--border-subtle); border-radius: var(--radius-pill); background: var(--surface-raised); color: var(--text-accent); box-shadow: var(--shadow-panel), 0 6px 16px rgb(6 42 25 / 12%); font: 700 var(--type-label)/1 var(--font); cursor: pointer; touch-action: manipulation; animation: bb-jump-in var(--motion-card) var(--ease-feedback) both; }
+.bb-jump-latest .bb-icon, .bb-jump-latest .icon { width: var(--icon-sm); height: var(--icon-sm); }
+.bb-jump-latest:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
+.bb-jump-latest:active { background: var(--surface-subtle); }
+@media (hover: hover) { .bb-jump-latest:hover { background: var(--surface-subtle); } }
+@keyframes bb-jump-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .bb-jump-latest { animation: none; } }

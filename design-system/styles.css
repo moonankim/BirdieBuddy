@@ -6,6 +6,7 @@
 @import url("./club.css");
 @import url("./states.css");
 @import url("./card.css");
+@import url("./chat.css");
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 body { margin: 0; background: var(--surface-page); color: var(--text-primary); font: var(--type-body)/var(--line-body) var(--font); -webkit-font-smoothing: antialiased; }
