@@ -600,6 +600,8 @@ lib/ai/tests/data/                           기존 4개 + influencer-message-se
 | A-08 | 검증 세트 73/73, 시연 7/7, 인플루언서 정상 오탐 0, 안내문 확정 | 레포 로컬 실호출, 2026-11-12 | 조정 세트 수치는 독립 검증 아님. 우회 샘플은 에이전트가 구성 |
 | A-09 | pgTAP 113건(3파일, `complete_round_issue_card` 포함) 통과. SDK `completeRound` 3회 성공·재요청 같은 응답·라운드당 `draws` 1건, 권한 없는 강제 등급은 `FORBIDDEN`. 분포 693/198/77/32로 3σ 안(2026-11-11) | 레포 로컬, 2026-11-12 | `verify:backend` 전 구간(R12에서 멈춤), 원격 적용 |
 
+**레포 로컬 Edge 실호출 (T-04 로컬 대체, 2026-11-13):** 로컬 Supabase Edge를 실제 키로 띄워 SDK 경로로 확인했다. `ai_fallback` 0건, 시연 문장 7행 모두 기대 판정, 인플루언서 경로(정상 저장·협박 차단), `clusterQuestions` 2.4초·`summarizeRoom` 3.7초 성공. R9의 Edge `suggest`·인플루언서 경로·실제 키 확인과 A-04·A-05의 Edge 경유 확인에 해당한다. hosted T-04는 운영 계정이 없어 미실행이라 체크리스트는 그대로 둔다. 상세는 검증 기록 2026-11-13 행.
+
 **시연 문장 실제 판정 (U-01 전달용, 후속 조정 2회차, 2026-11-11, 샌드박스 Deno 실호출)**
 
 `demo-messages.json` 행 순서다.
