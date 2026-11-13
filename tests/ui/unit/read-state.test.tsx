@@ -186,3 +186,24 @@ describe('room list entry link', () => {
     expect(await screen.findByRole('link', { name: /들어가기/ })).toHaveAttribute('href', '/chat/room-1');
   });
 });
+
+describe('room list order', () => {
+  it('lists the room in use first, then rooms that can be entered, then the rest in server order', async () => {
+    const api = createMockChatApi();
+    const getRooms = api.getRooms.bind(api);
+    api.getRooms = async () => {
+      const result = await getRooms();
+      if (!result.ok) return result;
+      const [active, ...others] = result.data.items; // room-1 입장 중
+      const eligible = { ...others[4], canJoin: true, joinReason: 'eligible' as const };
+      const rejoin = { ...others[2], canJoin: true, joinReason: 'eligible' as const, membership: { ...active.membership!, status: 'left' as const } };
+      // 서버 순서: 불가 → 재입장 가능 → 불가 → 입장 중 → 입장 가능
+      return { ok: true, data: { ...result.data, items: [others[0], rejoin, others[1], active, eligible] } };
+    };
+    renderApp(<ChatListPage />, api, 'userB');
+    await screen.findByRole('link', { name: /들어가기/ });
+    const names = screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent?.replace('인증됨', '').trim());
+    expect(names).toEqual(['인플루언서 1', '인플루언서 4', '인플루언서 6', '인플루언서 2', '인플루언서 3']);
+  });
+});
+
