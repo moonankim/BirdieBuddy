@@ -101,6 +101,7 @@ UI 배지는 신규 basic/legend와 기존 common/epic/special을 함께 지원�
 | 등급 암시 | 박동 BASIC 2·RARE 3·LEGEND 4회, `data-grade`별 빛 색, RARE 이상 반짝임, LEGEND 플래시·광택 |
 | 접근성 | 단계 문구 `role="status"`, 카드는 ready 단계에서만 열리는 버튼, 건너뛰기, 동작 줄이기 시 결과만, 결과 제목 포커스 |
 | 목업 데이터 | `app/(user)/_mock/draw.ts`: 김홍차(manifest 실제 아트), 보유 장수는 목업 +1 |
+| 진입점 | `/draw`의 결과 없음 화면과 결과 화면 하단 링크 "새 뽑기 연출 미리보기 (목업)"(`PreviewLink`). 연출을 `/draw`에 적용하면 링크와 `/draw/preview`를 제거 |
 
 연결 기준: 새 3등급 SDK 전환 시 `/draw`는 `completeRound` 결과를 `DrawRevealResult`로 바꿔 `CardDrawReveal`에 넘깁니다. 처음 도착했을 때만 연출하고, 새로고침·재진입이면 결과만 보여 줍니다(예: 세션 저장소에 공개 완료 표시). 연출·탭·건너뛰기·이탈은 결과를 바꾸지 않고 새 발급을 하지 않습니다.
 

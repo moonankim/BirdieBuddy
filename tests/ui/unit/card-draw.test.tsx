@@ -5,8 +5,11 @@ import {CardDrawReveal} from '@/components/card/card-draw-reveal';
 import {mockDrawResult} from '@/app/(user)/_mock/draw';
 import {drawRevealTiming} from '@/lib/cards/presentation';
 import DrawPreviewPage from '@/app/(user)/draw/preview/page';
+import DrawPage from '@/app/(user)/draw/page';
+import {createMockChatApi} from '@/components/chat/api/mock';
+import {renderApp} from '../helpers/render-app';
 
-vi.mock('next/navigation',()=>({notFound:()=>{throw new Error('NOT_FOUND');}}));
+vi.mock('next/navigation',()=>({notFound:()=>{throw new Error('NOT_FOUND');},useRouter:()=>({push:vi.fn(),replace:vi.fn()}),usePathname:()=>'/draw'}));
 vi.mock('@/components/chat/shell',()=>({Guard:({children}:{children:ReactNode})=><>{children}</>}));
 afterEach(()=>{vi.useRealTimers();vi.unstubAllGlobals();});
 
@@ -92,5 +95,14 @@ describe('뽑기 연출 미리보기 주소',()=>{
     expect(screen.getByRole('region',{name:'카드 공개'})).toHaveAttribute('data-grade','rare');
     expect(screen.getByRole('link',{name:'RARE'})).toHaveAttribute('aria-current','page');
     await expect(DrawPreviewPage({searchParams:Promise.resolve({grade:'epic'})})).rejects.toThrow('NOT_FOUND');
+  });
+});
+
+describe('뽑기 연출 미리보기 진입점',()=>{
+  it('발급 결과가 없는 /draw에서 미리보기로 이동할 수 있다',async()=>{
+    sessionStorage.clear();
+    renderApp(<DrawPage/>,createMockChatApi({emptyMessages:true}),'userA');
+    expect(await screen.findByText('아직 발급 결과가 없어요')).toBeInTheDocument();
+    expect(screen.getByRole('link',{name:'새 뽑기 연출 미리보기 (목업)'})).toHaveAttribute('href','/draw/preview');
   });
 });
