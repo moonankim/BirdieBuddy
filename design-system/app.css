@@ -3,6 +3,7 @@
 @import './club.css';
 @import './states.css';
 @import './card.css' layer(components);
+@import './chat.css' layer(components);
 
 @layer components {
   .bb-stack { display: grid; gap: var(--space-4); min-width: 0; }

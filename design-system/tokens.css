@@ -109,10 +109,6 @@
   --hero-start: #003b20;
   --hero-end: var(--green-9);
   --hero-text: #e4eadd;
-  --art-green: #a4c9af;
-  --art-peach: #d5be9e;
-  --art-lavender: #bfb0d8;
-  --art-skin: #d9ac82;
 
   /* 등급 토큰 — 카드의 LEVEL 트랙과 프레임 색. 등급은 색과 함께 항상 텍스트로 표시한다.
      solid/on: 채운 태그, soft/text: 옅은 배경 위 텍스트, border: 프레임, glow: 강조 그림자 */
