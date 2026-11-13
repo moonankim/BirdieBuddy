@@ -10,7 +10,7 @@
 
 **역할:** AI 활용 — 의사결정 모델(jev)·AI API로 메시지 필터링 등, 카드 확률 계산과 발급
 
-**최종 갱신:** 2026-11-12 (`main` e5957d5 기준으로 0.2 현재 상태, R10·R11 해결, 체크리스트 A-09 정정. 실행별 검증 기록을 [문환P_verification-log.md](./문환P_verification-log.md)로 옮기고 반영이 끝난 1절 합의 기록과 0.4 샌드박스 절차를 줄임(원문은 e5957d5). 계약은 `홍주P_plan.md` 1.6 기준)
+**최종 갱신:** 2026-11-13 (`main` 01b0c26 기준으로 0.2 현재 상태, hosted 반영·로컬 Edge 실호출 결과, R7·R12 해결, R9 갱신, R13·R14 추가, 체크리스트와 7.2 갱신, 3절 3등급 발급 확률 B안 추가. 계약은 `홍주P_plan.md` 1.6 기준)
 
 **공통 기준:** 제품 규칙은 [prd.md](./prd.md), 구조는 [architecture.md](./architecture.md), 백엔드 계약은 [홍주P_plan.md](./홍주P_plan.md), 용어는 [GLOSSARY.md](../GLOSSARY.md)를 따른다.
 
@@ -33,12 +33,14 @@
 
 커밋, push, 원격 Secrets 변경, 원격 배포는 사용자 요청이 있을 때만 한다. 커밋 메시지는 `CONTRIBUTING.md` 형식을 따르고, 다른 담당자가 알아야 할 변경은 담당자와 티켓별로 본문에 적는다.
 
-### 0.2 현재 상태 (`main` e5957d5, 2026-11-12)
+### 0.2 현재 상태 (`main` 01b0c26, 2026-11-13)
 
-- A-01~A-05, A-07, A-08, A-09 코드는 `main`에 병합됐다. 이관(PR #15, 98b43d4: AI 모듈 ee2130b, 회귀·smoke 스크립트 a85c3e0, `issue_card` migration과 pgTAP f206bae, 분포 스크립트 1663334, `_shared/ai_adapter.ts` 연결 88c77b7), 프롬프트 조정(PR #16), 우회형 광고 필터(PR #18) 순이다. 레포 로컬 검증 결과는 7.2에 있다. 남은 것은 홍주P 확인(1절 R9)과 T-04 통합이다. A-08의 수정 문장 통과율·시연 문장 결과와 고정 안내문 검수는 4절과 7.2를 따른다. A-06은 현호P로 옮겼다.
-- 홍주P가 6f77dd2(PR #17)에서 R11을 고쳤다. forward migration `20261111083319_fix_complete_round_issue_card_call.sql`이 `complete_round`의 동적 호출을 정적 문자열 `EXECUTE 'SELECT private.issue_card($1,$2,$3)'`로 바꿨고, `supabase/tests/complete_round_issue_card.test.sql`을 추가했다. 같은 커밋이 문환P 소유인 `20261111073313_issue_card.sql`에 홍주P 로컬 fixture 교체 블록을 더했다(0.4). 2026-11-12 레포 로컬에서 `complete_round`를 거친 추첨이 동작함을 확인했다(7.2). `verify:backend`는 도배 제한 때문에 카드 발급 검사 전에 멈춰 전 구간 통과는 미확인이다(1절 R12).
-- 원격 Supabase에는 Edge Function Secrets 두 개의 이름만 저장돼 있다(`홍주P_plan.md` §14.2). 값의 유효성과 실제 호출은 확인되지 않았다.
-- `lib/ai/tests/.env`에 두 키 이름이 있다. 값이 유효한지는 A-01의 실호출로 확인한다.
+- A-01~A-05, A-07, A-08, A-09 코드는 `main`에 병합됐다. 이관(PR #15, 98b43d4: AI 모듈 ee2130b, 회귀·smoke 스크립트 a85c3e0, `issue_card` migration과 pgTAP f206bae, 분포 스크립트 1663334, `_shared/ai_adapter.ts` 연결 88c77b7), 프롬프트 조정(PR #16), 우회형 광고 필터(PR #18) 순이다. A-06은 현호P로 옮겼다.
+- **hosted 반영 (홍주P, 2026-11-13):** `main / PRODUCTION`에 migration 15개가 적용됐다. 문환P의 `issue_card`와 R11 수정 migration이 포함되고, `complete_round`가 `private.issue_card`를 부르는 구조가 SQL 조회로 확인됐다. Edge Function 5개는 실제 provider adapter(Jev·Claude)를 넣은 version 2로 재배포됐다(`verify_jwt=true`). 이전 version 1은 fail-closed adapter였다. Secrets는 이름만 확인됐고 값의 유효성과 hosted 실호출은 미확인이다(`홍주P_plan.md` §14).
+- **로컬 Edge 실호출 (2026-11-13):** 로컬 Supabase Edge를 실제 키로 띄워 SDK 경로로 팬 판정 3종·인플루언서 경로·질문 묶기·요약을 확인했다. `ai_fallback` 0건(7.2, 검증 기록). 남은 것은 hosted T-04이며, 운영 계정이 없어 1절 R13으로 요청했다.
+- R12(`verify:backend`가 도배 제한에 걸려 멈추던 문제)는 홍주P a01f482에서 고쳐졌다. 다만 데모 데이터를 쓰는 `verify:backend` 전 구간 통과는 홍주P 기록상 아직 미검증이다.
+- **카드 3등급 전환:** 새 카드 기준(`card-spec.md`)에 맞춘 DB·SDK 전환은 시작 전이다. 문환P는 3등급 발급 확률을 B안(BASIC 70 · RARE 27.5 · LEGEND 2.5)으로 정해 3절에 적었고, 현호P·홍주P·제품 담당 확인을 기다린다. 확인 전에는 `issue_card`·`grade_rates`를 바꾸지 않는다.
+- `lib/ai/tests/.env`의 두 키는 2026-11-13 로컬 Edge 실호출에서 유효함을 확인했다.
 
 ### 0.3 착수 전 준비물
 
@@ -75,11 +77,14 @@
 | R2 | §8.1·§8.3 `summarize`의 `sender` | 값의 의미(닉네임인지, `user`·`influencer`인지, 표시명인지) | adapter는 화자 표시 문자열로만 쓰므로 어떤 값이 와도 동작한다. 다만 요약에서 인플루언서 발언을 구분하려면 방 소유자의 메시지에는 일정한 값이 와야 한다 |
 | R3 | §2.3 Edge용 `deno.json`·`deno.lock` | 파일 위치와 `@anthropic-ai/sdk` 의존성 추가 방법 | 코드에 버전을 고정한 `npm:` 지정자를 직접 쓴다. lock 파일 갱신이 필요하면 커밋 메시지로 알린다 |
 | R6 | §8.2 고정 안내문 | 2절 표의 문구를 어디에 복사해 두는지(A-08 검수로 문구가 바뀌면 함께 고칠 위치) | 2절 표가 기준이고, 문구가 바뀌면 커밋 메시지로 알린다 |
-| R7 | §3·§9.2·B-02 카드 이미지 | A-06의 최종 이미지 30장을 받아 `card-assets`에 올리는 단계가 티켓에 명시돼 있지 않다(`현호P_plan.md`는 홍주P B-02가 한다고 적음) | 문환P 작업에는 영향이 없다 |
-| R9 | `_shared/ai_adapter.ts`·`_shared/index_test.ts` (88c77b7) | 문환P가 `_shared/ai_adapter.ts`를 로컬 fixture 밖에서는 실제 adapter로 연결하고 `failClosedAdapter`를 지웠다. 홍주P 소유 파일이므로 확인과 T-04(Edge `suggest` 경로, 인플루언서 경로, 실제 키) 실행을 요청한다 `[요청]` | 실제 adapter의 오류는 모두 `ApiFailure('FILTER_UNAVAILABLE')`로 바뀌므로 `clusterQuestions`·`summarize`의 취소·시한 초과도 503이 된다. `moderateAndScore`에 한해 제공자 키가 없으면 fail-closed 대신 금칙어 폴백으로 판정한다(3절, 홍주P §8.1). `clusterQuestions`·`summarize`는 키가 없으면 여전히 FILTER_UNAVAILABLE이다. `index_test.ts`의 fail-closed 시험을 3건으로 바꿨고 그중 1건은 `--allow-env` 없이 실행해야 성립한다 |
-| R12 | `scripts/verify-backend.mjs:98-148` | `verify:backend`가 10초 안에 userA로 submit-message를 6번 예약한다(`questionBegin`, `directEdge`, fixture pass, fixture suggest, 제안 수락, fixture block). 6번째인 block 요청이 도배 제한(10초 5건, `messages_and_inbox_rpc.sql:245-261`)에 걸려 `RATE_LIMITED`가 되고, 스크립트가 `FAIL local AI fixture returns the mandatory block sample`에서 멈춰 뒤의 카드 발급 검사까지 가지 못한다(2026-11-12 레포 로컬 재현, 검증 기록). block 요청을 다른 계정으로 보내거나, 시험 전에 해당 계정의 `rate_windows`를 비우는 식으로 고쳐 달라 `[요청]` | 문환P는 홍주P 스크립트를 고치지 않는다. A-09 E2E는 같은 SDK 경로를 재현해 확인했다 |
+| R9 | `_shared/ai_adapter.ts`·`_shared/index_test.ts` (88c77b7) | 문환P가 `_shared/ai_adapter.ts`를 로컬 fixture 밖에서는 실제 adapter로 연결하고 `failClosedAdapter`를 지웠다. 홍주P 소유 파일이므로 확인과 T-04(Edge `suggest` 경로, 인플루언서 경로, 실제 키) 실행을 요청한다 `[요청]`. **2026-11-13 갱신:** 홍주P가 이 adapter를 넣은 Edge version 2를 hosted에 배포했고, Edge `suggest`·인플루언서 경로·실제 키는 문환P가 로컬 Edge 실호출로 확인했다(7.2). 남은 것은 hosted 실호출(R13) | 실제 adapter의 오류는 모두 `ApiFailure('FILTER_UNAVAILABLE')`로 바뀌므로 `clusterQuestions`·`summarize`의 취소·시한 초과도 503이 된다. `moderateAndScore`에 한해 제공자 키가 없으면 fail-closed 대신 금칙어 폴백으로 판정한다(3절, 홍주P §8.1). `clusterQuestions`·`summarize`는 키가 없으면 여전히 FILTER_UNAVAILABLE이다. `index_test.ts`의 fail-closed 시험을 3건으로 바꿨고 그중 1건은 `--allow-env` 없이 실행해야 성립한다 |
+| R13 | hosted T-04 | hosted 실호출 확인에 쓸 계정이 없다. 채팅방에 입장한 팬 계정 1개, 그 방의 인플루언서 계정 1개, 두 계정의 암호, Edge Secrets(`TYPESAFE_API_KEY`·`ANTHROPIC_API_KEY`) 값 설정 여부 확인을 요청한다. 시연 영상 스크린샷용 계정(질문용 팬 3명 이상, `docs/demo-video/storyboard.md`)도 같이 받으면 좋다 `[요청]` | 받으면 로컬 Edge 실호출과 같은 흐름(시연 문장 7행, 인플루언서 경로, 묶기, 요약)을 hosted에서 실행한다. 그전까지 체크리스트는 체크하지 않는다 |
+| R14 | 인박스 RPC (`20261113011530_read_state_checkpoints.sql:229` 등) | 선택 필터(욕설 등)를 끈 방에서 `pass`로 저장된 질문은 `passes_all_filters=false`라 인박스 조회에서 빠져 인플루언서에게 보이지 않는다(2026-11-13 로컬 Edge 실호출에서 7행 문장으로 확인). `prd.md` 6절은 필터를 끄면 욕설 메시지가 노출될 수 있다고 안내하므로 의도한 동작인지 확인을 요청한다 `[요청]` | 문환P는 인박스 RPC를 고치지 않는다. adapter는 `passesAllFilters`를 계약대로 돌려준다 |
 
 **해결된 요청**
+
+- **R7:** A-06 최종 이미지를 Storage `card-assets`에 올리는 단계 문제였다. 최종 카드 이미지는 사용자가 제공한 R2 CDN으로 정해져(`card-assets.md`) 이 단계가 필요 없어졌다.
+- **R12:** `verify:backend`가 userA로 10초 안에 submit-message를 6번 보내 도배 제한에 걸려 멈추던 문제다. 홍주P가 a01f482("verify:backend 도배 제한 경계 준수")에서 고쳤다. 전 구간 통과 여부는 0.2를 따른다.
 
 - **R4:** `issue_card` migration과 `supabase/tests/issue_card.test.sql`은 문환P가 추가했다. 타임스탬프는 `20261111073313`(0.4).
 - **R5:** `complete_round`는 `SECURITY DEFINER`(소유자 postgres)라 EXECUTE를 회수해도 `issue_card`를 부를 수 있고, `gen_random_bytes`는 `extensions` 스키마에 있다.
@@ -114,7 +119,7 @@
 
 > **현호P와 현호P 에이전트 확인용:** 화면 디자인과 UI 구성은 현호P가 맡는다. 화면 작업 전에 이 절과 `prd.md` 3절을 확인한다.
 
-**`현호P_plan.md`에 남은 차이** (`main` 4263860 기준, 현호P가 고칠 것. 프로필 사진 WebP 재인코딩 행은 PR #22에서 "SDK가 담당"으로 고쳐져 지웠다)
+**`현호P_plan.md`에 남은 차이** (`main` 4263860 기준, 01b0c26에서도 그대로 남음, 현호P가 고칠 것. 프로필 사진 WebP 재인코딩 행은 PR #22에서 "SDK가 담당"으로 고쳐져 지웠다)
 
 | 위치 | 현재 | 기준 |
 | --- | --- | --- |
@@ -193,7 +198,7 @@ A-08이 U-01에 넘기는 것은 6.8의 `demo-messages.json`과 그 실제 판�
 
 ### AI 인터페이스
 
-`홍주P_plan.md` §8.1(계약 1.6, 1.5에서 변경 없음)의 `AiAdapter`와 같은 타입이다. 세 함수 구현은 `main`에 있고, 홍주P 확인과 T-04 통합은 대기한다(A-02~A-05).
+`홍주P_plan.md` §8.1(계약 1.6, 1.5에서 변경 없음)의 `AiAdapter`와 같은 타입이다. 세 함수 구현은 `main`에 있고 hosted Edge version 2에 배포됐다. 로컬 Edge 실호출은 확인했고 hosted T-04는 대기한다(A-02~A-05, R13).
 
 ```ts
 type Verdict = 'pass' | 'suggest' | 'block';
@@ -246,7 +251,7 @@ interface AiAdapter {
 
 ### 카드 발급 함수
 
-구현은 `main`에 있다(A-09). 홍주P 확인과 T-04 통합은 대기한다.
+구현은 `main`에 있고 hosted에 적용됐다(A-09, 2026-11-13). hosted T-04는 대기한다(R13). 3등급 전환은 아래 "3등급 발급 확률 제안" 확인 뒤에 한다.
 
 ```sql
 private.issue_card(
@@ -334,16 +339,16 @@ private.issue_card(
 
 ### 체크리스트
 
-코드는 모두 `main`에 있다(PR #15·#16·#18). 홍주P 확인과 통합(T-04)까지 끝나야 체크한다. 수치의 근거는 7.2와 검증 기록 파일에 있다.
+코드는 모두 `main`에 있고 hosted Edge version 2에 배포됐다(2026-11-13). hosted T-04까지 끝나야 체크한다. 로컬 Edge 실호출(2026-11-13)은 통과했다. 수치의 근거는 7.2와 검증 기록 파일에 있다.
 
-- [ ] **A-01** Jev·Claude 호출의 Deno 동작 확인, `AiAdapter` 구현 골격 (P0) — 실호출 확인(Deno·Edge 런타임). 대기: 홍주P 확인·T-04. 명세 6.1~6.3
-- [ ] **A-02** 메시지 안전 필터 (P1) — 기준 충족(일치율 94.0%, 수정 문장 재검사 96.6%, 응답 시간). 미달: 우회 광고 검증 세트 block 10/13(목표 11/13). 대기: 홍주P 확인·T-04. 명세 6.2~6.4
-- [ ] **A-03** 메시지 품질 점수 (P1) — 기준 충족. 대기: 홍주P 확인·T-04. 명세 6.2
-- [ ] **A-04** 유사 질문 묶기 `clusterQuestions` (P2) — 실호출 확인, 상한 입력(100건·19,640자) 20초 안 확인(2026-11-12), 묶음 품질 관찰은 7.2. 대기: 홍주P 확인·T-04. 명세 6.6
-- [ ] **A-05** 대화 요약 `summarize` (P2) — 실호출 확인, 상한 입력(100건·19,640자) 20초·2,000자 안 확인(2026-11-12), 요약 품질 관찰은 7.2. 대기: 홍주P 확인·T-04. 명세 6.7
-- [ ] **A-07** 금칙어 폴백 (P1) — 기준 충족(폴백 품질 오탐 0, 우회 세트 block 조정 22/26·검증 11/13). 대기: 홍주P 확인·T-04. 명세 6.5
+- [ ] **A-01** Jev·Claude 호출의 Deno 동작 확인, `AiAdapter` 구현 골격 (P0) — 실호출 확인(Deno·Edge 런타임), 로컬 Edge에서 실제 키 동작 확인(2026-11-13). 대기: hosted T-04(R13). 명세 6.1~6.3
+- [ ] **A-02** 메시지 안전 필터 (P1) — 기준 충족(일치율 94.0%, 수정 문장 재검사 96.6%, 응답 시간). 미달: 우회 광고 검증 세트 block 10/13(목표 11/13). 로컬 Edge에서 시연 문장 7행·인플루언서 경로 확인(2026-11-13). 대기: hosted T-04(R13). 명세 6.2~6.4
+- [ ] **A-03** 메시지 품질 점수 (P1) — 기준 충족. 대기: hosted T-04(R13). 명세 6.2
+- [ ] **A-04** 유사 질문 묶기 `clusterQuestions` (P2) — 실호출 확인, 상한 입력(100건·19,640자) 20초 안 확인(2026-11-12), 묶음 품질 관찰은 7.2, 로컬 Edge 경유 확인(2026-11-13). 대기: hosted T-04(R13). 명세 6.6
+- [ ] **A-05** 대화 요약 `summarize` (P2) — 실호출 확인, 상한 입력(100건·19,640자) 20초·2,000자 안 확인(2026-11-12), 요약 품질 관찰은 7.2, 로컬 Edge 경유 확인(2026-11-13). 대기: hosted T-04(R13). 명세 6.7
+- [ ] **A-07** 금칙어 폴백 (P1) — 기준 충족(폴백 품질 오탐 0, 우회 세트 block 조정 22/26·검증 11/13). 대기: hosted T-04(R13). 명세 6.5
 - [ ] **A-08** 테스트 세트, 시연 메시지 확인, 고정 안내문 검수 (P1) — 기준 충족(검증 세트 73/73, 시연 7/7, 인플루언서 오탐 0), 안내문 2026-11-11 확정. 대기: U-01 전달·T-04. 명세 6.8
-- [ ] **A-09** 카드 확률 계산과 발급 `private.issue_card` (P0) — pgTAP·1,000회 분포 확인, R11 해결(6f77dd2), `complete_round` 경유 추첨 레포 로컬 확인(2026-11-12). 미확인: `verify:backend` 전 구간(R12). 대기: 홍주P 확인·T-04. 명세 6.9
+- [ ] **A-09** 카드 확률 계산과 발급 `private.issue_card` (P0) — pgTAP·1,000회 분포 확인, R11 해결(6f77dd2), `complete_round` 경유 추첨 레포 로컬 확인(2026-11-12). hosted migration 적용(2026-11-13, 홍주P). 미확인: `verify:backend` 전 구간(R12는 a01f482에서 해결). 3등급 전환은 3절 B안 확인 뒤. 대기: hosted T-04(R13). 명세 6.9
 
 ## 5. 문환P 타임라인
 
@@ -642,14 +647,14 @@ lib/ai/tests/data/                           기존 4개 + influencer-message-se
 
 | 티켓 | 최신 결과 | 환경·날짜 | 주요 미확인 |
 | --- | --- | --- | --- |
-| A-01 | Jev·Claude 실호출 5회 성공. Jev 첫 호출 253~562ms라 시한 4초로 확정. Edge 런타임에서 `npm:` SDK 동작 | 샌드박스 Deno·Edge, 2026-11-11 | 홍주P fixture 교체 |
-| A-02 | 300문장 일치율 94.0%(282/300), 실효 block→pass 13/121, 수정 문장 재검사 96.6%, `pass`·`block` 최대 478.9ms, `suggest` 최대 2,723.7ms. 우회 세트 최종 판정 조정 52/59·검증 17/21(block 10/13) | 레포 로컬 실호출, 2026-11-12 | 우회 검증 block 목표 11/13 미달(`ㅅr설`·`ㄷH출`·`먹 튀 없는 놀 이 터`). Edge의 `suggest`·인플루언서 경로. 300문장 일치율은 실행마다 2~3건 흔들림 |
+| A-01 | Jev·Claude 실호출 5회 성공. Jev 첫 호출 253~562ms라 시한 4초로 확정. Edge 런타임에서 `npm:` SDK 동작 | 샌드박스 Deno·Edge, 2026-11-11 | 홍주P fixture 교체는 Edge version 2 hosted 배포로 해소. hosted 실호출 |
+| A-02 | 300문장 일치율 94.0%(282/300), 실효 block→pass 13/121, 수정 문장 재검사 96.6%, `pass`·`block` 최대 478.9ms, `suggest` 최대 2,723.7ms. 우회 세트 최종 판정 조정 52/59·검증 17/21(block 10/13) | 레포 로컬 실호출, 2026-11-12 | 우회 검증 block 목표 11/13 미달(`ㅅr설`·`ㄷH출`·`먹 튀 없는 놀 이 터`). 300문장 일치율은 실행마다 2~3건 흔들림. Edge `suggest`·인플루언서 경로는 로컬 Edge 실호출로 확인(2026-11-13), hosted는 미확인 |
 | A-03 | greeting 평균 3.8, specific 평균 99.4(최소 95)로 기준 충족 | 샌드박스 실호출, 2026-11-11 | greeting 최대 48이 vague 범위와 겹침 |
-| A-04 | 상한 입력(이어 붙인 100건·19,640자) 7.2초, 13묶음, 대표 질문 29~61자, ID 중복 0. 이전 100건·2,834자 입력은 5.4~6.2초 | 레포 로컬 실호출, 2026-11-12 | 대표 질문 1개에 인플루언서 이름, 질문 아닌 메시지가 섞인 묶음, 실행 간 묶음 수 편차, Edge(B-12) 경유 |
-| A-05 | 상한 입력 3회 모두 성공, 4.3~5.7초·798~1,019자로 20초·2,000자 안. 이전 2,834자 입력은 사고 끔 중앙값 3.8~4.2초 | 레포 로컬 실호출, 2026-11-12 | 마크다운 기호는 코드 후처리로 제거(6.7 3a, 저장된 실제 응답 3/3 → 0/3). 후처리를 넣은 뒤의 실호출, Edge(B-12) 경유 |
+| A-04 | 상한 입력(이어 붙인 100건·19,640자) 7.2초, 13묶음, 대표 질문 29~61자, ID 중복 0. 이전 100건·2,834자 입력은 5.4~6.2초 | 레포 로컬 실호출, 2026-11-12 | 대표 질문 1개에 인플루언서 이름, 질문 아닌 메시지가 섞인 묶음, 실행 간 묶음 수 편차. Edge(B-12) 경유는 로컬에서 확인(2026-11-13, 2.4초), hosted는 미확인 |
+| A-05 | 상한 입력 3회 모두 성공, 4.3~5.7초·798~1,019자로 20초·2,000자 안. 이전 2,834자 입력은 사고 끔 중앙값 3.8~4.2초 | 레포 로컬 실호출, 2026-11-12 | 마크다운 기호는 코드 후처리로 제거(6.7 3a, 저장된 실제 응답 3/3 → 0/3). 후처리를 넣은 뒤의 실호출과 Edge(B-12) 경유는 로컬에서 확인(2026-11-13, 3.7초, 마크다운 기호 없음), hosted는 미확인 |
 | A-07 | 폴백 품질 오탐 0, 금칙어 문장 전부 기대 판정, 우회 세트 block 조정 22/26·검증 11/13, 단위 시험 140건 | 레포 로컬, 2026-11-12 | 폴백 오탐 `TOTO 비데`·`카지노 로얄`. Jev 지연·5xx 사유 코드는 단위 시험만 |
 | A-08 | 검증 세트 73/73, 시연 7/7, 인플루언서 정상 오탐 0, 안내문 확정 | 레포 로컬 실호출, 2026-11-12 | 조정 세트 수치는 독립 검증 아님. 우회 샘플은 에이전트가 구성 |
-| A-09 | pgTAP 113건(3파일, `complete_round_issue_card` 포함) 통과. SDK `completeRound` 3회 성공·재요청 같은 응답·라운드당 `draws` 1건, 권한 없는 강제 등급은 `FORBIDDEN`. 분포 693/198/77/32로 3σ 안(2026-11-11) | 레포 로컬, 2026-11-12 | `verify:backend` 전 구간(R12에서 멈춤), 원격 적용 |
+| A-09 | pgTAP 113건(3파일, `complete_round_issue_card` 포함) 통과. SDK `completeRound` 3회 성공·재요청 같은 응답·라운드당 `draws` 1건, 권한 없는 강제 등급은 `FORBIDDEN`. 분포 693/198/77/32로 3σ 안(2026-11-11) | 레포 로컬, 2026-11-12 | `verify:backend` 전 구간(R12는 a01f482에서 해결, 전 구간 통과는 미검증). 원격 적용은 2026-11-13 홍주P가 완료 |
 
 **레포 로컬 Edge 실호출 (T-04 로컬 대체, 2026-11-13):** 로컬 Supabase Edge를 실제 키로 띄워 SDK 경로로 확인했다. `ai_fallback` 0건, 시연 문장 7행 모두 기대 판정, 인플루언서 경로(정상 저장·협박 차단), `clusterQuestions` 2.4초·`summarizeRoom` 3.7초 성공. R9의 Edge `suggest`·인플루언서 경로·실제 키 확인과 A-04·A-05의 Edge 경유 확인에 해당한다. hosted T-04는 운영 계정이 없어 미실행이라 체크리스트는 그대로 둔다. 상세는 검증 기록 2026-11-13 행.
 
