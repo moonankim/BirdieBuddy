@@ -8,7 +8,7 @@
 
 > 제품 규칙은 [prd.md](./prd.md)를 기준으로 한다. 이 문서는 공통 아키텍처와 담당 경계를 설명하고, Supabase 백엔드의 상세 데이터·권한·SDK/RPC/Edge 계약과 구현 순서는 [홍주P_plan.md](./홍주P_plan.md)를 따른다.
 >
-> 홍주P 백엔드는 로컬 구현·검증을 진행 중이다. 현재 branch에는 main의 PR #14~#35가 병합되어 있다. PR #16은 공개되지 않은 시간 또는 장소에서의 목격을 필수 차단으로 명확히 했고, PR #29는 화면을 실제 Supabase Auth와 `createBackendApi`에 연결했다. PR #33/#34는 카드 이미지 가이드와 자성P v3 계획, PR #35는 카드 컬렉션 목업 UI·디자인 변경이다. PR #35는 카드 DB/SDK를 연결하지 않았다. B-18 읽음 상태 migration·SDK source는 `4b1f664`에 구현됐고, DB migration은 2026-11-13 hosted `main / PRODUCTION`에 반영됐다. 이후 로컬에서 검증한 일반 Supabase migration과 영향받는 Edge Function은 같은 작업에서 해당 hosted 대상에 동기화한다(세부 규칙은 루트 `AGENTS.md`). Git main에는 아직 병합되지 않았으며 화면 UI 연결과 실제 사용자 JWT·브라우저 흐름은 별도 미검증이다. 필요한 공개 Supabase 환경값이 있으면 실제 모드를 쓰고, `NEXT_PUBLIC_DATA_MODE=mock` 또는 연결값 누락 시 목 모드를 쓴다. 로그인 역할·닉네임은 본인 `profiles` 행에서 읽고 권한은 RLS/RPC가 재검사한다. 브라우저를 통한 실제 사용자 로그인·Realtime·Storage, Edge 실호출·실제 AI는 아직 별도 미검증이다. Hosted Supabase의 적용·검증 내역은 `harness/verification-log.md`에 기록했다.
+> 홍주P 백엔드는 로컬 구현·검증을 진행 중이다. 현재 branch에는 main의 PR #39(`e18f53e`)까지 병합되어 있다. PR #29는 실제 Auth·SDK, PR #36은 B-18 backend, PR #37은 발급 재시도·읽음 상태·관리자 월 UI, PR #38/#39는 뽑기 미리보기·디자인 변경을 포함한다. 기존 스타일·4등급 DB/SDK와 신규 3등급 카드 목업의 통합 정책은 아직 별도 결정이 필요하다. 현재 local/hosted에는 migration 15개가 적용됐고 Edge Function 5개는 version 2/JWT 검증 상태다. 로컬 검증된 일반 Supabase 변경은 같은 작업에서 지정 hosted 대상으로 동기화한다(루트 `AGENTS.md`). 읽음 상태의 SQL·SDK 회귀와 UI 테스트·타입·build는 통과했으며 실제 사용자 JWT·브라우저·Realtime·Storage·live AI 흐름은 미검증이다. 필요한 공개 Supabase 환경값이 있으면 실제 모드를 쓰고, `NEXT_PUBLIC_DATA_MODE=mock` 또는 연결값 누락 시 목 모드를 쓴다. 로그인 역할·닉네임은 본인 `profiles` 행에서 읽고 권한은 RLS/RPC가 재검사한다. 상세 환경별 증거는 `harness/verification-log.md`에 기록했다.
 >
 > 제품 요구사항과 다른 구현 기본값이 생기면 PRD와 담당 계획을 함께 갱신한다. 런타임에서는 CSR·RLS·Supabase 호출 계약을 따른다.
 
@@ -161,13 +161,13 @@ lib/api는 브라우저 SDK이며 서버 구현 위치가 아니다. 클라이�
 - PR #29는 `lib/session`을 Supabase Auth 세션 복원·이메일 로그인과 `profiles` 본인 행의 역할/닉네임 조회에 연결하고, `components/chat/providers.tsx`의 실제 모드를 `createBackendApi()`로 바꿨다. 목 로그인과 목 SDK는 E2E·미리보기용으로 남아 있다. 클라이언트 역할은 화면 분기에만 쓰고 권한은 RLS/RPC가 다시 검사한다.
 - PR #30은 main `4003863`에 병합됐다. `/home`·`/draw`는 기존 4등급 BackendApi를 사용하고, 새 3등급 `/collection/**`는 목업이다. PR #32의 상세·강화 화면도 목업 데이터와 비용을 표시한다.
 - PR #35는 main `4c40929`에 병합됐다. `/collection`은 manifest 기반 정적 도감과 보유 표시 목업, `/collection/owned`는 실제 데이터 연결 대상이지만 현재 화면은 목업이다. 현호P handoff는 이번 UI 변경에서 API 연결을 제외하며, DB·RLS·SDK는 기존 스타일·4등급 계약을 유지한다. 3등급 카드 백엔드 전환은 확률·기존 보유량 이관·선수 UUID·스타일 의존 보상 규칙을 합의하기 전까지 보류한다.
-- 실제 사용자 브라우저 로그인·다중 브라우저 Realtime·Storage 흐름과 Vercel 배포는 아직 검증되지 않았다. 관리자 화면은 아직 KST 초기 월을 사용한다. 홍주P 브랜치에는 admin 권한과 `can_advance_month`를 재검사하는 `get_admin_demo_month()` migration 및 `getAdminDemoMonth()` SDK가 있지만 main 반영과 화면 연결은 완료되지 않았다.
+- 실제 사용자 브라우저 로그인·다중 브라우저 Realtime·Storage 흐름과 Vercel 배포는 아직 검증되지 않았다. 관리자 월 RPC/SDK는 PR #36에서 main에 반영됐고 PR #37이 화면을 서버의 데모 월에 연결했다. admin 권한·`can_advance_month` 검사는 유지하며 실제 관리자 JWT·브라우저 흐름은 별도 확인한다.
 
 ### PR #33/#34 문서 병합 및 여기까지 읽었어요 backend (2026-11-13)
 
 - `origin/main`의 `1c34f94`에 PR #33/#34의 카드 이미지 생성 가이드와 자성P v3 개발 계획 문서가 추가됐다. 이 두 PR은 런타임 코드를 바꾸지 않는다.
 - 자성P v3는 팬 방별 read cursor, 인플루언서 inbox cursor, 방 unread count, 질문 NEW를 홍주P 서버 기능으로 제안했다. PRD §4를 기준으로 홍주P 계획의 B-18 계약에 개인별 서버 cursor, 첫 방문 처리, 삭제·퇴장 기간 가시성, 단조 증가, priority 목록의 `checkedThroughMessageId`를 정의했다.
-- B-18 migration/RPC/SDK source와 타입 계약은 feature commit `4b1f664`에 구현됐고, DB migration은 2026-11-13 hosted `main / PRODUCTION`에 적용됐다. `markInboxChecked`는 새 전진 시 열린 현재 팬 입장 기간의 통과 질문만 허용하고 기존 cursor 이하 재시도는 허용한다. 로컬 migration·DB 계약 테스트는 적용했지만 B-18 전용 사용자 JWT 통합, 화면 UI 연결, typecheck는 아직 실행하지 않아 티켓 전체 완료로 처리하지 않는다.
+- B-18 migration/RPC/SDK source는 `4b1f664`에 구현됐고 PR #36에서 main에 병합됐으며 DB migration은 2026-11-13 hosted `main / PRODUCTION`에 적용됐다. `markInboxChecked`는 새 전진 시 열린 현재 팬 입장 기간의 통과 질문만 허용하고 기존 cursor 이하 재시도는 허용한다. PR #37의 화면 연결 뒤 전용 SQL 65건·SDK 7건과 typecheck를 통과했다. 실제 사용자 JWT·브라우저·Realtime 통합 전까지 티켓 전체 완료로 처리하지 않는다.
 
 ### PR #30/#32 병합 및 카드 데이터 계약 후속
 
@@ -339,11 +339,11 @@ U-01 시연 대본·발표 자료는 담당 미정으로 유지한다. 검증 �
 
 현재 backend에서 독립 적용하는 기본값은 다음과 같다.
 
-- 카드·AI fixture는 local Supabase host와 명시 설정을 모두 확인한 때만 사용한다. A-09 migration은 명시적인 local fixture marker가 있는 함수만 교체한다. Jev/Claude provider adapter source는 병합됐지만 live 호출과 Edge 배포는 미검증이다.
+- 카드·AI fixture는 local Supabase host와 명시 설정을 모두 확인한 때만 사용한다. A-09 migration은 명시적인 local fixture marker가 있는 함수만 교체한다. Jev/Claude provider adapter source는 병합됐고 Edge version 2에 배포됐다. live provider 호출은 미검증이다.
 - production에는 demo 사용자·fictional seed·placeholder object를 넣지 않는다. role은 검증된 사용자 세션과 database authorization으로 판정한다.
 - browser CORS와 Auth redirect에는 확인된 실제 origin만 추가한다. 공개 URL이 없으면 wildcard나 추정 도메인을 넣지 않는다.
 - PRD의 달력 월·정산 제외·같은 달 3회 재입장 정책은 UI에도 그대로 적용한다. 이를 바꾸려면 PRD, 자성P 화면 계획, 홍주P backend 계약을 함께 갱신한다.
 
 다른 소유자와 함께 결정할 정책은 각각 담당 경계를 따른다. 모델·호출량·비용과 실제 AI 결과는 문환P, 최종 인물·이미지 사용권은 현호P 및 콘텐츠 소유자, 계정 전환·Auth UX·화면 CORS origin은 자성P/배포 담당자, 실서비스 차단 데이터 보관·제재·이의제기는 제품·법무·운영 담당자의 확인이 필요하다. 현재 blocker와 처리 담당은 [홍주P 계획 §14](./홍주P_plan.md#14-진행완료-보고)의 티켓 상태와 정책 결정 항목에서 관리한다.
 
-마지막으로 기록한 remote 상태는 migration 9개와 JWT 검증 Edge Function 5개 적용이다. main 병합 뒤 remote migration/function 상태는 다시 확인하거나 변경하지 않았다. hosted moderation·cluster·summary의 provider 동작과 Auth redirect/CORS origin도 미확인이다. 실제 사용자 JWT, Storage upload, Realtime delivery와 UI flow는 별도 검증 전까지 완료로 보지 않는다.
+2026-11-13 확인한 hosted 상태는 migration 15개와 ACTIVE/version 2/verify_jwt=true인 Edge Function 5개다. 대화 이전 페이지의 nextCursor는 반환된 최소 ID이며, 후속 beforeId 조회가 중복되지 않게 수정했다. SDK는 PostgREST status=0과 FunctionsFetchError를 retryable NETWORK_ERROR로 정규화해 같은 requestId 재시도를 유지하며, unread count만 실패하면 방 목록을 보존한다. PR #37의 읽음 상태·관리자 월·발급 재시도 화면 연결은 병합됐고, local DB/SDK/UI 회귀 결과는 검증 로그를 따른다. 실제 사용자 JWT, Storage upload, Realtime delivery, browser flow와 live provider는 별도 검증 전까지 완료로 보지 않는다.

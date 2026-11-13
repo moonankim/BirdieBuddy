@@ -10,7 +10,7 @@
 
 **담당:** Supabase 백엔드·채팅 서비스·브라우저 호출 SDK
 
-**계약 버전:** 1.7 / 2026-11-12
+**계약 버전:** 1.8 / 2026-11-13
 
 **상태:** 개발 실행 명세. 구현·프로젝트 연결·배포 완료를 뜻하지 않음.
 
@@ -504,7 +504,7 @@ lib/api의 쿼리·호출 로직은 createBackendApi(client)로 주입한 Supaba
 | MESSAGE_BLOCKED | influencer 답변·전체 메시지·인사말의 필수 필터 적중. details={category,reason}, reason은 고정 안내문 | false |
 | ALREADY_REVIEWED / PENDING_EXISTS | 심사 완료/신청중 중복 | false |
 | ALREADY_REPLIED | 질문 답변 완료 | false |
-| NETWORK_ERROR / INTERNAL_ERROR | 통신/예상 밖 장애 | true |
+| NETWORK_ERROR / INTERNAL_ERROR | 통신/예상 밖 장애. PostgREST status=0 및 Edge FunctionsFetchError는 원문 stack/context 없이 NETWORK_ERROR로 정규화 | true |
 
 SQL 업무 오류는 SQLSTATE P0001, MESSAGE=고정code, DETAIL=비기밀JSON. Edge error body는 `{ok:false,error:ApiError}`, HTTP401/403/404/400/409/429/503/500을 의미에 맞춘다. SDK는 SQL/HTTP 오류를 Result로 바꾸고 raw SQL·stack·JWT·키를 반환하지 않는다. 자동 무한 재시도는 하지 않는다.
 
@@ -526,7 +526,7 @@ SQL 업무 오류는 SQLSTATE P0001, MESSAGE=고정code, DETAIL=비기밀JSON. E
 | getMyMembership({roomId}) | room_members의 본인/방 1행 | Membership 또는 null |
 | getMyRoundGaugeSummary() | auth.uid()의 유효 현재 월·전체 라운드 집계 | `RoundGaugeSummary` |
 | getAdminDemoMonth() | `get_admin_demo_month`, role=admin 및 `can_advance_month=true` 재검증 | 데모 시계의 `YYYY-MM-01` |
-| getMessages({roomId,beforeId?,afterId?,limit?}) | messages room_id + id keyset | Page<Message> |
+| getMessages({roomId,beforeId?,afterId?,limit?}) | messages room_id + id keyset. 결과는 ID 오름차순, 이전 페이지 nextCursor는 반환된 최소 ID, afterId 페이지는 최대 ID | Page<Message> |
 | getRoomMessageCheckpoint({roomId}) | messages room_id, SELECT RLS 범위에서 updated_at DESC,id DESC LIMIT 1, updated_at/id_text만 전송 | MessageChangeCursor 또는 null |
 | getMessageChanges({roomId,checkpoint,through,cursor?,limit?}) | messages room_id + (updated_at,id) keyset, `(checkpoint,through]`의 변경. checkpoint는 필수이며 null 허용, 후속 page는 cursor | Page<Message> |
 | getRoomDailyBlockCount({roomId}) | private moderation_events를 직접 노출하지 않는 소유자 전용 집계 RPC | `{roomId,day,count}` / verified 방 소유 influencer |
@@ -1272,14 +1272,14 @@ npm run demo:reset -- --apply
 | 상태 | 조건 | 현재 |
 | --- | --- | --- |
 | 계획 단독 실행 준비 | 범위·기본값·타입·권한·순서·검증·외부조건 | 문서 보완·정적 교차 검토 완료 |
-| 백엔드 로컬 완료 | B-01~18 코드·필수로컬검증 | 진행 중: local stack에 14개 migration이 모두 적용됐다. SQL test suite 4 files/121 assertions, Edge check 5개 진입점, Deno 150 tests, DB lint 오류 0을 확인했다. B-18 전용 SQL/JWT 통합 테스트, 전체 cross-ticket `verify:backend` 시나리오, browser·Realtime·Storage·live AI, 전체 acceptance는 미검증 |
+| 백엔드 로컬 완료 | B-01~18 코드·필수로컬검증 | 진행 중: local stack과 별도 신규 DB에서 15개 migration 적용을 확인했다. SQL 6 files/197 assertions(B-18 65건·대화 paging 11건 포함), Node 27건, Deno 150건, backend/UI typecheck, DB lint 오류 0을 확인했다. 전체 cross-ticket `verify:backend`, 실제 JWT·browser·Realtime·Storage·live AI와 전체 acceptance는 미검증 |
 | LLM hosted Secrets 준비 | `TYPESAFE_API_KEY`·`ANTHROPIC_API_KEY` 존재 여부와 회전된 값의 실제 호출 검증 | Dashboard에서 두 Secret 이름 저장 확인. 값·회전 여부 미열람·미확인, live 호출 미실행 |
 | 실제AI 검증 | live 호출·3판정·장애 | 미검증 |
-| 팀화면 통합 | PR #29에서 실제 Auth·SDK Provider 코드 연결, E2E 목 모드 고정 | 코드 병합 완료. 사용자 JWT browser flow·Realtime·Storage는 미검증; 관리자 월 조회 SDK는 자성P UI에 아직 연결되지 않음 |
+| 팀화면 통합 | 실제 Auth·SDK Provider와 PR #37의 읽음 상태·관리자 데모 월·발급 재시도 연결 | 코드 병합 및 UI 236 tests·production build 통과. 사용자 JWT browser flow·Realtime·Storage는 미검증 |
 | Supabase 관리 연결 | 프로젝트·DB 관리 경로 | Supabase MCP로 대상 읽기/적용 확인. CLI deploy는 로컬 `SUPABASE_ACCESS_TOKEN` 부재로 실패했으나 MCP deploy로 계속함 |
 | Supabase 로그인·프로젝트 권한 | 계정/PAT 범위/프로젝트 멤버십 및 Owner/Administrator Secret 쓰기 권한 | MCP에서 §2.1 ref 접근 및 migration/function 반영 성공. Secret 권한은 사용하지 않았고 별도 확인하지 않음. 일반 migration/function sync 대상은 상시 사용자 지시로 지정됨 |
 | 원격 preflight | target ref·환경·DB major version·기존 데이터/schema baseline | 2026-11-12 MCP read-only: `main / PRODUCTION`, PostgreSQL 17.11, ACTIVE_HEALTHY. profiles 7, influencers 11(verified 10), rooms 10, templates 30, unnamed influencers 0. Synthetic authenticated role/JWT claim SQL probe의 `room_catalog`은 10행/10개 이름을 반환했다. 실제 브라우저·사용자 JWT smoke 증거는 아님 |
-| 원격 적용 | 승인환경 migration/Functions/Secrets·스모크 | 2026-11-13 사용자 요청으로 hosted `main / PRODUCTION`에 14개 migration과 5개 JWT-검증 Edge Function version 2를 반영했다. Secret·Auth redirect·CORS는 변경하지 않았고, 실제 JWT·브라우저·Realtime·Storage·live AI 스모크는 미실행 |
+| 원격 적용 | 승인환경 migration/Functions/Secrets·스모크 | 2026-11-13 hosted `main / PRODUCTION`에 15개 migration을 반영했다. 대화 paging 함수 본문 hash가 local과 일치하며 anon 거부·authenticated 호출 권한을 보존했다. 5개 Edge Function은 ACTIVE/version 2/verify_jwt=true다. 실제 JWT·브라우저·Realtime·Storage·live AI 스모크는 미실행 |
 | 데모 완료 | 동결 후 전체리허설2회 | 미실행 |
 
 보고 순서는 변경 파일 → 명령/증거 → 완료 티켓 → 외부 조건/미검증 → 재개 방법이다. 외부 권한·AI 모듈이 없어도 독립 가능한 구현은 끝까지 진행한다.
@@ -1290,24 +1290,24 @@ npm run demo:reset -- --apply
 
 | 티켓 | 현재 구현 | 아직 필요한 작업 |
 | --- | --- | --- |
-| B-01 | toolchain, schema/Auth/RLS/grants, SDK 기반과 production migration 적용 완료 | fixture 변경 뒤 검증 재실행 및 다른 화면과 세션 통합 |
+| B-01 | toolchain, schema/Auth/RLS/grants, SDK 기반과 production migration 적용 완료. 현재 fixture로 SQL/SDK/Edge 회귀 재실행 | 실제 세션·화면 acceptance 확인 |
 | B-02 | local seed, 반복 가능한 7개 local Auth 계정, 30 placeholder와 샘플 카드 발급 준비 | 최종 콘텐츠 사용권 확인; production에는 fictional user/object를 올리지 않음 |
-| B-03 | complete-round/SDK 계약에 A-09 migration 통합. local marker fixture만 교체하는 안전 가드와 `regprocedure` 동적 호출 수정 추가. pgTAP에서 결과·재시도·draw 1건·force 권한·4→5/5→6·실패 rollback 확인 | 더 넓은 cross-ticket `verify:backend` 시나리오와 동시 요청 경계를 추가 검증 |
+| B-03 | complete-round/A-09 통합 및 pgTAP 결과·재시도·draw 1건·force 권한·4→5/5→6·실패 rollback 확인. PR #37 UI에 맞춰 SDK 통신 오류를 retryable로 정규화하고 응답 유실 후 같은 requestId 복구 회귀 추가 | 더 넓은 cross-ticket `verify:backend` 시나리오, 동시 요청·실제 JWT 발급 확인 |
 | B-04 | collection/inventory·upgrade RPC와 SDK 구현 | 현호P 화면 통합 및 전체 acceptance 재확인 |
 | B-05 | catalog/join/re-entry RPC와 SDK 구현 | 자성P 화면·세션 흐름 통합 |
-| B-06 | submission RPC·JWT Edge·SDK·Realtime history/recovery와 Jev moderation adapter 연결; explicit local fixture도 유지 | live provider 호출/장애 조건, 화면 Realtime delivery와 실제 권한 통합 |
-| B-07 | demo clock·월 정산·round gauge 구현; 신규 `get_admin_demo_month` RPC·SDK 계약 추가 | 신규 migration/RPC 권한 테스트와 SDK test 실행, 자성P UI 연결 및 퇴장/재입장 통합 |
+| B-06 | submission RPC·JWT Edge·SDK·Realtime history/recovery와 Jev moderation adapter 연결. 과거 대화 nextCursor 중복 조회 수정 및 DB 회귀 11건 통과 | live provider 호출/장애 조건, 화면 Realtime delivery와 실제 권한 통합 |
+| B-07 | demo clock·월 정산·round gauge 및 `get_admin_demo_month` RPC/SDK 구현·hosted 적용. 권한 SQL·SDK test 통과, PR #37 관리자 UI 연결 병합 | 실제 관리자 JWT·브라우저 월 변경 및 퇴장/재입장 통합 |
 | B-08 | score·inbox/revision·filtered answer·answer history 구현 | 인박스 UI와 실제 두 세션 흐름 통합 |
 | B-09 | verification 신청·심사·이력 backend 구현 | 자성P 관리자 신청/승인 UI 통합 |
 | B-10 | filters/version/rate-limit/metadata cleanup 구현 | latest fixture 이후 회귀 검증, 운영 cron 실제 실행 관찰 |
-| B-11 | 이전 기록에서 migrations·Functions 반영, recovery 절차 문서화 | 이번 main 병합분의 hosted 적용 여부 재조회, exact Auth/CORS origin, user JWT/Storage/Realtime smoke |
+| B-11 | hosted migration 15개·Functions 5개 version 2/JWT 상태 재확인, 대화 paging 수정 동기화 및 local history 정렬 | exact Auth/CORS origin, user JWT/Storage/Realtime smoke |
 | B-12 | source/lease/commit RPC, Edge wrappers와 main에 병합된 Jev/Claude adapter | live provider 품질/안전 회귀 및 hosted 실행 검증 |
-| B-13 | 현재 local Node 3·Deno 113·pgTAP 113·typecheck·DB lint와 A-09 distribution/integration checks 통과. `verify:backend`의 R12 actor 분산 수정은 반영했으나 full rerun은 미실행 | demo-data 쓰기형 `verify:backend` 전체, 브라우저·Realtime·Storage·실AI·production smoke |
+| B-13 | 현재 Node 27·Deno 150·pgTAP 197·UI 236·typecheck·DB lint·production build 통과. 신규 격리 DB에 15개 migration을 처음부터 적용하고 동일 SQL suite 통과 | demo-data 쓰기형 `verify:backend` 전체, 브라우저·Realtime·Storage·실AI·production smoke |
 | B-14 | bucket/RLS/photo RPC와 SDK upload flow 구현 | 실제 browser File→WebP, 재시도·복구·과거 메시지 갱신 smoke |
 | B-15 | greeting read/update Edge·RPC와 first-entry snapshot 구현 | 자성P 설정/첫 입장 UI 통합 |
 | B-16 | influencer broadcast Edge/RPC·SDK 구현 | 자성P compose/수신 화면·Realtime 통합 |
 | B-17 | owner message soft-delete RPC·SDK 및 UPDATE 전달 구현 | 자성P 삭제/질문 재개방/Realtime UI 통합 |
-| B-18 | read-state migration/RPC·SDK source와 타입 계약 구현, 정적 검토 완료 | 새 migration의 local DB 적용·권한/상태 검증, typecheck, 자성P 화면 연동 및 팬·인플루언서 실제 세션 통합 |
+| B-18 | read-state RPC/SDK·hosted 적용, 전용 SQL 65건·SDK 7건 통과. PR #37 UI 연결 병합. count RPC rejection 시 방 목록을 유지하도록 SDK 보완 | 팬·인플루언서 실제 JWT·브라우저·Realtime 세션 통합 |
 
 #### 정책 결정 권한과 타 담당자 영향
 
@@ -1466,3 +1466,11 @@ docs/홍주P_plan.md 계약 1.6의 §§6~9·12·15와 내 담당 *_plan.md를 �
 - 홍주P 담당 대조: 기존 `getOwnedCards`, `upgradeCard`, `getGameConfig`는 스타일·4등급 schema를 반환한다. 신규 카드 규격에 맞추려면 카드 전용 `cardType`/인물 key/등급별 R2 URL, template UUID 관계, 보유·강화 응답과 SQL migration이 필요하다. 그러나 이번 PR은 이를 요청하지 않았고, 현재 card-spec의 UUID 매핑·3등급 확률·구 등급 보유량 이관·스타일 기반 점수/배지/입장 대체 규칙도 미확정이다. 이 결정을 추정해 schema·seed·RPC·SDK를 바꾸지 않는다.
 - 협업/담당 경계: 현호P는 manifest 인물·유형 목록을 확정하고 자성P는 API 연동 단계·화면 소비를 맡는다. 문환P와 제품 담당자는 등급 확률·강화 규칙·보상 정책을 확정해야 한다. 이후 홍주P가 기존 계정 영향과 이관안을 설계한다. 다른 담당자 계획·코드는 수정하지 않았다.
 - 검증 범위: latest main 변경과 backend 계약·담당 handoff를 정적으로 대조했다. 새 `InboxPage`/`InboxItem` 필수 필드에 맞춰 기존 UI acceptance fixture 기본값을 갱신했다. PR 문서에 기재된 upstream UI 208 tests·typecheck·build·lint 결과는 이번 branch에서 재실행하지 않았다. 테스트, typecheck/build, local/hosted Supabase, browser/API integration, 원격 변경은 수행하지 않았다. `git diff --check`만 확인했다.
+
+### 15.12 2026-11-13 — main PR #37~#39 병합 및 백엔드 통합 보완
+
+- 병합: PR #37/#38의 `d92cc8f`를 `9ef772b`, 이어 PR #39의 `e18f53e`를 `0b58b50`으로 `feature/hongjoo`에 병합했다. 충돌 없이 발급 중복 방지·계정별 결과, 읽음 상태·인박스 NEW, 관리자 데모 월, 뽑기 미리보기와 디자인 변경을 반영했다.
+- 홍주P 수정: 실제 PostgREST `status=0`과 `FunctionsFetchError`를 안전한 `NETWORK_ERROR`/retryable 결과로 바꿔 응답 유실 뒤 PR #37 UI가 같은 requestId로 재시도한다. unread count RPC가 reject해도 방 목록은 유지하고 count만 null로 처리한다. `get_messages`의 이전 페이지 nextCursor를 최대 ID에서 최소 ID로 수정했다. SDK의 메서드·입력·결과 타입은 유지한다.
+- 검증: B-18 전용 SQL 65건과 SDK 7건, 실제 Supabase client/custom fetch 통신 회귀 7건, paging SQL 11건을 추가했다. 전체 Node 27·Deno 150·pgTAP 197·UI 236, backend/UI typecheck·DB lint·production build 통과. 상세 환경과 명령은 `harness/verification-log.md`를 따른다.
+- hosted 반영: `20261113042007_fix_message_history_cursor.sql`을 지정 project에 적용하고 15개 migration 정렬과 본문 hash·권한을 확인했다. Edge source 변경이 없어 기존 5개 version 2/JWT 검증 상태를 확인했다. 새 migration은 MCP가 기록한 version으로 filename을 맞췄고, local history만 CLI repair로 정렬했다.
+- 남은 담당 경계: 자성P는 실제 사용자 세션으로 읽음·발급 재시도·관리자 월 흐름을 확인한다. 현호P/문환P/제품 담당자의 카드 인물 UUID·R2·3등급 확률·기존 등급 이관 결정은 아직 필요하며, 홍주P는 이 정책을 추정해 schema를 바꾸지 않는다.
