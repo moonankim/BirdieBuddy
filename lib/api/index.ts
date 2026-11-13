@@ -1,4 +1,4 @@
-import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
+import { FunctionsFetchError, type RealtimeChannel, type SupabaseClient } from '@supabase/supabase-js';
 import { decodeCursor, decodeVerificationCursor, encodeCursor } from './cursor.js';
 import type {
   AdvanceDemoMonthData, ApiError, BackendApi, CardTemplate, CollectionItem, Grade, InboxPage, Message, MessageChangeCursor,
@@ -21,6 +21,7 @@ const fixedMessages: Record<string,string> = {
 };
 
 function errorFrom(value: unknown): ApiError {
+  if (value instanceof FunctionsFetchError) return errorFrom({ code: 'NETWORK_ERROR' });
   const e = value as JsonRecord | null;
   const rawCode = String(e?.code ?? (e?.message === 'FunctionsFetchError' ? 'NETWORK_ERROR' : 'INTERNAL_ERROR'));
   const code = rawCode === 'P0001' ? String(e?.message ?? 'INTERNAL_ERROR') : rawCode;
@@ -30,11 +31,17 @@ function errorFrom(value: unknown): ApiError {
     try { details = JSON.parse(detailValue) as Record<string, unknown>; } catch { details = undefined; }
   } else if (detailValue && typeof detailValue === 'object') details = detailValue as Record<string, unknown>;
   if (e?.error && typeof e.error === 'object') return errorFrom(e.error);
-  const message = rawCode === 'P0001' && fixedMessages[code]
+  const message = (rawCode === 'P0001' || code === 'NETWORK_ERROR') && fixedMessages[code]
     ? fixedMessages[code]
     : typeof e?.message === 'string' && !['P0001','FunctionsHttpError','FunctionsRelayError'].includes(e.message)
       ? e.message : fixedMessages[code] ?? fixedMessages.INTERNAL_ERROR ?? 'Request failed.';
   return { code, message, retryable: retryableCodes.has(code), ...(details ? { details } : {}) };
+}
+
+// PostgREST uses status 0 and an empty code for fetch/abort failures. Preserve the
+// request ID by marking these retryable without exposing its raw stack/details.
+function databaseError(error: unknown, status: number | undefined): unknown {
+  return status === 0 ? { code: 'NETWORK_ERROR' } : error;
 }
 
 const success = <T>(data: T): Result<T> => ({ ok: true, data });
@@ -45,8 +52,8 @@ async function run<T>(work: () => Promise<T>): Promise<Result<T>> {
 }
 
 async function rpc<T>(client: AnyClient, name: string, args?: Record<string, unknown>): Promise<T> {
-  const { data, error } = await client.rpc(name, args ?? {});
-  if (error) throw error;
+  const { data, error, status } = await client.rpc(name, args ?? {});
+  if (error) throw databaseError(error, status);
   return data as T;
 }
 
@@ -109,8 +116,8 @@ export function createBackendApi(client: AnyClient): BackendApi {
       return { ...data, template: cardTemplate(client,data.template,'imagePath') } as any;
     }),
     getCollection: () => run(async () => {
-      const {data,error}=await client.from('collection_view').select('*').order('influencer_name').order('style');
-      if(error) throw error;
+      const {data,error,status}=await client.from('collection_view').select('*').order('influencer_name').order('style');
+      if(error) throw databaseError(error,status);
       const grades: Grade[]=['common','rare','epic','special'];
       return {items:(data??[]).map((row:JsonRecord)=>({
         template:cardTemplate(client,row),counts:Object.fromEntries(grades.map(g=>[g,Number(row[`${g}_count`]??0)])) as Record<Grade,number>,
@@ -118,18 +125,18 @@ export function createBackendApi(client: AnyClient): BackendApi {
       }))};
     }),
     getOwnedCards: () => run(async () => {
-      const {data,error}=await client.from('inventory_view').select('*').order('influencer_name').order('style').order('grade');
-      if(error) throw error;
+      const {data,error,status}=await client.from('inventory_view').select('*').order('influencer_name').order('style').order('grade');
+      if(error) throw databaseError(error,status);
       return {items:(data??[]).map((row:JsonRecord)=>({template:cardTemplate(client,row),grade:row.grade,count:Number(row.count)})) as OwnedCardItem[]};
     }),
     upgradeCard: (input) => run(()=>rpc(client,'upgrade_card',{p_request_id:input.requestId,p_template_id:input.templateId,p_grade:input.grade})),
     getRooms: () => run(async () => {
       const [roomsResult, countsResult]=await Promise.all([
         client.from('room_catalog').select('*').order('influencer_name'),
-        client.rpc('get_my_room_unread_counts'),
+        Promise.resolve(client.rpc('get_my_room_unread_counts')).catch(()=>null),
       ]);
-      if(roomsResult.error) throw roomsResult.error;
-      const unreadCounts=countsResult.error?null:new Map<string,number>((countsResult.data??[]).map((row:JsonRecord):[string,number]=>[String(row.roomId),Number(row.unreadCount)]));
+      if(roomsResult.error) throw databaseError(roomsResult.error,roomsResult.status);
+      const unreadCounts=!countsResult||countsResult.error?null:new Map<string,number>((countsResult.data??[]).map((row:JsonRecord):[string,number]=>[String(row.roomId),Number(row.unreadCount)]));
       return {items:(roomsResult.data??[]).map((r:JsonRecord)=>({roomId:r.room_id,influencerId:r.influencer_id,influencerName:r.influencer_name,
         influencerType:r.influencer_type,verifiedAt:r.verified_at,profileImageUrl:publicUrl(client,'influencer-profiles',r.profile_image_path)??publicUrl(client,'card-assets',r.fallback_image_path),
         requiredCards:Number(r.required_cards),earnedCards:Number(r.earned_cards),missingCards:Number(r.missing_cards),supportBadge:r.support_badge,
@@ -147,8 +154,8 @@ export function createBackendApi(client: AnyClient): BackendApi {
       return {...result,welcomeMessage:result.welcomeMessage?message(result.welcomeMessage):null} as any;
     }),
     getMyMembership: ({roomId})=>run(async()=>{
-      const {data,error}=await client.from('room_members').select('room_id,status,gauge,joined_at,joined_month,left_at,left_month').eq('room_id',roomId).maybeSingle();
-      if(error) throw error; if(!data) return null;
+      const {data,error,status}=await client.from('room_members').select('room_id,status,gauge,joined_at,joined_month,left_at,left_month').eq('room_id',roomId).maybeSingle();
+      if(error) throw databaseError(error,status); if(!data) return null;
       return {roomId:data.room_id,status:data.status,gauge:Number(data.gauge),joinedAt:data.joined_at,joinedMonth:data.joined_month,leftAt:data.left_at,leftMonth:data.left_month} as any;
     }),
     getMyRoundGaugeSummary: ()=>run(()=>rpc(client,'get_my_round_gauge_summary')),
@@ -300,7 +307,7 @@ export function createBackendApi(client: AnyClient): BackendApi {
       const updated=await api.getMyInfluencerProfile();if(!updated.ok) throw updated.error;return updated.data;
     }),
     getGameConfig: ()=>run(async()=>{
-      const {data,error}=await client.from('game_config').select('key,value,version,updated_at').order('key');if(error) throw error;
+      const {data,error,status}=await client.from('game_config').select('key,value,version,updated_at').order('key');if(error) throw databaseError(error,status);
       return (data??[]).map((row:JsonRecord)=>({key:row.key,value:row.value,version:row.version,updatedAt:row.updated_at}));
     }),
     updateGameConfig: (input)=>run(async()=>{
@@ -319,7 +326,7 @@ async function queryVerifications(client:AnyClient,pending:boolean,cursor:string
     .eq('status',pending?'pending':undefined as any);
   if(!pending) query=client.from('verifications').select('id,influencer_id,type,evidence_url,status,created_at,reviewed_at,rejection_reason');
   if(parsed?.createdAt&&parsed?.id) query=query.or(`created_at.gt.${parsed.createdAt},and(created_at.eq.${parsed.createdAt},id.gt.${parsed.id})`);
-  const {data,error}=await query.order('created_at').order('id').limit(pageSize+1);if(error) throw error;
+  const {data,error,status}=await query.order('created_at').order('id').limit(pageSize+1);if(error) throw databaseError(error,status);
   const rows=(data??[]) as JsonRecord[];const hasMore=rows.length>pageSize;const items=rows.slice(0,pageSize).map((r)=>({id:r.id,influencerId:r.influencer_id,type:r.type,evidenceUrl:r.evidence_url,status:r.status,createdAt:r.created_at,reviewedAt:r.reviewed_at,rejectionReason:r.rejection_reason})) as Verification[];
   const last=items.at(-1);return {items,nextCursor:hasMore&&last?encodeCursor({createdAt:last.createdAt,id:last.id}):null};
 }

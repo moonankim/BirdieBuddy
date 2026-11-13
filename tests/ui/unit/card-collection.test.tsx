@@ -48,7 +48,7 @@ describe('컬렉션(도감) — 정적 카드 목록',()=>{
   it('전체 미보유와 등록 카드 없음을 구분한다',()=>{
     const {rerender}=render(<CardCatalog templates={empty}/>);
     expect(screen.getByText('아직 모은 카드가 없어요')).toBeInTheDocument();
-    expect(screen.getByRole('link',{name:'라운드 완료'})).toHaveAttribute('href','/draw');
+    expect(screen.getByRole('link',{name:'홈에서 라운드 완료하기'})).toHaveAttribute('href','/home');
     expect(screen.getAllByRole('article')).toHaveLength(36);
     rerender(<CardCatalog templates={[]}/>);
     expect(screen.getByText('등록된 카드가 없어요')).toBeInTheDocument();
@@ -88,6 +88,7 @@ describe('보유 카드',()=>{
   it('보유 카드 없음·조회 실패·로딩을 구분한다',()=>{
     const {rerender}=render(<CardCollection templates={empty}/>);
     expect(screen.getByRole('heading',{name:'아직 보유한 카드가 없어요'})).toBeInTheDocument();
+    expect(screen.getByRole('link',{name:'홈에서 라운드 완료하기'})).toHaveAttribute('href','/home');
     expect(screen.queryByRole('group',{name:'등급'})).toBeNull();
     const retry=vi.fn();
     rerender(<CardCollection status="error" onRetry={retry}/>);

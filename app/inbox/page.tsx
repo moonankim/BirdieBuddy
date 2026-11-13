@@ -35,6 +35,17 @@ function Inbox({roomId}:{roomId:string}){
   const [replyKey,setReplyKey]=useState<string|null>(null);
   const [reply,setReply]=useState('');
   const {messages,applyLocal}=useRoomMessages(roomId);
+  // 여기까지 읽었어요(PRD 4절): 이번에 열었을 때 NEW였던 질문은 인박스에 있는 동안 계속 NEW로 보인다. 다시 열면 그 사이 들어온 것만 NEW다.
+  const [newKeys,setNewKeys]=useState<ReadonlySet<string>>(new Set());
+  const [newCount,setNewCount]=useState<number|null>(null);
+  const checkedRoom=useRef<string|null>(null);
+  const noteNew=useCallback((page:InboxPage)=>{
+    const fresh=page.items.filter(item=>item.isNew&&!item.answered).map(item=>item.inboxKey);
+    if(fresh.length)setNewKeys(previous=>new Set([...previous,...fresh]));
+    if(checkedRoom.current===roomId)return;
+    checkedRoom.current=roomId;setNewCount(page.newCount);
+    if(page.checkedThroughMessageId)void api.markInboxChecked({roomId,lastCheckedMessageId:page.checkedThroughMessageId}).catch(()=>{});
+  },[api,roomId]);
 
   const load=useCallback(async()=>{
     const generation=++listGeneration.current;
@@ -43,10 +54,10 @@ function Inbox({roomId}:{roomId:string}){
       api.getRoomDailyBlockCount({roomId}).catch(networkError),
     ]);
     if(generation!==listGeneration.current)return;
-    if(inbox.ok){setItems(inbox.data.items);setNextCursor(inbox.data.nextCursor);setListError(null);}
+    if(inbox.ok){setItems(inbox.data.items);setNextCursor(inbox.data.nextCursor);setListError(null);noteNew(inbox.data);}
     else setListError(inbox.error);
     if(blocks.ok){setCount(blocks.data.count);setCountError(null);}else setCountError(blocks.error);
-  },[api,includeAnswered,roomId]);
+  },[api,includeAnswered,roomId,noteNew]);
 
   useEffect(()=>{
     const version=listGeneration;
@@ -64,7 +75,7 @@ function Inbox({roomId}:{roomId:string}){
     try{
       const r:Result<InboxPage>=await api.getRoomInbox({roomId,includeAnswered,cursor:nextCursor,limit:50}).catch(networkError);
       if(generation!==listGeneration.current)return;
-      if(r.ok){setItems(previous=>[...(previous??[]),...r.data.items]);setNextCursor(r.data.nextCursor);}
+      if(r.ok){setItems(previous=>[...(previous??[]),...r.data.items]);setNextCursor(r.data.nextCursor);noteNew(r.data);}
       else if(r.error.code==='SOURCE_CHANGED'){setListNotice(SOURCE_CHANGED_NOTICE);await load();}
       else setListError(r.error);
     }finally{setMorePending(false);}
@@ -130,6 +141,7 @@ function Inbox({roomId}:{roomId:string}){
     {summarizing.error&&<p role="alert" className="notice error">{errorText(summarizing.error.code)} {summarizing.error.retryable&&<button onClick={async()=>{const r=await summarizing.retry();if(r.ok)setSummary(r.data.summary);}}>재시도</button>}</p>}
 
     <label className="block my-4"><input type="checkbox" checked={includeAnswered} onChange={e=>setIncludeAnswered(e.target.checked)}/> 답변 완료 포함</label>
+    {!listError&&newCount!==null&&newCount>0&&<p role="status" className="notice my-3">지난 확인 이후 새 질문 {newCount}건</p>}
     {listNotice&&<p role="status" className="notice my-3">{listNotice}</p>}
     {listError&&<p role="alert" className="notice error">{errorText(listError.code,listError.details)} {listError.retryable&&<button onClick={()=>void load()}>다시 시도</button>}</p>}
     {items===null&&!listError?<p className="muted py-6 text-center">불러오는 중...</p>
@@ -137,13 +149,13 @@ function Inbox({roomId}:{roomId:string}){
       :items?.map(item=>item.kind==='question'
         ?<article className="card stack my-3" key={item.inboxKey}>
           <p>{item.question.body}</p>
-          <small className="muted">{item.question.supportBadge&&item.question.supportBadge!=='none'&&<span className="badge birdie mr-1">{badgeLabel[item.question.supportBadge]}</span>}{new Date(item.question.createdAt).toLocaleString('ko-KR')} · {item.answered?'답변 완료':'미답변'}</small>
+          <small className="muted">{newKeys.has(item.inboxKey)&&!item.answered&&<span className="badge mr-1">NEW</span>}{item.question.supportBadge&&item.question.supportBadge!=='none'&&<span className="badge birdie mr-1">{badgeLabel[item.question.supportBadge]}</span>}{new Date(item.question.createdAt).toLocaleString('ko-KR')} · {item.answered?'답변 완료':'미답변'}</small>
           {!item.answered&&replyKey!==item.inboxKey&&<button className="self-start" onClick={()=>{response.reset();setReply('');setReplyKey(item.inboxKey);}}>답변하기</button>}
           {replyKey===item.inboxKey&&answerForm(item)}
         </article>
         :<article className="card stack my-3" key={item.inboxKey}>
           <p className="font-bold">{item.representative} · {item.memberCount}명이 질문했어요</p>
-          <small className="muted"><span className="badge mr-1">묶음</span>{item.answered?'답변 완료':'미답변'}</small>
+          <small className="muted">{newKeys.has(item.inboxKey)&&!item.answered&&<span className="badge mr-1">NEW</span>}<span className="badge mr-1">묶음</span>{item.answered?'답변 완료':'미답변'}</small>
           <details><summary className="cursor-pointer text-[length:var(--type-label)]">원 질문 {item.activeMessageIds.length}개 보기</summary><ul className="stack mt-2">{item.activeMessageIds.map(id=><li key={id} className="text-[length:var(--type-label)] text-[var(--text-secondary)]">{bodyOf(id)??'(목록에 없는 질문)'}</li>)}</ul></details>
           {!item.answered&&replyKey!==item.inboxKey&&<button className="self-start" onClick={()=>{response.reset();setReply('');setReplyKey(item.inboxKey);}}>묶음에 답변하기</button>}
           {replyKey===item.inboxKey&&answerForm(item)}

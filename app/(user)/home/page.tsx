@@ -22,7 +22,7 @@ const arrow=icon(<path d="M7 17 17 7M7 7h10v10"/>);
 
 function Home(){
   const api=useChatApi();const router=useRouter();const session=useSession();
-  const nickname=session.status==='signedIn'?session.user.nickname:'버디';
+  const user=session.status==='signedIn'?session.user:null;const nickname=user?.nickname??'버디';
   const [summary,setSummary]=useState<RoundGaugeSummary|null>(null);
   const [cards,setCards]=useState<OwnedCardItem[]|null>(null);
   const [loadFailed,setLoadFailed]=useState(false);
@@ -39,7 +39,10 @@ function Home(){
   },[api,revision]);
   const complete=useCallback((input:{requestId:string})=>api.completeRound(input),[api]);
   const round=useRequest<Record<string,never>,CompleteRoundData>(complete);
-  const done=(r:Awaited<ReturnType<typeof round.run>>)=>{if(r.ok){saveLastDraw(r.data);router.push('/draw');}};
+  const done=(r:Awaited<ReturnType<typeof round.run>>)=>{if(r.ok&&user){saveLastDraw(user.userId,r.data);router.push('/draw');}};
+  // 응답을 못 받은 재시도 가능 오류 동안에는 서버가 이미 발급했을 수 있으므로, 기본 버튼도 같은 요청(같은 요청 ID)으로만 다시 보낸다.
+  const retrying=!!round.error?.retryable;
+  const submit=async()=>done(await (retrying?round.retry():round.run({})));
   const rounds=summary?.monthlyRoundCount??0;const target=summary?.targetRounds??3;
 
   return <div className="bb-home">
@@ -57,7 +60,7 @@ function Home(){
         <figcaption>공태풍 · 디자인 미리보기</figcaption>
       </figure>
     </section>
-    <button type="button" className="bb-button mt-4 w-full" disabled={round.pending} aria-busy={round.pending} onClick={async()=>done(await round.run({}))}>{round.pending?'카드 발급 중...':<>라운드 완료 {arrow}</>}</button>
+    <button type="button" className="bb-button mt-4 w-full" disabled={round.pending} aria-busy={round.pending} onClick={submit}>{round.pending?'카드 발급 중...':retrying?<>발급 다시 시도 {arrow}</>:<>라운드 완료 {arrow}</>}</button>
     {round.error&&<p role="alert" className="notice error mt-3">{errorText(round.error.code,round.error.details)} <RetryButton error={round.error} pending={round.pending} onRetry={async()=>done(await round.retry())}/></p>}
     <div className="gauge">
       <div className="gauge-head"><span>이번 달 라운드</span><strong>{summary?rounds:'-'} <small className="muted" style={{fontSize:'var(--type-caption)'}}>/ {target}회</small></strong></div>

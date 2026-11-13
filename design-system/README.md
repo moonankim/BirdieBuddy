@@ -21,6 +21,8 @@
 - `sample/chat.html`: 채팅방
 - `sample/states.html`: 로딩 스피너·화면 로딩·연결 오류·404·기본 프로필 크기별 정적 샘플
 - `states.css`: 앱과 시안이 공유하는 스피너·상태 화면·프로필 표시 스타일
+- `card.css`: 카드 디자인 언어(포스터 제목·태그·LEVEL 트랙·칩 필터·뽑기 연출)
+- `chat.css`: 채팅 읽음 상태 표시(구분선·안 읽은 수·NEW·최신 이동 버튼)
 - `../public/assets/avatar-default.svg`: 기본 프로필 공통 원본. 앱 URL은 `/assets/avatar-default.svg`
 - `assets/connection-error.svg`: 연결 오류 샘플용 골프 깃발 일러스트
 - `sample/screens.html`: 발급 결과, 강화 확인, 인박스와 설정·오류·빈 상태
