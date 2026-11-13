@@ -20,12 +20,13 @@ export function CardDetail({card,counts,returnToOwned=false}:{card:CardPreview;c
       <svg className="bb-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6M8 12h12"/></svg>{backLabel}
     </Link>
     <header className="bb-detail-heading">
-      <div className="bb-detail-heading-meta"><span className="bb-detail-category">{cardCategoryLabels[card.category]}</span>{card.verifiedAt&&<span className="badge">인증됨</span>}</div>
-      <h1 className="page-title">{card.name}</h1>
+      <p className="bb-eyebrow bb-eyebrow--start" aria-hidden="true">Affiliation</p>
+      <div className="bb-detail-heading-meta"><span className="bb-tag" data-grade={card.grade}>{cardCategoryLabels[card.category]}</span>{card.verifiedAt&&<span className="badge">인증됨</span>}</div>
+      <h1 className="page-title bb-poster-title">{card.name}</h1>
       <p className="bb-detail-caption">{owned?'나의 카드 상세':'아직 보유하지 않은 등급이에요'}</p>
     </header>
-    {counts&&<nav className="bb-detail-levels" aria-label="등급 선택">{cardLevels.map(grade=><Link key={grade} href={detailHref(card.id,grade,returnToOwned)} aria-current={grade===card.grade?'page':undefined} aria-label={`${cardLevelLabels[grade]} ${counts[grade]>0?`${counts[grade]}장 보유`:'미보유'}`}><span>{cardLevelLabels[grade]}</span><small>{counts[grade]>0?`${counts[grade]}장`:'미보유'}</small></Link>)}</nav>}
-    <figure className="bb-detail-showcase">
+    {counts&&<section className="bb-detail-levels"><p className="bb-eyebrow" aria-hidden="true">Level</p><nav className="bb-level-track" aria-label="등급 선택">{cardLevels.map(grade=><Link key={grade} className="bb-level" data-grade={grade} href={detailHref(card.id,grade,returnToOwned)} aria-current={grade===card.grade?'page':undefined} aria-label={`${cardLevelLabels[grade]} ${counts[grade]>0?`${counts[grade]}장 보유`:'미보유'}`}><span className="bb-level-tag">{cardLevelLabels[grade]}</span><small>{counts[grade]>0?`${counts[grade]}장`:'미보유'}</small></Link>)}</nav></section>}
+    <figure className="bb-detail-showcase bb-band" data-level={card.grade}>
       <div className="bb-detail-art"><CardArtwork src={previewCardImageUrl} name={card.name} unowned={!owned}/></div>
       <figcaption>{owned?'공통 예시 이미지예요. 선수별 카드 아트는 연결 후 표시돼요.':`${cardLevelLabels[card.grade]} 카드를 아직 만나지 못했어요`}</figcaption>
     </figure>

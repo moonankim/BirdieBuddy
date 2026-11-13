@@ -3,9 +3,9 @@
 .bb-feature::before { content: ""; position: absolute; z-index: -1; inset: 0 0 0 48%; background: linear-gradient(160deg, rgb(255 255 255 / 7%), transparent), var(--action-primary); clip-path: polygon(35% 0, 100% 0, 100% 100%, 0 100%); }
 .bb-feature::after { content: ""; position: absolute; z-index: -1; inset: 0; background: url("./assets/course-contours.svg") center / cover; pointer-events: none; }
 .bb-feature-copy { min-width: 0; }
-.bb-feature h2 { margin: var(--space-3) 0; font: 800 clamp(28px, 6vw, 34px)/1.2 var(--font-display); letter-spacing: var(--tracking-heading); }
+.bb-feature h2 { margin: var(--space-3) 0; font: 400 clamp(30px, 7vw, 38px)/1.12 var(--font-poster); font-synthesis: none; letter-spacing: .01em; }
 .bb-feature p { margin: 0 0 var(--space-4); font-size: var(--type-label); color: var(--hero-text); }
-.bb-feature .bb-feature-label { display: inline-block; padding-bottom: var(--space-2); border-bottom: 2px solid var(--special); font-size: var(--type-caption); font-weight: 700; }
+.bb-feature .bb-feature-label { display: inline-block; padding-bottom: var(--space-2); border-bottom: 2px solid var(--grade-crown); font: 600 var(--type-caption)/1.4 var(--font-label); letter-spacing: .12em; }
 .bb-feature .bb-feature-link { display: inline-flex; align-items: center; min-height: var(--touch-target); color: var(--text-inverse); text-decoration: underline; text-underline-offset: 5px; font-size: var(--type-label); }
 .bb-feature figure { margin: 0; min-width: 0; padding: var(--space-2) 0; }
 .bb-feature img { display: block; width: 100%; height: auto; aspect-ratio: 2 / 3; object-fit: contain; border-radius: var(--card-radius); box-shadow: 0 3px 6px rgb(0 0 0 / 18%), 0 18px 30px rgb(0 0 0 / 30%); }

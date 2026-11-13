@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import {useEffect,useId,useRef,useState,type CSSProperties} from 'react';
 import {CardArtwork,GradeBadge} from '@/components/ui/card-artwork';
+import {cardLevels} from '@/lib/cards/collection';
 import {cardCategoryLabels,cardLevelLabels,nextCardLevel,previewUpgradeCost,previewCardImageUrl,upgradeRevealMs,type CardLevel,type CardPreview} from '@/lib/cards/presentation';
 
 // 연출용으로 겹쳐 보이는 카드 위치. 실제 소모 장수와 무관한 장식이다.
@@ -42,7 +43,7 @@ export function CardUpgrade({card,nextCount,returnToOwned=false}:{card:CardPrevi
     </Link>
     <header className="bb-detail-heading">
       <span className="bb-detail-category">{cardCategoryLabels[card.category]} · {card.name}</span>
-      <h1 className="page-title" ref={resultHeading} tabIndex={-1}>{phase==='result'?'강화 결과 미리보기':phase==='revealing'?'카드 강화 중':'카드 강화'}</h1>
+      <h1 className="page-title bb-poster-title" ref={resultHeading} tabIndex={-1}>{phase==='result'?'강화 결과 미리보기':phase==='revealing'?'카드 강화 중':'카드 강화'}</h1>
       <p className="bb-detail-caption">{phase==='result'?'모은 카드가 다음 등급으로.':phase==='revealing'?'모은 카드가 하나로 합쳐지고 있어요.':'사용할 카드와 받을 카드를 확인해 주세요.'}</p>
     </header>
     <aside className="bb-detail-preview"><strong>목업 미리보기</strong><p>디폴트 카드로 구성한 화면이에요. 실제 카드·보유 장수·계정 정보는 바뀌지 않고, 돌아가거나 새로고침하면 미리보기 결과는 초기화돼요.</p></aside>
@@ -61,6 +62,7 @@ export function CardUpgrade({card,nextCount,returnToOwned=false}:{card:CardPrevi
         <div className="bb-detail-art"><CardArtwork src={previewCardImageUrl} name={card.name}/></div>
         <figcaption>{card.name} · {cardLevelLabels[result.grade]} 카드 1장 획득 예시</figcaption>
       </figure>
+      <section className="bb-detail-levels" aria-label="강화 후 등급"><p className="bb-eyebrow" aria-hidden="true">Level up</p><ol className="bb-level-track">{cardLevels.map(grade=><li key={grade} className="bb-level" data-grade={grade} aria-current={grade===result.grade?'step':undefined}><span className="bb-level-tag">{cardLevelLabels[grade]}</span></li>)}</ol></section>
       <section className="bb-detail-info" aria-label="강화 결과 수량">
         <h2>미리보기 결과</h2>
         <dl className="bb-upgrade-quantities">
