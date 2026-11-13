@@ -38,7 +38,7 @@
 @import '../design-system/app.css';
 ```
 
-- `design-system/app.css`가 `tokens.css`, `club.css`, `states.css`를 직접 불러옵니다.
+- `design-system/app.css`가 `tokens.css`, `club.css`, `states.css`와 `card.css`(components 레이어)를 직접 불러옵니다.
 - `app/design-system.css`는 기존 화면 호환용입니다. 신규 공통 구성요소는 `design-system/app.css`에 추가하고 화면별로 복제하지 않습니다.
 - `design-system/styles.css`, `foundation.css`, `.phone`, `.sample-*`는 시안 전용입니다. 앱에 통째로 import하거나 휴대폰 외곽 프레임을 실제 화면에 옮기지 않습니다.
 - `app.css`의 공통 구성요소는 `components` 레이어, `club.css`·`states.css`는 일반 규칙입니다. 유틸리티가 항상 덮어쓴다고 가정하지 말고 충돌 시 원본의 역할과 선택자를 확인합니다.
@@ -51,11 +51,26 @@
 | 버튼·포커스·오류 | `--action-primary`, `--focus-ring`, `--status-error` |
 | 패널·카드 깊이 | `--shadow-panel`, `--shadow-card`. 카드·수집 화면에 집중 |
 | 모서리 | 조작 6px, 패널 12px, 배너 20px, 카드 16px 토큰 |
-| 서체 | 제목 `--font-display`, 본문 `--font`; 페이지 28px, 본문 16px, 보조 최소 12px |
+| 서체 | 제목 `--font-display`, 본문 `--font`; 페이지 28px, 본문 16px, 보조 최소 12px. 카드 화면 포스터 제목·수치는 `--font-poster`, 자간 라벨은 `--font-label` |
+| 등급 | `--grade-{basic,rare,legend}-*` 토큰과 `card.css` 패턴. 색만으로 구분하지 않고 BASIC·RARE·LEGEND 텍스트 병기 |
 | 카드 | 2:3·`object-fit: contain`, 이름·유형·등급·수량은 이미지 밖에 표시 |
 | 동작 | `--motion-feedback`, `--motion-card`와 동작 줄이기 존중 |
 
-사선·등고선은 주요 배너에 사용하고 채팅·설정·관리자는 차분하게 유지합니다. 화면별 새 색상표나 동일한 장식용 그림자를 늘리지 않습니다. 골드는 희소성과 수집 성취에 한정합니다.
+사선·등고선은 주요 배너에 사용하고 채팅·설정·관리자는 차분하게 유지합니다. 화면별 새 색상표나 동일한 장식용 그림자를 늘리지 않습니다. 골드는 LEGEND·왕관·희소성 표시에 한정합니다. 토큰 3층 구조·패턴 마크업은 [개발 적용 가이드](./DEVELOPMENT.md#카드-기반-토큰-체계-2026-11-13)를 따릅니다.
+
+### 카드 기반 디자인 시스템 2차 적용 — 자성P 인계 (합의 후 진행)
+
+1차로 카드 화면(홈·컬렉션·보유·상세·강화)에 적용했습니다. 의미 토큰 값은 이미 바뀌어 모든 화면의 바탕·테두리·보조 글자가 아이보리 톤으로 이동했습니다. 채팅·인박스·관리자에 카드 언어를 더 적용할 때는 다음을 확인합니다.
+
+| 화면 요소 | 대응 토큰·패턴 | 기준 |
+| --- | --- | --- |
+| 화면 제목 | `.page-title` 유지, 필요 시 `.bb-eyebrow--start` 라벨 | 글 위주 화면에는 `.bb-poster-title`을 쓰지 않음 |
+| 보유·등급 표시 | `GradeBadge`·`.bb-badge[data-grade]` | 새 3등급 SDK 전환 이후. 이전 등급을 임의 매핑하지 않음 |
+| 소속·유형 표시 | `.bb-tag` | 인증 유형과 카드 유형을 혼동하지 않음 |
+| 배너·강조 | `.bb-band`·`.bb-feature` | 채팅·설정 본문에는 사선·골드를 쓰지 않음 |
+| 상태·오류 | 기존 `--status-error`·`StatusPanel` | 등급 레드(`--grade-rare-*`)를 오류 색으로 쓰지 않음 |
+
+체크리스트: 모바일 390px 줄바꿈, 44px 조작 영역, 포커스, 대비, 동작 줄이기, `lint`·`test:ui`·`build`.
 
 ## 공통 구성과 에셋
 

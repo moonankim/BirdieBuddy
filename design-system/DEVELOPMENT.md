@@ -17,10 +17,36 @@
 | `../public/assets/avatar-default.svg` | 기본 프로필 단일 원본. 앱에서는 `/assets/avatar-default.svg`로 참조 |
 | `assets/connection-error.svg` | 오류 화면의 장식용 일러스트 |
 | `club.css` | 앱·시안이 공유하는 카드 중심 배너·원본 카드 표시 규칙 |
+| `card.css` | 카드 아트의 디자인 언어(포스터 제목·자간 라벨·평행사변형 태그·사선 띠·LEVEL 트랙·3등급 배지). 앱은 `app.css`가 `components` 레이어로, 시안은 `styles.css`가 불러옴 |
 | `app.css` | 프레임워크와 무관한 앱 구성요소. `bb-` 접두사, `components` 레이어 사용 |
 | `assets/icons.json` | 24×24 viewBox·1.75 선 굵기용 SVG path 목록 |
 | `assets/card-placeholder.svg` | 정적 HTML 등에서 사용하는 2:3 자리표시자 |
 | `styles.css`·`sample/` | 디자인 검토 페이지용 레이아웃과 예시 |
+
+## 카드 기반 토큰 체계 (2026-11-13)
+
+실제 카드 아트(BASIC 그린·RARE 레드·LEGEND 블랙+골드, 아이보리 바탕)에서 색을 추출해 `tokens.css`를 3층으로 재구성했습니다. 컴포넌트 라이브러리는 도입하지 않았고, 오픈소스는 방법론만 참고했습니다. 단계 규칙은 Radix Colors, 원시→의미→컴포넌트 3층 구조는 shadcn/ui 테마 방식입니다.
+
+| 층 | 토큰 | 규칙 |
+| --- | --- | --- |
+| 원시 스케일 | `--sand-1..12`(아이보리), `--green-1..12`, `--red-1..12`, `--gold-1..12`, `--ink-1..12` | 1~2 배경, 3~5 컴포넌트 배경, 6~8 테두리, 9~10 단색, 11~12 텍스트. 화면 코드에서 직접 쓰지 않음 |
+| 의미 토큰 | `--surface-*`, `--text-*`, `--action-*`, `--border-*`, `--focus-ring` | 이름은 그대로 두고 값만 스케일로 재연결했다. 기존 화면은 수정 없이 톤만 아이보리 쪽으로 이동 |
+| 등급 토큰 | `--grade-{basic,rare,legend}-{solid,on,soft,text,border,glow}`, `--grade-inactive-{solid,on}`, `--grade-crown` | 채운 태그는 solid+on, 옅은 배경은 soft+text, 프레임은 border, 강조는 glow |
+| 타이포 | `--font-poster`(Anton+Black Han Sans), `--font-label`(Oswald), `--tracking-label`, `--type-hero` | 카드 화면 전용. 포스터 글꼴은 단일 굵기라 `font-weight: 400`과 `font-synthesis: none`을 쓴다. `--font-display`·`.page-title`은 다른 화면 보호를 위해 유지 |
+| 형태 | `--skew-tag`, `--band-angle`, `--cut-corner` | 평행사변형은 텍스트 왜곡을 피하려고 `clip-path`로 구현 |
+
+이전 원시 이름(`--pine-*`, `--mint-*`, `--special` 등)은 스케일을 가리키는 호환 별칭입니다. `--surface-epic`·`--text-epic`은 이전 4등급 화면 호환용이며 신규 사용을 금지합니다. 글꼴은 `app/layout.tsx`의 Google Fonts 링크 하나로 Noto Sans KR과 함께 불러옵니다(OFL, npm 의존성 없음).
+
+| 패턴 (`card.css`) | 마크업 | 접근성 |
+| --- | --- | --- |
+| 포스터 제목 | `.bb-poster-title` (`.page-title`과 함께 사용 가능) | 대문자 변환은 CSS만 적용되며 접근 가능한 이름은 원문 그대로 |
+| 자간 라벨 | `<p class="bb-eyebrow" aria-hidden="true">Level</p>`, 왼쪽 정렬은 `bb-eyebrow--start` | 영문 장식 라벨은 숨기고 의미는 주변 텍스트로 전달 |
+| 소속·등급 태그 | `<span class="bb-tag" data-grade="rare">KLPGA</span>` | 텍스트 필수 |
+| 3등급 배지 | `GradeBadge` 또는 `<span class="bb-badge" data-grade="legend">LEGEND</span>` | 이전 등급(common/epic/special)은 기존 알약형 유지 |
+| LEVEL 트랙 | 링크: `<nav class="bb-level-track"><a class="bb-level" data-grade aria-current="page"><span class="bb-level-tag">…</span><small>…</small></a>` · 표시만: `<ol class="bb-level-track"><li class="bb-level" aria-current="step">` | 현재 등급은 `aria-current`, 등급색·왕관 외에 텍스트·수량으로 구분 |
+| 사선 띠 | `class="bb-band" data-level="rare"` | 장식 의사 요소. 색은 `--band-color`로 조정 |
+
+새 토큰 조합은 WCAG AA 대비를 계산해 확인했습니다. 본문 4.5:1, 테두리 3:1 이상입니다. 예를 들어 `--grade-legend-text`는 아이보리 위 5.69:1, 비활성 태그는 5.15:1입니다.
 
 현재 앱은 `app/globals.css`에서 공통 `app.css`를 직접 불러옵니다. 기존 `app/design-system.css`는 레거시 화면 호환 스타일이며 토큰은 공통 원본을 참조합니다. 새 구성요소를 추가할 때 공통 파일을 수정하고 앱에 복사하지 않습니다. 앱만 별도 저장소로 분리할 경우 이 공통 디렉터리도 함께 전달해야 합니다.
 
