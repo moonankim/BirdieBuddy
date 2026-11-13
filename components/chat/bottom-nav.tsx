@@ -4,6 +4,8 @@ import {usePathname} from 'next/navigation';
 import type {ReactNode} from 'react';
 
 // design-system/sample의 하단 내비게이션(.bottom-nav). 일반 사용자(role=user)에게만 보인다.
+// 의미 토큰 기준 보정(DEVELOPMENT.md 토큰 체계): 메뉴 경계는 입력용 --border-input 대신 --border-subtle, 바탕은 --surface-raised.
+// 선택 상태는 둥근 칸 안쪽 밑줄 대신 아이콘 뒤 옅은 알약(--surface-subtle) + 강조 글자색(--text-accent)으로 표시한다.
 const icon=(children:ReactNode)=><svg className="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">{children}</svg>;
 const items=[
   {href:'/home',label:'홈',icon:icon(<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/>)},
@@ -12,7 +14,7 @@ const items=[
 ];
 export function BottomNav(){
   const pathname=usePathname()??'';
-  return <nav aria-label="주요 메뉴" className="bottom-nav !fixed !left-1/2 w-full max-w-[480px] -translate-x-1/2 !rounded-b-none">
-    {items.map(item=>{const active=pathname===item.href||pathname.startsWith(item.href+'/');return <Link key={item.href} href={item.href} aria-current={active?'page':undefined} className={`nav-item no-underline ${active?'active':''}`}><b>{item.icon}</b>{item.label}</Link>;})}
+  return <nav aria-label="주요 메뉴" className="bottom-nav !fixed !left-1/2 w-full max-w-[480px] -translate-x-1/2 !rounded-b-none ![border-top-color:var(--border-subtle)] ![background:var(--surface-raised)]">
+    {items.map(item=>{const active=pathname===item.href||pathname.startsWith(item.href+'/');return <Link key={item.href} href={item.href} aria-current={active?'page':undefined} className={`nav-item no-underline !shadow-none ${active?'active':''}`}><b className={`inline-flex h-7 w-14 items-center justify-center rounded-full transition-colors ${active?'bg-[var(--surface-subtle)]':''}`}>{item.icon}</b>{item.label}</Link>;})}
   </nav>;
 }
