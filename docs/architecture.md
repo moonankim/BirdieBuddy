@@ -4,11 +4,11 @@
 
 > **카드 기준 변경 · 2026-11-12:** 디자인 스타일 없음, 카드 유형 `kpga / klpga / gtour / media`, 등급 `basic / rare / legend`가 최신 사용자 확정 사항입니다. 최종 카드 path는 `<유형>-<선수명>-<레벨>.png`이며 레벨은 `basic/rare/legend`, MIME은 `image/png`입니다. 스타일 기반 WebP 경로를 신규 규칙으로 사용하지 않습니다. [카드 변경 명세·담당자 인계](./card-spec.md)를 먼저 읽습니다. 이 문서의 이전 3스타일·4등급·30종 계약보다 최신 명세를 우선하며, DB·SDK·화면 전환 완료를 의미하지 않습니다. 미확정 확률·데이터 이관을 임의로 정하지 않습니다.
 
-**최종 갱신:** 2026-11-13 — main PR #35 카드 UI 병합, 홍주P B-18 구현
+**최종 갱신:** 2026-11-13 — main PR #41 병합, R14 인박스 정책·백엔드 반영
 
 > 제품 규칙은 [prd.md](./prd.md)를 기준으로 한다. 이 문서는 공통 아키텍처와 담당 경계를 설명하고, Supabase 백엔드의 상세 데이터·권한·SDK/RPC/Edge 계약과 구현 순서는 [홍주P_plan.md](./홍주P_plan.md)를 따른다.
 >
-> 홍주P 백엔드는 로컬 구현·검증을 진행 중이다. 현재 branch에는 main의 PR #39(`e18f53e`)까지 병합되어 있다. PR #29는 실제 Auth·SDK, PR #36은 B-18 backend, PR #37은 발급 재시도·읽음 상태·관리자 월 UI, PR #38/#39는 뽑기 미리보기·디자인 변경을 포함한다. 기존 스타일·4등급 DB/SDK와 신규 3등급 카드 목업의 통합 정책은 아직 별도 결정이 필요하다. 현재 local/hosted에는 migration 15개가 적용됐고 Edge Function 5개는 version 2/JWT 검증 상태다. 로컬 검증된 일반 Supabase 변경은 같은 작업에서 지정 hosted 대상으로 동기화한다(루트 `AGENTS.md`). 읽음 상태의 SQL·SDK 회귀와 UI 테스트·타입·build는 통과했으며 실제 사용자 JWT·브라우저·Realtime·Storage·live AI 흐름은 미검증이다. 필요한 공개 Supabase 환경값이 있으면 실제 모드를 쓰고, `NEXT_PUBLIC_DATA_MODE=mock` 또는 연결값 누락 시 목 모드를 쓴다. 로그인 역할·닉네임은 본인 `profiles` 행에서 읽고 권한은 RLS/RPC가 재검사한다. 상세 환경별 증거는 `harness/verification-log.md`에 기록했다.
+> 홍주P 백엔드는 로컬 구현·검증을 진행 중이다. 현재 branch에는 main PR #41 병합 commit `2320663`까지 반영되어 있다. PR #41은 시연 스토리보드·담당 계획·검증 로그 문서 변경이며 runtime 변경은 없다. PR #29는 실제 Auth·SDK, PR #36은 B-18 backend, PR #37은 발급 재시도·읽음 상태·관리자 월 UI, PR #38/#39는 뽑기 미리보기·디자인 변경을 포함한다. 기존 스타일·4등급 DB/SDK와 신규 3등급 카드 목업의 통합 정책은 아직 별도 결정이 필요하다. 현재 local/hosted에는 migration 16개가 적용됐고 Edge Function 5개는 version 2/JWT 검증 상태다. 로컬 검증된 일반 Supabase 변경은 같은 작업에서 지정 hosted 대상으로 동기화한다(루트 `AGENTS.md`). R14에 따라 인플루언서 본인 인박스는 전송 판정이 pass인 질문을 전체 필터 통과 여부와 관계없이 표시한다. 다른 팬 공개·답변 인용·AI source는 계속 `passes_all_filters=true`를 요구한다. SQL 회귀·타입·build는 통과했으며 실제 사용자 JWT·브라우저·Realtime·Storage·hosted live AI 흐름은 미검증이다. 필요한 공개 Supabase 환경값이 있으면 실제 모드를 쓰고, `NEXT_PUBLIC_DATA_MODE=mock` 또는 연결값 누락 시 목 모드를 쓴다. 로그인 역할·닉네임은 본인 `profiles` 행에서 읽고 권한은 RLS/RPC가 재검사한다. 상세 환경별 증거는 `harness/verification-log.md`에 기록했다.
 >
 > 제품 요구사항과 다른 구현 기본값이 생기면 PRD와 담당 계획을 함께 갱신한다. 런타임에서는 CSR·RLS·Supabase 호출 계약을 따른다.
 
@@ -201,7 +201,7 @@ lib/api는 브라우저 SDK이며 서버 구현 위치가 아니다. 클라이�
 
 - 모든 public 테이블에 RLS와 명시적 grants. security_invoker view는 기초 테이블의 RLS를 유지한다.
 - anon은 DB 데이터·RPC 접근 없이 공개 카드·프로필 이미지 읽기만 가능하다. 가입은 항상 user이며 역할·데모 capability는 서버 관리 경계에서만 부여한다.
-- user는 본인 카드·라운드와 자기 질문, 본인의 입장 구간에 게시된 influencer 답변/전체 메시지/인사말만 읽는다. 입장 전·퇴장 기간 메시지는 숨기고 퇴장 중에는 방을 열 수 없다. 재입장 시 과거 입장 구간 대화는 복구하며, 퇴장 기간에 달린 본인 질문의 답변은 예외로 읽는다. greeting은 수신자 본인만 읽는다. 다른 팬 질문 행은 Data API와 Realtime에서 모두 숨기며 `message_clusters`는 방 소유자만 읽는다. 팬 화면은 답변의 `reply_context`와 SDK가 보강한 `isReplyToMe`를 이용한다. influencer는 본인 인증 신청과 매핑된 본인 방의 전체 대화·인박스·필터·인사말 설정·AI 기능을 사용한다. admin은 인증 심사·설정·카드 자산·허용된 데모를 관리한다. admin이라는 이유로 타인 카드·대화·인박스를 읽거나 influencer 명의로 답변하지 못한다.
+- user는 본인 카드·라운드와 자기 질문, 본인의 입장 구간에 게시된 influencer 답변/전체 메시지/인사말만 읽는다. 입장 전·퇴장 기간 메시지는 숨기고 퇴장 중에는 방을 열 수 없다. 재입장 시 과거 입장 구간 대화는 복구하며, 퇴장 기간에 달린 본인 질문의 답변은 예외로 읽는다. greeting은 수신자 본인만 읽는다. 다른 팬 질문 행은 Data API와 Realtime에서 모두 숨기며 `message_clusters`는 방 소유자만 읽는다. 팬 화면은 답변의 `reply_context`와 SDK가 보강한 `isReplyToMe`를 이용한다. influencer는 본인 인증 신청과 매핑된 본인 방의 전체 대화·인박스·필터·인사말 설정·AI 기능을 사용한다. 본인 인박스에는 모든 저장된 pass 질문을 표시하며 `passes_all_filters=false`도 포함한다. 다른 팬 공개·답변 인용·AI 묶기/요약 source는 여전히 모든 필터 통과 질문만 사용한다. admin은 인증 심사·설정·카드 자산·허용된 데모를 관리한다. admin이라는 이유로 타인 카드·대화·인박스를 읽거나 influencer 명의로 답변하지 못한다.
 - submit_moderated_message·submit_influencer_message 등 내부 저장 RPC는 Edge의 service-only 호출만 허용한다. 인증·멤버십 기간·필터 version은 최종 저장 시 DB에서 재검사하고 점수를 계산한다. 유효한 수정 제안 token의 검증·소비·메시지·operations 성공은 최종 저장 RPC의 한 트랜잭션으로 처리한다.
 - messages에는 block/suggest 원문을 저장하지 않는다. private moderation_events에는 판정 metadata만 7일 보관하며 rewrite·원문·JWT·키를 DB 감사 기록이나 로그에 복사하지 않는다.
 - Realtime에는 messages INSERT와 influencer 답변/전체 메시지의 삭제 UPDATE를 전달한다. 방 필터 조건이 아니라 SELECT RLS가 이벤트 권한 경계다. 팬은 본인 질문과 현재 수신 자격이 있는 influencer 메시지만 받고 방 주인은 방 전체를 받는다. SDK는 live cache와 분리한 조회 완료 checkpoint와 고정 through로 오래된 행의 soft delete도 복구한다. 최초 checkpoint는 history보다 먼저 읽고 실패한 page는 checkpoint를 전진시키지 않는다. 답변의 Message.isReplyToMe는 get_my_answer_links로 본인 여부만 보강하며 private 링크/다른 팬 질문 ID를 내보내지 않는다. 보강 실패는 pending buffer·직렬 재시도로 복구하며 실제 채널 status로 위장하지 않는다.
@@ -346,4 +346,4 @@ U-01 시연 대본·발표 자료는 담당 미정으로 유지한다. 검증 �
 
 다른 소유자와 함께 결정할 정책은 각각 담당 경계를 따른다. 모델·호출량·비용과 실제 AI 결과는 문환P, 최종 인물·이미지 사용권은 현호P 및 콘텐츠 소유자, 계정 전환·Auth UX·화면 CORS origin은 자성P/배포 담당자, 실서비스 차단 데이터 보관·제재·이의제기는 제품·법무·운영 담당자의 확인이 필요하다. 현재 blocker와 처리 담당은 [홍주P 계획 §14](./홍주P_plan.md#14-진행완료-보고)의 티켓 상태와 정책 결정 항목에서 관리한다.
 
-2026-11-13 확인한 hosted 상태는 migration 15개와 ACTIVE/version 2/verify_jwt=true인 Edge Function 5개다. 대화 이전 페이지의 nextCursor는 반환된 최소 ID이며, 후속 beforeId 조회가 중복되지 않게 수정했다. SDK는 PostgREST status=0과 FunctionsFetchError를 retryable NETWORK_ERROR로 정규화해 같은 requestId 재시도를 유지하며, unread count만 실패하면 방 목록을 보존한다. PR #37의 읽음 상태·관리자 월·발급 재시도 화면 연결은 병합됐고, local DB/SDK/UI 회귀 결과는 검증 로그를 따른다. 실제 사용자 JWT, Storage upload, Realtime delivery, browser flow와 live provider는 별도 검증 전까지 완료로 보지 않는다.
+2026-11-13 확인한 hosted 상태는 migration 16개와 ACTIVE/version 2/verify_jwt=true인 Edge Function 5개다. 대화 이전 페이지의 nextCursor는 반환된 최소 ID이며, 후속 beforeId 조회가 중복되지 않게 수정했다. SDK는 PostgREST status=0과 FunctionsFetchError를 retryable NETWORK_ERROR로 정규화해 같은 requestId 재시도를 유지하며, unread count만 실패하면 방 목록을 보존한다. R14에서는 본인 인플루언서 inbox/NEW에 모든 pass 질문을 표시하고, 타 팬 공개·답변 인용·AI source의 엄격한 필터 조건은 유지한다. PR #37의 읽음 상태·관리자 월·발급 재시도 화면 연결은 병합됐고, local DB 회귀 결과는 검증 로그를 따른다. 실제 사용자 JWT, Storage upload, Realtime delivery, browser flow와 hosted live provider는 별도 검증 전까지 완료로 보지 않는다.

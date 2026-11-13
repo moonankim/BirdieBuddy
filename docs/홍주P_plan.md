@@ -669,7 +669,7 @@ ownedCount/upgradedCount는 해당 template/grade의 갱신 직후 count. `entry
 
 `answer_question_links`는 답변 시점의 전체 대상 질문을 고정한다. 팬의 퇴장 기간 답변 예외 RLS와 `isReplyToMe`는 auth.uid()의 질문에 대한 이 링크를 좁은 private helper로 확인하며, 변경 가능한 cluster_id의 일치만으로 판단하지 않는다. `get_my_answer_links`는 public SECURITY INVOKER wrapper·권한 검증 private helper 경계를 사용하고 링크 테이블 SELECT를 브라우저에 주지 않는다. 본인이 읽을 수 없는 답변이나 다른 팬 질문의 ID/내용은 반환하지 않는다. SDK는 history/변경 page와 Realtime 답변을 이 RPC로 보강한 뒤 Message/onMessage를 제공한다. 보강 실패 시 조회/복구를 성공 처리하지 않고 checkpoint를 보존한다. owner 조회 및 답변 이외 종류의 isReplyToMe는 false다. 원시 Realtime 행에 사용자별 값을 넣거나 전체 대상 질문 ID를 공개하지 않는다.
 
-`getRoomInbox`는 기존 `get_room_inbox` priority/revision 페이지를 유지하며 새 wrapper가 §6.1의 `InboxPage`로 확장한다. 묶이지 않은 질문은 `kind='question'`, 묶음은 `kind='cluster'` 한 행으로 조회하며 묶음 안 질문을 별도 항목으로 중복 반환하지 않는다. 대표문장·활성 고유 질문자 수·활성 질문 ID는 저장된 관계에서 매 조회 계산한다. `newCount`는 마지막 cursor 이후 현재 활성 입장 기간에서 제출된 미답변 통과 질문 수이며, `isNew`는 묶음에 그 질문이 하나 이상 있을 때 true다. `checkedThroughMessageId`는 priority page에 없는 질문까지 포함한 현재 snapshot의 최대 eligible ID다. 화면은 이 값을 사용해 확인 cursor를 저장한다. 팬에게 인박스 조회를 허용하지 않는다.
+`getRoomInbox`는 기존 `get_room_inbox` priority/revision 페이지를 유지하며 새 wrapper가 §6.1의 `InboxPage`로 확장한다. 묶이지 않은 질문은 `kind='question'`, 묶음은 `kind='cluster'` 한 행으로 조회하며 묶음 안 질문을 별도 항목으로 중복 반환하지 않는다. 대표문장·활성 고유 질문자 수·활성 질문 ID는 저장된 관계에서 매 조회 계산한다. 방 소유자의 인박스는 전송 판정이 pass인 저장 질문을 모두 포함하며 `passes_all_filters=false` 질문도 보인다. `newCount`는 마지막 cursor 이후 현재 활성 입장 기간에서 제출된 미답변 pass 질문 수이며, `isNew`는 묶음에 그 질문이 하나 이상 있을 때 true다. `checkedThroughMessageId`는 priority page에 없는 질문까지 포함한 현재 snapshot의 최대 eligible ID다. 화면은 이 값을 사용해 확인 cursor를 저장한다. 팬에게 인박스 조회를 허용하지 않으며, `passes_all_filters=true` 조건은 타 팬 질문 공개·답변 인용·AI source에 유지한다.
 
 읽음 상태는 계정별·방별 비공개 bigint cursor로 저장한다. 팬의 unread count와 첫 unread는 `private.can_read_message` 결과를 사용하며 본인 질문·삭제 메시지·접근 불가능 기간을 제외한다. 퇴장 중 본인 질문에 달린 답변은 재입장 후 해당 helper가 허용하는 대로 unread에 포함한다. 처음 방문해 저장 row가 없으면 0건과 divider 없음으로 시작하고, `markRoomRead(null)`은 방문 사실만 남겨 이후 수신분을 계산하게 한다. influencer 확인 cursor는 현재 active membership 기간 질문만 NEW 대상으로 하므로 재입장 질문은 재노출되어도 새 항목이 아니다. 두 mark RPC는 대상 방·행을 검사하고 cursor를 후퇴시키지 않는다. `getRooms`는 unread-count RPC가 실패하면 전체 방 조회를 실패시키지 않고 count를 null로 둔다.
 
@@ -795,7 +795,7 @@ interface AiAdapter {
 | 선택 | profanity, belittling, appearance | 방 소유자만 disabledFilters로 해제 |
 | 항상 차단 | threat, stalking, sexual_harassment, privacy, hate, illegal_ad, spam | 해제 불가 |
 
-초기 disabledFilters=[]. 선택 enum만, 중복 제거·정렬 저장, version 증가. 해제 가능한 항목은 욕설·가벼운 비하·외모 평가뿐이다. 혐오는 필수 차단이며 방 설정으로 해제할 수 없다. threat/stalking/sexual_harassment/privacy/hate/illegal_ad/spam은 항상 차단한다. 답변·전체 메시지·인사말은 선택 필터 설정을 적용하지 않고 필수 차단 7개만 검사한다. 수정 제안 문구는 선택 설정과 무관하게 10개 전부를 통과해야 한다. 질문 인용에 쓰이는 `passesAllFilters`도 선택 설정을 무시하고 10개 전부를 통과했는지 나타내며, keyword fallback 결과는 항상 false다. moderation metadata는 팬에게 공개하지 않는다. 인박스에는 pass 질문만 있다.
+초기 disabledFilters=[]. 선택 enum만, 중복 제거·정렬 저장, version 증가. 해제 가능한 항목은 욕설·가벼운 비하·외모 평가뿐이다. 혐오는 필수 차단이며 방 설정으로 해제할 수 없다. threat/stalking/sexual_harassment/privacy/hate/illegal_ad/spam은 항상 차단한다. 답변·전체 메시지·인사말은 선택 필터 설정을 적용하지 않고 필수 차단 7개만 검사한다. 수정 제안 문구는 선택 설정과 무관하게 10개 전부를 통과해야 한다. 질문 인용에 쓰이는 `passesAllFilters`도 선택 설정을 무시하고 10개 전부를 통과했는지 나타내며, keyword fallback 결과는 항상 false다. moderation metadata는 팬에게 공개하지 않는다. 방 소유 인플루언서 인박스에는 전송 판정이 pass인 질문을 모두 표시한다. `passesAllFilters=false`인 pass 질문도 필터를 해제했거나 keyword fallback으로 전송된 경우 인박스와 NEW 상태에 포함하며, 다른 팬 공개·답변 인용·AI 묶기/요약 source에서는 계속 제외한다.
 
 연속 도배는 별도 코드 제한으로 판정한다. 최근 10초 안에 5건을 초과하는 새 전송 요청이 오면 30초간 해당 사용자의 전송을 막고 RATE_LIMITED와 retryAfterSeconds를 반환한다. 동일 requestId 재시도는 새 요청으로 세지 않으며 위반 횟수에도 넣지 않는다. 프로토타입에는 위반 누적·제재 단계·재검토 절차를 구현하지 않는다.
 
@@ -1272,14 +1272,14 @@ npm run demo:reset -- --apply
 | 상태 | 조건 | 현재 |
 | --- | --- | --- |
 | 계획 단독 실행 준비 | 범위·기본값·타입·권한·순서·검증·외부조건 | 문서 보완·정적 교차 검토 완료 |
-| 백엔드 로컬 완료 | B-01~18 코드·필수로컬검증 | 진행 중: local stack과 별도 신규 DB에서 15개 migration 적용을 확인했다. SQL 6 files/197 assertions(B-18 65건·대화 paging 11건 포함), Node 27건, Deno 150건, backend/UI typecheck, DB lint 오류 0을 확인했다. 전체 cross-ticket `verify:backend`, 실제 JWT·browser·Realtime·Storage·live AI와 전체 acceptance는 미검증 |
-| LLM hosted Secrets 준비 | `TYPESAFE_API_KEY`·`ANTHROPIC_API_KEY` 존재 여부와 회전된 값의 실제 호출 검증 | Dashboard에서 두 Secret 이름 저장 확인. 값·회전 여부 미열람·미확인, live 호출 미실행 |
+| 백엔드 로컬 완료 | B-01~18 코드·필수로컬검증 | 진행 중: 기존 local stack과 별도 신규 DB에 16개 migration 적용을 확인했다. SQL 6 files/200 assertions(B-18 및 R14 포함), DB lint 오류 0. 기존 검증 기록에는 Node 27건, Deno 150건, backend/UI typecheck가 있다. 전체 cross-ticket `verify:backend`, 실제 JWT·browser·Realtime·Storage·live AI와 전체 acceptance는 미검증 |
+| LLM hosted Secrets 준비 | `TYPESAFE_API_KEY`·`ANTHROPIC_API_KEY` 설정 여부 및 live 호출 검증 | 과거 Dashboard 확인 기록에는 두 Secret 이름이 있었으나 이번 작업에서 현재 설정·값·회전 여부는 확인하지 않았다. 계정 정보와 설정 상태가 이 대화에 전달되지 않아 hosted 호출 미실행 |
 | 실제AI 검증 | live 호출·3판정·장애 | 미검증 |
 | 팀화면 통합 | 실제 Auth·SDK Provider와 PR #37의 읽음 상태·관리자 데모 월·발급 재시도 연결 | 코드 병합 및 UI 236 tests·production build 통과. 사용자 JWT browser flow·Realtime·Storage는 미검증 |
 | Supabase 관리 연결 | 프로젝트·DB 관리 경로 | Supabase MCP로 대상 읽기/적용 확인. CLI deploy는 로컬 `SUPABASE_ACCESS_TOKEN` 부재로 실패했으나 MCP deploy로 계속함 |
 | Supabase 로그인·프로젝트 권한 | 계정/PAT 범위/프로젝트 멤버십 및 Owner/Administrator Secret 쓰기 권한 | MCP에서 §2.1 ref 접근 및 migration/function 반영 성공. Secret 권한은 사용하지 않았고 별도 확인하지 않음. 일반 migration/function sync 대상은 상시 사용자 지시로 지정됨 |
-| 원격 preflight | target ref·환경·DB major version·기존 데이터/schema baseline | 2026-11-12 MCP read-only: `main / PRODUCTION`, PostgreSQL 17.11, ACTIVE_HEALTHY. profiles 7, influencers 11(verified 10), rooms 10, templates 30, unnamed influencers 0. Synthetic authenticated role/JWT claim SQL probe의 `room_catalog`은 10행/10개 이름을 반환했다. 실제 브라우저·사용자 JWT smoke 증거는 아님 |
-| 원격 적용 | 승인환경 migration/Functions/Secrets·스모크 | 2026-11-13 hosted `main / PRODUCTION`에 15개 migration을 반영했다. 대화 paging 함수 본문 hash가 local과 일치하며 anon 거부·authenticated 호출 권한을 보존했다. 5개 Edge Function은 ACTIVE/version 2/verify_jwt=true다. 실제 JWT·브라우저·Realtime·Storage·live AI 스모크는 미실행 |
+| 원격 preflight | target ref·환경·DB major version·기존 데이터/schema baseline | 2026-11-13 MCP에서 `main / PRODUCTION`, PostgreSQL 17.11, ACTIVE_HEALTHY와 migration 이력을 확인했다. 기존 Auth·메시지·계정·Secret 값을 출력하거나 변경하지 않았다. 실제 브라우저·사용자 JWT smoke 증거는 아님 |
+| 원격 적용 | 승인환경 migration/Functions/Secrets·스모크 | hosted `main / PRODUCTION`에 16개 migration이 적용됐다. R14 inbox/NEW RPC의 `search_path=''`, anon execute=false, authenticated execute=true와 `passes_all_filters=false` pass 포함을 확인했다. 5개 Edge Function은 ACTIVE/version 2/verify_jwt=true다. 실제 JWT·브라우저·Realtime·Storage·live AI 스모크는 미실행 |
 | 데모 완료 | 동결 후 전체리허설2회 | 미실행 |
 
 보고 순서는 변경 파일 → 명령/증거 → 완료 티켓 → 외부 조건/미검증 → 재개 방법이다. 외부 권한·AI 모듈이 없어도 독립 가능한 구현은 끝까지 진행한다.
@@ -1297,17 +1297,17 @@ npm run demo:reset -- --apply
 | B-05 | catalog/join/re-entry RPC와 SDK 구현 | 자성P 화면·세션 흐름 통합 |
 | B-06 | submission RPC·JWT Edge·SDK·Realtime history/recovery와 Jev moderation adapter 연결. 과거 대화 nextCursor 중복 조회 수정 및 DB 회귀 11건 통과 | live provider 호출/장애 조건, 화면 Realtime delivery와 실제 권한 통합 |
 | B-07 | demo clock·월 정산·round gauge 및 `get_admin_demo_month` RPC/SDK 구현·hosted 적용. 권한 SQL·SDK test 통과, PR #37 관리자 UI 연결 병합 | 실제 관리자 JWT·브라우저 월 변경 및 퇴장/재입장 통합 |
-| B-08 | score·inbox/revision·filtered answer·answer history 구현 | 인박스 UI와 실제 두 세션 흐름 통합 |
+| B-08 | score·inbox/revision·filtered answer·answer history 구현. R14에 따라 방 소유자 inbox/NEW는 모든 pass 질문을 포함하고 타 팬 공개·답변 인용·AI source는 엄격한 필터 통과를 유지 | 인박스 UI와 실제 두 세션 흐름 통합 |
 | B-09 | verification 신청·심사·이력 backend 구현 | 자성P 관리자 신청/승인 UI 통합 |
 | B-10 | filters/version/rate-limit/metadata cleanup 구현 | latest fixture 이후 회귀 검증, 운영 cron 실제 실행 관찰 |
-| B-11 | hosted migration 15개·Functions 5개 version 2/JWT 상태 재확인, 대화 paging 수정 동기화 및 local history 정렬 | exact Auth/CORS origin, user JWT/Storage/Realtime smoke |
+| B-11 | hosted migration 16개·Functions 5개 version 2/JWT 상태 재확인, 대화 paging·R14 inbox 보완 동기화 및 local history 정렬 | exact Auth/CORS origin, user JWT/Storage/Realtime smoke |
 | B-12 | source/lease/commit RPC, Edge wrappers와 main에 병합된 Jev/Claude adapter | live provider 품질/안전 회귀 및 hosted 실행 검증 |
-| B-13 | 현재 Node 27·Deno 150·pgTAP 197·UI 236·typecheck·DB lint·production build 통과. 신규 격리 DB에 15개 migration을 처음부터 적용하고 동일 SQL suite 통과 | demo-data 쓰기형 `verify:backend` 전체, 브라우저·Realtime·Storage·실AI·production smoke |
+| B-13 | Node 27·Deno 150·UI 236·typecheck·production build는 이전 검증 기록 기준 통과. 이번 변경까지 포함한 pgTAP 200/200, 기존 local stack·신규 격리 DB 16개 migration, DB lint 오류 0 | demo-data 쓰기형 `verify:backend` 전체, 브라우저·Realtime·Storage·실AI·production smoke |
 | B-14 | bucket/RLS/photo RPC와 SDK upload flow 구현 | 실제 browser File→WebP, 재시도·복구·과거 메시지 갱신 smoke |
 | B-15 | greeting read/update Edge·RPC와 first-entry snapshot 구현 | 자성P 설정/첫 입장 UI 통합 |
 | B-16 | influencer broadcast Edge/RPC·SDK 구현 | 자성P compose/수신 화면·Realtime 통합 |
 | B-17 | owner message soft-delete RPC·SDK 및 UPDATE 전달 구현 | 자성P 삭제/질문 재개방/Realtime UI 통합 |
-| B-18 | read-state RPC/SDK·hosted 적용, 전용 SQL 65건·SDK 7건 통과. PR #37 UI 연결 병합. count RPC rejection 시 방 목록을 유지하도록 SDK 보완 | 팬·인플루언서 실제 JWT·브라우저·Realtime 세션 통합 |
+| B-18 | read-state RPC/SDK·hosted 적용, 전용 SQL 68건·SDK 7건 통과. PR #37 UI 연결 병합. count RPC rejection 시 방 목록을 유지하도록 SDK 보완 | 팬·인플루언서 실제 JWT·브라우저·Realtime 세션 통합 |
 
 #### 정책 결정 권한과 타 담당자 영향
 
@@ -1474,3 +1474,12 @@ docs/홍주P_plan.md 계약 1.6의 §§6~9·12·15와 내 담당 *_plan.md를 �
 - 검증: B-18 전용 SQL 65건과 SDK 7건, 실제 Supabase client/custom fetch 통신 회귀 7건, paging SQL 11건을 추가했다. 전체 Node 27·Deno 150·pgTAP 197·UI 236, backend/UI typecheck·DB lint·production build 통과. 상세 환경과 명령은 `harness/verification-log.md`를 따른다.
 - hosted 반영: `20261113042007_fix_message_history_cursor.sql`을 지정 project에 적용하고 15개 migration 정렬과 본문 hash·권한을 확인했다. Edge source 변경이 없어 기존 5개 version 2/JWT 검증 상태를 확인했다. 새 migration은 MCP가 기록한 version으로 filename을 맞췄고, local history만 CLI repair로 정렬했다.
 - 남은 담당 경계: 자성P는 실제 사용자 세션으로 읽음·발급 재시도·관리자 월 흐름을 확인한다. 현호P/문환P/제품 담당자의 카드 인물 UUID·R2·3등급 확률·기존 등급 이관 결정은 아직 필요하며, 홍주P는 이 정책을 추정해 schema를 바꾸지 않는다.
+
+### 15.13 2026-11-13 — main PR #41 병합·R14 인박스 동작 수정
+
+- 병합·PR 확인: PR #41의 merge commit `2320663e7bb2782e4ca7f3b1d65ac75f34b523fa`를 `origin/main`에서 `feature/hongjoo`로 fast-forward했다. 충돌은 없었다. PR은 storyboard·문환P 계획·검증 로그의 문서 변경 3개이며 런타임 코드 변경은 없었다. merge된 3등급 확률 제안은 제품 확정으로 보지 않는다.
+- 정책 대조: PR handoff R14를 PRD §4·§6과 현재 DB/Edge 계약에 대조했다. 필터 해제로 pass된 질문은 소유자만 보는 인박스에 보여야 한다. `passes_all_filters=false`는 타 팬 노출·답변 인용·AI 묶기/요약 source 사용을 계속 차단한다.
+- 구현: `20261113052554_expose_pass_questions_to_influencer_inbox.sql`을 추가해 `get_room_inbox`, `mark_inbox_checked`, `get_room_inbox_with_read_state`의 eligibility를 `passes_all_filters=true`에서 `passes_all_filters is not null`로 넓혔다. owner 확인·membership 기간·삭제/body·pagination·cursor 조건과 security definer/search_path/grants는 유지했다. R14 pgTAP은 false pass 질문의 inbox 노출·NEW 표시·count·확인 cursor 전진을 검사한다. PRD §4·§6, 홍주P §8.2·§6.1, 문환P R14, architecture를 같은 정책으로 맞췄다.
+- 로컬·hosted 검증: 기존 local stack과 새 임시 DB에서 16 migrations와 SQL 6 files/200 assertions, DB lint 오류 0을 확인했다. Hosted `BirdieBuddy Project`의 16개 migration 이력과 세 RPC의 false pass 포함, `search_path=''`, anon execute 거부/authenticated execute 허용을 확인했다. hosted Secret·Function·Auth/CORS 설정과 사용자/메시지 데이터는 바꾸지 않았다. 전체 증거는 `harness/verification-log.md` 2026-11-13 R14 항목에 있다.
+- 대기·미검증: 사용자 회신에서 계정·Secret 상태의 실제 값은 전달되지 않아 hosted T-04를 실행하지 못했다. Secret 값은 열람·요청·기록하지 않는다. 실제 사용자 JWT·browser/Realtime/Storage 및 hosted AI 호출은 미검증이다. 3등급 카드 정책/데이터 이관 결정 전까지 기존 카드 DB·RPC는 변경하지 않는다.
+- 작업 상태: 로컬 branch는 merge commit 기준 `origin/feature/hongjoo`보다 9 commits ahead다. 이 작업에서 commit/push하지 않았다.

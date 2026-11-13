@@ -90,7 +90,7 @@ begin
   perform pg_temp.add_read_state_message('other_gap_answer',c.owner_a,'influencer_answer',now()-interval '3 days',p_reply=>v_other);
   insert into private.answer_question_links(room_id,answer_id,question_id)
   select c.room_a,id,v_other from read_state_messages where name='other_gap_answer';
-  perform pg_temp.add_read_state_message('filtered_question',c.fan_a,'user_question',now()-interval '1 day',p_pass=>false);
+  perform pg_temp.add_read_state_message('disabled_filter_question',c.fan_a,'user_question',now()-interval '1 day',p_pass=>false);
   perform pg_temp.add_read_state_message('cluster_old',c.fan_a,'user_question',now()-interval '5 days',20,p_cluster=>c.cluster_id);
   perform pg_temp.add_read_state_message('cluster_new',c.fan_b,'user_question',now()-interval '1 day',10,p_cluster=>c.cluster_id);
   perform pg_temp.add_read_state_message('latest_low_priority',c.fan_a,'user_question',now()-interval '1 day',1);
@@ -139,19 +139,28 @@ select set_config('request.jwt.claim.sub',(select owner_a::text from read_state_
 select throws_ok($$select public.get_room_read_state((select room_a from read_state_ctx))$$,'P0001','FORBIDDEN','influencer cannot use fan read-state API');
 select is(public.get_inbox_read_state((select room_a from read_state_ctx))->>'lastCheckedMessageId',null,'owner first inbox cursor is null');
 insert into read_state_pages values('initial',public.get_room_inbox_with_read_state((select room_a from read_state_ctx),false,null,1));
-select is((select page->>'newCount' from read_state_pages where name='initial'),'3','NEW count excludes answered, filtered and previous-entry questions');
+select is((select page->>'newCount' from read_state_pages where name='initial'),'4','NEW count includes pass questions allowed by disabled filters');
 select is((select page #>> '{items,0,question,id}' from read_state_pages where name='initial'),(select id::text from read_state_messages where name='own_question'),'first page follows priority rather than latest ID');
 select is((select page->>'checkedThroughMessageId' from read_state_pages where name='initial'),(select id::text from read_state_messages where name='latest_low_priority'),'checked-through includes low-priority questions beyond current page');
 select ok((select page->'nextCursor' <> 'null'::jsonb from read_state_pages where name='initial'),'priority page provides a next cursor');
 insert into read_state_pages select 'second',public.get_room_inbox_with_read_state((select room_a from read_state_ctx),false,page->'nextCursor',1) from read_state_pages where name='initial';
 select is((select page->>'checkedThroughMessageId' from read_state_pages where name='second'),(select id::text from read_state_messages where name='latest_low_priority'),'checked-through is stable on later priority pages');
 insert into read_state_pages values('all',public.get_room_inbox_with_read_state((select room_a from read_state_ctx),true,null,100));
+select ok((select exists (
+  select 1 from read_state_pages p cross join lateral jsonb_array_elements(p.page->'items') item
+  where p.name='all' and item #>> '{question,id}'=(select id::text from read_state_messages where name='disabled_filter_question')
+)),'room owner inbox includes pass questions allowed by disabled filters');
+select is((select item->>'isNew' from read_state_pages p cross join lateral jsonb_array_elements(p.page->'items') item
+  where p.name='all' and item #>> '{question,id}'=(select id::text from read_state_messages where name='disabled_filter_question')),
+  'true','allowed question is marked NEW for its owner');
 select ok((select (item->>'isNew')::boolean from read_state_pages p cross join lateral jsonb_array_elements(p.page->'items') item where p.name='all' and item->>'kind'='cluster'),'cluster is NEW when at least one current-entry question is new');
 select is((select item->>'isNew' from read_state_pages p cross join lateral jsonb_array_elements(p.page->'items') item where p.name='all' and item #>> '{question,id}'=(select id::text from read_state_messages where name='old_question')),'false','answered historical question is not NEW');
 select is(public.mark_inbox_checked((select room_a from read_state_ctx),(select id::text from read_state_messages where name='own_question'))->>'lastCheckedMessageId',(select id::text from read_state_messages where name='own_question'),'owner can mark checked through a current-entry question');
-select is(public.get_room_inbox_with_read_state((select room_a from read_state_ctx))->>'newCount','2','NEW count decreases only for questions up to cursor');
+select is(public.get_room_inbox_with_read_state((select room_a from read_state_ctx))->>'newCount','3','NEW count decreases only for questions up to cursor');
 select throws_ok($$select public.mark_inbox_checked((select room_a from read_state_ctx),(select id::text from read_state_messages where name='cluster_old'))$$,'P0001','FORBIDDEN','new cursor cannot advance to an earlier membership period question');
-select throws_ok($$select public.mark_inbox_checked((select room_a from read_state_ctx),(select id::text from read_state_messages where name='filtered_question'))$$,'P0001','FORBIDDEN','filtered question cannot advance inbox cursor');
+select is(public.mark_inbox_checked((select room_a from read_state_ctx),(select id::text from read_state_messages where name='disabled_filter_question'))->>'lastCheckedMessageId',
+  (select id::text from read_state_messages where name='disabled_filter_question'),'owner can check a pass question allowed by disabled filters');
+select is(public.get_room_inbox_with_read_state((select room_a from read_state_ctx))->>'newCount','2','checking an allowed question reduces NEW count');
 select is(public.mark_inbox_checked((select room_a from read_state_ctx),(select id::text from read_state_messages where name='latest_low_priority'))->>'lastCheckedMessageId',(select id::text from read_state_messages where name='latest_low_priority'),'snapshot high-water mark advances inbox cursor');
 select is(public.get_room_inbox_with_read_state((select room_a from read_state_ctx))->>'newCount','0','snapshot high-water mark checks all current NEW questions');
 select is((select item->>'isNew' from jsonb_array_elements(public.get_room_inbox_with_read_state((select room_a from read_state_ctx))->'items') item where item->>'kind'='cluster'),'false','cluster loses NEW after all current questions are checked');
