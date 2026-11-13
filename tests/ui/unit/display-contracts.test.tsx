@@ -27,19 +27,23 @@ describe('safe user-facing errors', () => {
 });
 
 describe('Avatar fallback and replacement', () => {
-  it('renders a full Unicode first character when there is no image', () => {
-    render(<Avatar src={null} name="🏌️ 버디" />);
+  it('uses the default profile image when there is no photo, and the first character only if that also fails', () => {
+    const { container } = render(<Avatar src={null} name="🏌️ 버디" />);
+    const fallback = container.querySelector('img');
+    expect(fallback).toHaveAttribute('src', '/assets/avatar-default.svg');
+    expect(fallback).toHaveAttribute('alt', '');
+    if (!fallback) throw new Error('Expected default profile image');
+    fireEvent.error(fallback);
+    expect(container.querySelector('img')).toBeNull();
     expect(screen.getByLabelText('🏌️ 버디')).toHaveTextContent('🏌');
-    expect(screen.queryByRole('img', { hidden: true })).not.toBeInTheDocument();
   });
-  it('falls back on image error and tries a different URL after a profile change', () => {
+  it('falls back to the default image on error and tries a different URL after a profile change', () => {
     const { container, rerender } = render(<Avatar src="/old.webp" name="버디" />);
     const old = container.querySelector('img');
     expect(old).toHaveAttribute('src', '/old.webp');
     if (!old) throw new Error('Expected profile image');
     fireEvent.error(old);
-    expect(container.querySelector('img')).toBeNull();
-    expect(screen.getByLabelText('버디')).toHaveTextContent('버');
+    expect(container.querySelector('img')).toHaveAttribute('src', '/assets/avatar-default.svg');
     rerender(<Avatar src="/new.webp" name="버디" />);
     expect(container.querySelector('img')).toHaveAttribute('src', '/new.webp');
   });

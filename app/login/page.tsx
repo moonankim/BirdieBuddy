@@ -1,4 +1,5 @@
 'use client';
+import {Spinner} from '@/components/ui';
 import {useEffect,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {accounts,dataMode,homeFor,useSession} from '@/lib/session';
@@ -39,8 +40,8 @@ function MockLogin(){
 export default function Login(){
   const s=useSession();const router=useRouter();
   useEffect(()=>{if(s.status==='signedIn')router.replace(homeFor(s.user));},[s,router]);
-  if(s.status==='loading')return <p className="muted py-6 text-center">세션을 확인하고 있어요.</p>;
-  if(s.status==='signedIn')return <p className="muted py-6 text-center">이동 중...</p>;
+  if(s.status==='loading')return <Spinner label="세션을 확인하고 있어요."/>;
+  if(s.status==='signedIn')return <Spinner label="이동 중..."/>;
   return dataMode==='supabase'
     ?<section className="stack pt-4"><div><span className="eyebrow">LOGIN</span><h1 className="page-title">로그인</h1></div><p className="muted text-[length:var(--type-label)]">시연용 데모 계정으로 로그인해요.</p><EmailLogin/></section>
     :<section className="stack pt-4"><div><span className="eyebrow">DEMO</span><h1 className="page-title">더미 계정으로 시작</h1></div><p className="muted text-[length:var(--type-label)]">목 데이터로 동작하는 미리보기 계정입니다. 팬은 채팅방 목록으로 이동합니다.</p><MockLogin/></section>;
