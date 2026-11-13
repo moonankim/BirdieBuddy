@@ -141,7 +141,7 @@ function Inbox({roomId}:{roomId:string}){
     {summarizing.error&&<p role="alert" className="notice error">{errorText(summarizing.error.code)} {summarizing.error.retryable&&<button onClick={async()=>{const r=await summarizing.retry();if(r.ok)setSummary(r.data.summary);}}>재시도</button>}</p>}
 
     <label className="block my-4"><input type="checkbox" checked={includeAnswered} onChange={e=>setIncludeAnswered(e.target.checked)}/> 답변 완료 포함</label>
-    {!listError&&newCount!==null&&newCount>0&&<p role="status" className="notice my-3">지난 확인 이후 새 질문 {newCount}건</p>}
+    {!listError&&newCount!==null&&newCount>0&&<p role="status" className="notice my-3">지난 확인 이후 새 질문 <span className="bb-count-badge">{newCount}</span>건</p>}
     {listNotice&&<p role="status" className="notice my-3">{listNotice}</p>}
     {listError&&<p role="alert" className="notice error">{errorText(listError.code,listError.details)} {listError.retryable&&<button onClick={()=>void load()}>다시 시도</button>}</p>}
     {items===null&&!listError?<p className="muted py-6 text-center">불러오는 중...</p>
@@ -149,13 +149,13 @@ function Inbox({roomId}:{roomId:string}){
       :items?.map(item=>item.kind==='question'
         ?<article className="card stack my-3" key={item.inboxKey}>
           <p>{item.question.body}</p>
-          <small className="muted">{newKeys.has(item.inboxKey)&&!item.answered&&<span className="badge mr-1">NEW</span>}{item.question.supportBadge&&item.question.supportBadge!=='none'&&<span className="badge birdie mr-1">{badgeLabel[item.question.supportBadge]}</span>}{new Date(item.question.createdAt).toLocaleString('ko-KR')} · {item.answered?'답변 완료':'미답변'}</small>
+          <small className="muted">{newKeys.has(item.inboxKey)&&!item.answered&&<span className="bb-new-badge mr-1">NEW</span>}{item.question.supportBadge&&item.question.supportBadge!=='none'&&<span className="badge birdie mr-1">{badgeLabel[item.question.supportBadge]}</span>}{new Date(item.question.createdAt).toLocaleString('ko-KR')} · {item.answered?'답변 완료':'미답변'}</small>
           {!item.answered&&replyKey!==item.inboxKey&&<button className="self-start" onClick={()=>{response.reset();setReply('');setReplyKey(item.inboxKey);}}>답변하기</button>}
           {replyKey===item.inboxKey&&answerForm(item)}
         </article>
         :<article className="card stack my-3" key={item.inboxKey}>
           <p className="font-bold">{item.representative} · {item.memberCount}명이 질문했어요</p>
-          <small className="muted">{newKeys.has(item.inboxKey)&&!item.answered&&<span className="badge mr-1">NEW</span>}<span className="badge mr-1">묶음</span>{item.answered?'답변 완료':'미답변'}</small>
+          <small className="muted">{newKeys.has(item.inboxKey)&&!item.answered&&<span className="bb-new-badge mr-1">NEW</span>}<span className="badge mr-1">묶음</span>{item.answered?'답변 완료':'미답변'}</small>
           <details><summary className="cursor-pointer text-[length:var(--type-label)]">원 질문 {item.activeMessageIds.length}개 보기</summary><ul className="stack mt-2">{item.activeMessageIds.map(id=><li key={id} className="text-[length:var(--type-label)] text-[var(--text-secondary)]">{bodyOf(id)??'(목록에 없는 질문)'}</li>)}</ul></details>
           {!item.answered&&replyKey!==item.inboxKey&&<button className="self-start" onClick={()=>{response.reset();setReply('');setReplyKey(item.inboxKey);}}>묶음에 답변하기</button>}
           {replyKey===item.inboxKey&&answerForm(item)}

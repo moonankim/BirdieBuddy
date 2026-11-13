@@ -10,7 +10,13 @@ const scenarios:Record<string,{id:string;counts:Record<CardLevel,number>}|undefi
   kim_jin_sil:{id:'c3',counts:{basic:0,rare:0,legend:1}},
 };
 // 실제 카드 아트로 확인된 한글 표기만 사용한다. 나머지는 slug를 그대로 표시한다.
-const confirmedNames:Record<string,string|undefined>={gong_tae_pung:'공태풍',kim_hong_cha:'김홍차'};
+// 선수 한글 표시명. 2026-11-13 현호P 확정(docs/card-assets.md "선수 한글 표시명"). slug에서 자동 변환하지 않는다.
+const playerNames:Record<string,string|undefined>={
+  gong_tae_pung:'공태풍',kim_hong_cha:'김홍차',moon_seo_rap:'문서랍',
+  hwang_yu_ja:'황유자',park_hyeon_kong:'박현콩',yoon_i_ppal:'윤이빨',
+  heo_in_saeng:'허인생',jung_ji_bung:'정지붕',lee_seung_nyang:'이승냥',
+  kim_jin_sil:'김진실',park_ha_pum:'박하품','choi-na-bee':'최나비',
+};
 const seen=new Set<string>();
 const imageUrls=new Map<string,Partial<Record<CardLevel,string>>>();
 for(const asset of manifest.assets){
@@ -23,7 +29,7 @@ export const mockCollectionTemplates:CollectionTemplate[]=manifest.assets.flatMa
   seen.add(key);
   if(!(asset.category in cardCategoryLabels))throw new Error('Invalid card category in asset manifest');
   const scenario=scenarios[asset.playerSlug];
-  return [{id:scenario?.id??`preview-${asset.category}-${asset.playerSlug}`,name:confirmedNames[asset.playerSlug]??asset.playerSlug,category:asset.category as CardCategory,counts:scenario?.counts??{basic:0,rare:0,legend:0},imageUrls:imageUrls.get(key),verifiedAt:null}];
+  return [{id:scenario?.id??`preview-${asset.category}-${asset.playerSlug}`,name:playerNames[asset.playerSlug]??asset.playerSlug,category:asset.category as CardCategory,counts:scenario?.counts??{basic:0,rare:0,legend:0},imageUrls:imageUrls.get(key),verifiedAt:null}];
 });
 // 홈·이전 미리보기 URL에서 사용하는 대표 카드. 보유 데이터로 취급하지 않는다.
 export const mockCards=mockCollectionTemplates.filter(t=>templateTotal(t)>0).map(t=>cardFromTemplate(t,highestOwnedLevel(t)!));

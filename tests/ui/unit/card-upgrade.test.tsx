@@ -36,6 +36,7 @@ describe('카드 강화 UI 목업',()=>{
     expect(screen.getByText('남은 BASIC 카드').parentElement).toHaveTextContent(`${count-10}장`);
     expect(screen.queryByRole('button',{name:'강화 결과 미리보기'})).toBeNull();
     expect(screen.getByRole('link',{name:'보유 카드로'})).toHaveAttribute('href','/collection/owned');
+    expect(screen.getByRole('link',{name:'RARE 카드 보기'})).toHaveAttribute('href','/collection/preview?grade=rare&from=owned');
     expect(source.count).toBe(count);
     unmount();
     render(<CardUpgrade card={source}/>);
