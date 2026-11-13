@@ -35,6 +35,7 @@
 .bb-level[aria-current][data-grade="rare"] .bb-level-tag { background: var(--grade-rare-solid); color: var(--grade-rare-on); }
 .bb-level[aria-current][data-grade="legend"] .bb-level-tag { background: var(--grade-legend-solid); color: var(--grade-legend-on); }
 .bb-level[aria-current]::before { content: ""; position: absolute; top: calc(var(--space-4) * -1); left: 50%; width: 20px; height: 14px; translate: -50% 0; background: var(--grade-crown); clip-path: polygon(0 100%, 0 25%, 27% 60%, 50% 0, 73% 60%, 100% 25%, 100% 100%); }
+.bb-level[data-owned="false"] { color: var(--text-disabled); cursor: default; }
 .bb-level:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
 
 /* 카드 화면 표면: 수집 수치·목록 등급 표시를 포스터 타이포와 등급색으로 맞춘다. */

@@ -5,7 +5,7 @@ import {CardDetail} from '@/components/card/card-detail';
 import type {CardPreview} from '@/lib/cards/presentation';
 import CardDetailPage from '@/app/(user)/collection/[cardId]/page';
 
-vi.mock('next/navigation',()=>({notFound:()=>{throw new Error('CARD_NOT_FOUND');}}));
+vi.mock('next/navigation',()=>({notFound:()=>{throw new Error('CARD_NOT_FOUND');},redirect:(url:string)=>{throw new Error(`REDIRECT:${url}`);}}));
 vi.mock('@/components/chat/shell',()=>({Guard:({children}:{children:ReactNode})=><>{children}</>}));
 const card:CardPreview={id:'preview',name:'예시 선수',category:'gtour',grade:'basic',count:9,verifiedAt:null};
 
@@ -49,7 +49,8 @@ describe('카드 상세의 등급 전환과 미보유',()=>{
     const levels=screen.getByRole('navigation',{name:'등급 선택'});
     expect(within(levels).getByRole('link',{name:'BASIC 3장 보유'})).toHaveAttribute('aria-current','page');
     expect(within(levels).getByRole('link',{name:'RARE 2장 보유'})).toHaveAttribute('href','/collection/preview?grade=rare&from=owned');
-    expect(within(levels).getByRole('link',{name:'LEGEND 미보유'})).not.toHaveAttribute('aria-current');
+    expect(within(levels).queryByRole('link',{name:'LEGEND 미보유'})).toBeNull();
+    expect(within(levels).getByLabelText('LEGEND 미보유')).toHaveAttribute('data-owned','false');
   });
   it('0장 등급은 미보유 카드로 표시하고 나의 카드로 안내하지 않는다',()=>{
     render(<CardDetail card={{...card,grade:'legend',count:0}}/>);
@@ -63,6 +64,10 @@ describe('카드 상세의 등급 전환과 미보유',()=>{
 describe('카드 상세 주소',()=>{
   it('없는 카드 ID를 임의의 카드로 대체하지 않는다',async()=>{
     await expect(CardDetailPage({params:Promise.resolve({cardId:'not-a-card'}),searchParams:Promise.resolve({})})).rejects.toThrow('CARD_NOT_FOUND');
+  });
+  it('보유하지 않은 카드 주소는 보유 카드 목록으로 보낸다',async()=>{
+    await expect(CardDetailPage({params:Promise.resolve({cardId:'c1'}),searchParams:Promise.resolve({grade:'legend'})})).rejects.toThrow('REDIRECT:/collection/owned');
+    await expect(CardDetailPage({params:Promise.resolve({cardId:'preview-kpga-jung_ji_bung'}),searchParams:Promise.resolve({})})).rejects.toThrow('REDIRECT:/collection/owned');
   });
   it('목록의 선택 카드만 표시하고 외부 복귀 주소를 받지 않는다',async()=>{
     const page=await CardDetailPage({params:Promise.resolve({cardId:'c2'}),searchParams:Promise.resolve({from:'https://example.com'})});
