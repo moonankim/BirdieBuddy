@@ -1,6 +1,6 @@
-# BirdieBuddy 시연 영상 콘티·자막 (초안 v3)
+# BirdieBuddy 시연 영상 콘티·자막 (초안 v3.2)
 
-작성일: 2026-11-13 · 상태: 초안, 제출 규정 확인 전 · 형식: AI 생성 실사풍 영상 + 앱 화면 스크린샷, 나레이션 없이 자막 + 배경음 (광고 영상 스타일)
+작성일: 2026-11-13 · 갱신: 2026-11-13 (v3.2: 인플루언서 최나비 프로·팬 김버디로 확정, 목업 스크린샷 1차본 `screenshot-a/` 추가) · 상태: 초안, 제출 규정 확인 전 · 형식: AI 생성 실사풍 영상 + 앱 화면 스크린샷, 나레이션 없이 자막 + 배경음 (광고 영상 스타일)
 
 ## 이야기 구조
 
@@ -16,10 +16,12 @@
 
 ## 이 문서를 쓰는 방법
 
-- **앱 화면 컷**: 스크린샷 자리를 `shots/<장면>-이름.png`로 정해 두었습니다. 같은 이름으로 `docs/demo-video/shots/`에 넣습니다.
+- **앱 화면 컷**: 스크린샷 자리를 `shots/<장면>-이름.png`로 정해 두었습니다. 움직임이 필요한 곳(A03 카드 공개)은 화면 녹화입니다.
+  - **목업 1차본(2026-11-13)**: 목 모드로 찍은 18장과 A03 녹화(`A03-draw-reveal.webm`)가 [`screenshot-a/`](screenshot-a/README.md)에 있습니다. 화면에 보이는 이름·카드 이미지·AI 문장을 어떻게 맞췄는지는 그 폴더의 README에 있습니다. 아래 장면별 그림은 이 1차본을 보여 줍니다.
+  - 실제 모드로 다시 찍으면 같은 이름으로 `docs/demo-video/shots/`에 넣습니다.
 - **AI 영상 컷**: 영상 자리를 `footage/<장면>-이름.mp4`로 정해 두었습니다. [AI 영상 프롬프트](#ai-영상-프롬프트)로 생성해서 같은 이름으로 `docs/demo-video/footage/`에 넣습니다.
 - 맨 아래 [작업 체크리스트](#작업-체크리스트)가 실제 작업 목록입니다.
-- `{인플루언서}`는 스크린샷 찍을 시점에 실제 화면에 나오는 이름으로 바꿉니다(가정 5).
+- 영상의 인플루언서는 **최나비 프로(미디어)**, 팬은 **김버디** 한 명씩입니다(가정 5).
 
 ## 가정 (확정되면 고칩니다)
 
@@ -28,10 +30,10 @@
 | 1 | 길이 | 약 3분. 2분 컷이 필요하면 ✂️ 장면을 뺍니다 | 제출 규정의 최대 길이. PRD 8절의 "사내 제출 양식 확인"도 아직 미확인 |
 | 2 | 화면 비율 | 16:9 가로 | 세로 영상을 요구하는지 |
 | 3 | 실사풍 컷 | **AI 영상 생성 도구로 만듦**(촬영 없음). 앱 화면은 실제 스크린샷을 편집으로 넣음 | 쓸 영상 생성 도구(Sora, Veo, Runway, Kling 등). 도구마다 클립 길이·참조 이미지 지원이 다름 |
-| 4 | 인물 일관성 | 팬은 1막·3막에 같은 사람이어야 하므로 **기준 이미지 1장을 먼저 만들고 이미지→영상 방식**으로 생성. 인플루언서는 카드에 쓴 가상 인물 사진(`~/Downloads/birdiebuddy-demo-cards/source-photos/`)을 기준 이미지로 쓰면 카드 속 인물과 같은 사람이 됨 | 새 라인업이 승인 전이라 인플루언서 기준 사진이 바뀔 수 있음 |
-| 5 | 인플루언서 이름 | `{인플루언서}` 변수로 둠 | 실제 DB 시드는 옛 10명 이름, 앱 목업은 공태풍, 새 12명 라인업은 레포·CDN 반영 전 |
-| 6 | 실제 모드 | AI 장면(A07, B02~B05)은 실제 모드 필수. 나머지도 실제 모드 기준 | 목 모드의 AI는 가짜입니다. 요약은 고정 문구, 필터는 `[suggest]` 같은 태그로만 동작 |
-| 7 | 카드 화면 | `/collection/**`은 목업이라 실제 카드 아트 대신 공통 디폴트 이미지가 나오고, 강화도 미리보기만 있음 | 실제 카드 이미지를 스크린샷 찍기 전에 반영할지 |
+| 4 | 인물 일관성 | AI 영상의 인물(1막·3막 팬 A01·A02·C01·C03, 2막 인플루언서 B01)은 모두 **뒷모습만 나오고 얼굴은 나오지 않게** 만듦. 그래서 얼굴 대신 체형·머리·옷으로 같은 사람임을 보여 줌. 장면마다 **뒷모습 기준 이미지 1장을 먼저 만들고 이미지→영상 방식**으로 생성. 인플루언서의 갈색 긴 머리와 버건디 니트 폴로는 CDN 최나비 RARE 카드 그림(`https://pub-6f54ef3ca9cb44659b6f40ae35e9c7ad.r2.dev/media-choi-na-bee-rare.png`)과 맞춤 | 현호P 결정(`40791a9`)으로 Downloads 사진은 쓰지 않음 |
+| 5 | 인물 이름 | **인플루언서 최나비 프로(미디어), 팬 김버디로 확정.** 목업 1차본은 목 계정 이름("인플루언서 1", "팬 A")을 찍는 순간 화면 글자만 바꿔서 맞춤(`screenshot-a/README.md`) | 실제 모드로 다시 찍으면 DB 시드가 예전 이름(한별 김 등)이라 같은 교체가 필요함. 홍주P에게 시연용 계정 이름 변경을 요청하거나 편집에서 덮음. 예전 데이터 이관은 보류됨(`40791a9`) |
+| 6 | 실제 모드 | 채팅·인박스 장면(A06·A07·B02~B05·C02)은 실제 모드 필수. 카드 장면(A03·A04·A05)은 모드와 관계없이 목업 데이터로 나오는 화면 | 목 모드의 AI는 가짜입니다. 요약은 고정 문구, 필터는 `[suggest]` 같은 태그로만 동작. 실제 모드 계정은 홍주P 발급 대기(문환P 계획 R13) |
+| 7 | 카드 화면 | 실제 발급 화면 `/draw`는 아직 예전 4등급(일반·레어·에픽·스페셜)·스타일(일러스트·레트로·홀로그램)과 예전 DB 인물로 나와 자막의 3등급과 맞지 않음. 그래서 **카드 공개는 3등급 뽑기 연출 목업 `/draw/preview`로 찍음**. 미리보기 인물이 김홍차로 고정돼 있어, 카드 그림 요청을 최나비 RARE 그림으로 바꿔 응답하고 이름·유형 글자를 바꿔 찍음. 보유 카드 목록과 강화 화면은 공통 디폴트 그림(강화 화면은 "앗!!" 글자가 든 그림)이 나옴 | 예전 데이터 이관이 보류돼(`40791a9`) 2차 제출 전에 실제 `/draw`가 3등급으로 바뀔 가능성은 낮음 |
 | 8 | 소리 | 나레이션 없음. 막마다 분위기가 이어지는 배경음 1곡 + 짧은 효과음 | 무료 음원 선택 |
 
 이전 초안에서 빠진 장면:
@@ -63,7 +65,7 @@
 - 앱 화면에 이미 크게 나온 문구는 자막으로 반복하지 않습니다.
 - AI 기능 장면은 장면 제목에 `AI ①~⑤`를 붙입니다.
 
-**표현 원칙**: 카드 등급은 BASIC·RARE·LEGEND로만 씁니다. 강화는 목업이므로 "카드가 실제로 차감된다"고 쓰지 않습니다. 보유 배지의 구체적 기준은 미확정이라 쓰지 않습니다.
+**표현 원칙**: 카드 등급은 BASIC·RARE·LEGEND로만 씁니다. 강화는 목업이므로 "카드가 실제로 차감된다"고 쓰지 않습니다. 보유 배지의 구체적 기준은 미확정이라 쓰지 않습니다. 목업 화면의 "목업" 안내와 "(예시)" 문구는 편집에서 가리거나 잘라 냅니다.
 
 ## 전체 흐름 한눈에
 
@@ -96,6 +98,7 @@
 | --- | --- |
 | 종류 | AI 영상 |
 | 화면 | 스크린골프 타석. 뒤에서 스윙 → 스크린의 공이 날아감 |
+| 인물 | 30대 초반 젊은 남성 팬. **뒷모습만 나오고 얼굴은 나오지 않음** |
 | 동작 | 어드레스 → 스윙 → 피니시. 피니시 자세에서 0.5초 정지 느낌 |
 | 소리 | 배경음 시작, 타구음 |
 | 영상 | `footage/A01-swing.mp4` |
@@ -110,6 +113,7 @@
 | --- | --- |
 | 종류 | AI 영상 |
 | 화면 | 스크린에 라운드 종료 화면 → 팬이 주머니에서 폰을 꺼내 화면을 봄 |
+| 인물 | A01과 같은 팬. **뒷모습과 어깨 너머만 나오고 얼굴은 나오지 않음** |
 | 동작 | 마지막 2초는 폰 화면이 화면 가운데에 오도록 어깨 너머로 |
 | 영상 | `footage/A02-phone-out.mp4` |
 
@@ -121,63 +125,65 @@
 | 항목 | 내용 |
 | --- | --- |
 | 종류 | 줌 전환 → 앱 화면 |
-| 화면 | `/home` → `/draw` · 시연용 팬 계정 · 실제 모드 |
-| 사전 상태 | 로그인 완료. 이번 발급으로 `{인플루언서}` 카드가 누적 5장이 되도록 4장 보유 상태 |
-| 동작 | A02의 폰 화면으로 줌 인 → 홈에서 라운드 완료 탭 → "카드가 도착했어요" |
+| 화면 | `/home` → `/draw/preview?grade=rare&new=0&unlocked=1` · 시연용 팬 계정 |
+| 사전 상태 | 로그인만 되어 있으면 됨. `/draw/preview`는 실제 발급을 하지 않는 3등급 뽑기 연출 목업이라 모드와 관계없이 목업 카드가 나옴(카드 그림·이름은 가정 7처럼 최나비 프로로 맞춤) |
+| 동작 | A02의 폰 화면으로 줌 인 → 홈의 라운드 완료 버튼 → "두근두근" 연출 → 카드를 눌러 뒤집기 → "RARE 카드가 도착했어요" |
 | 장면 제목 | AI ① 카드 발급 |
-| 소리 | 카드 공개 순간 효과음 |
-| 스크린샷 | `shots/A03-home.png`, `shots/A03-draw-result.png` |
+| 소리 | 두근두근 구간에 심장 박동, 카드 공개 순간 효과음 |
+| 스크린샷 | `shots/A03-home.png`, `shots/A03-draw-reveal.webm`(화면 녹화: 두근두근 → 뒤집기, 390×844), `shots/A03-draw-result.png` |
+| 주의 | 홈의 라운드 완료 버튼은 **찍기만 하고 누르지 않습니다**. 실제 모드에서 누르면 예전 등급 카드가 발급되고 `/draw`로 넘어갑니다. 홈의 카드 디자인 미리보기는 공태풍으로 고정이라 버튼 부분만 씁니다. 미리보기 화면 위쪽의 "뽑기 연출 목업" 안내·등급 선택 칩과 "이 등급 1장 보유 (예시)"의 "(예시)"는 편집에서 가립니다. `new=0`이어야 "NEW" 대신 "+1장"이 나와 5장째 카드라는 이야기와 맞습니다. 등급은 최나비 RARE 카드 그림에 맞춰 RARE로 정함 |
 
 자막:
 1. 라운드 1회마다 카드 1장
 2. AI로 만든 가상 인플루언서 카드
 3. BASIC · RARE · LEGEND 3등급
 
-![A03-home](shots/A03-home.png)
-![A03-draw](shots/A03-draw-result.png)
+![A03-home](screenshot-a/A03-home.png)
+![A03-draw](screenshot-a/A03-draw-result.png)
 
 ### A04 · 5장 모아 채팅방 열림 (8초)
 
 | 항목 | 내용 |
 | --- | --- |
 | 종류 | 앱 화면 |
-| 화면 | `/draw` · 같은 팬 계정 |
-| 동작 | "카드를 5장 모아 채팅방이 열렸어요." → 채팅방으로 가기 |
+| 화면 | A03과 같은 `/draw/preview` 결과 화면의 아래쪽 |
+| 동작 | "최나비 프로 채팅방에 입장할 수 있어요" · "카드를 5장 모아 채팅방이 열렸어요." → "채팅방 보기" |
 | 장면 제목 | 채팅방 열림 |
 | 스크린샷 | `shots/A04-room-unlocked.png` |
+| 주의 | 안내 제목 끝의 "(예시)"는 편집에서 가립니다. "채팅방 보기"는 `/chat` 목록으로만 가므로, A06은 실제 모드 화면을 이어 붙입니다 |
 
 자막:
 1. 같은 인플루언서 카드 5장이면
 2. 그 사람의 채팅방이 열립니다
 
-![A04](shots/A04-room-unlocked.png)
+![A04](screenshot-a/A04-room-unlocked.png)
 
 ### A05 · 컬렉션 · 강화 (12초) ✂️
 
 | 항목 | 내용 |
 | --- | --- |
 | 종류 | 앱 화면 |
-| 화면 | `/collection` → `/collection/c2` → `/collection/upgrade?cardId=c2` (목업) |
-| 동작 | 유형·등급 필터 → BASIC 11장 카드 상세 → 강화 확인 → 결과 미리보기 |
+| 화면 | `/collection/owned` → `/collection/upgrade?cardId=c2&grade=basic&from=owned` (목업) |
+| 동작 | 보유 카드 목록에서 필터 → 허인생 BASIC 11장의 "강화 가능 · BASIC" → 강화 확인 → 결과 미리보기 |
 | 장면 제목 | 컬렉션 · 강화 |
 | 스크린샷 | `shots/A05-collection.png`, `shots/A05-upgrade-confirm.png`, `shots/A05-upgrade-result.png` |
-| 주의 | 카드 아트가 디폴트 이미지로 나옴(가정 7) |
+| 주의 | 강화 버튼은 보유 카드 목록(`/collection/owned`)에만 있습니다. 목업 보유 수량이 허인생에만 11장 있어 강화는 허인생 카드(화면 위 "KPGA · 허인생")로 보여 줍니다. 보유 목록은 공통 디폴트 그림과 "11장 보유 (예시)"로 나옵니다(가정 7). 강화 화면은 공통 디폴트 카드 그림("앗!!" 글자가 든 그림)이 나옵니다 |
 
 자막:
 1. 모은 카드는 컬렉션에서
 2. 같은 카드 10장이면 다음 등급으로 강화
 
-![A05-collection](shots/A05-collection.png)
-![A05-confirm](shots/A05-upgrade-confirm.png)
-![A05-result](shots/A05-upgrade-result.png)
+![A05-collection](screenshot-a/A05-collection.png)
+![A05-confirm](screenshot-a/A05-upgrade-confirm.png)
+![A05-result](screenshot-a/A05-upgrade-result.png)
 
 ### A06 · 채팅방 입장 · 인사말 · 게이지 (10초)
 
 | 항목 | 내용 |
 | --- | --- |
 | 종류 | 앱 화면 |
-| 화면 | `/chat` → `/chat/[roomId]` · 팬 계정 |
-| 사전 상태 | 이 채팅방에 처음 들어가는 팬이어야 인사말이 보임 |
+| 화면 | `/chat` → `/chat/[roomId]` · 팬 계정 · 실제 모드 |
+| 사전 상태 | A03·A04는 목업이라 실제 DB 카드와 이어지지 않습니다. 이 팬이 실제 모드에서 최나비 프로 채팅방 입장 조건(카드 5장)을 미리 갖추고, 이 방에 처음 들어가야 인사말이 보임. 인사말 문구는 최나비 프로 계정의 `/inbox/settings`에서 미리 저장 |
 | 동작 | 채팅방 입장 → 인사말과 상단 "나의 유지 게이지" |
 | 장면 제목 | 채팅방 입장 |
 | 스크린샷 | `shots/A06-room-greeting.png` |
@@ -186,7 +192,7 @@
 1. 처음 입장하면 인플루언서의 인사말
 2. 한 달 라운드 3회로 채팅방 유지
 
-![A06](shots/A06-room-greeting.png)
+![A06](screenshot-a/A06-room-greeting.png)
 
 ### A07 · 질문 전송 · AI 수정 제안 (18초) · AI ②
 
@@ -195,8 +201,9 @@
 | 종류 | 앱 화면 |
 | 화면 | `/chat/[roomId]` · 팬 계정 · **실제 모드 필수** |
 | 사전 상태 | 인플루언서 필터 설정 기본값(켜짐) |
-| 동작 | 거친 표현이 섞인 질문 입력 → 전송 → AI 수정 제안 → "고쳐서 보내기" → 다듬은 질문이 대화에 올라감 |
-| 입력 예시 | "아 진짜 드라이버 X나 안 맞는데 비결이 뭐예요" |
+| 동작 | 거친 표현이 섞인 질문 입력 → 전송 → AI 수정 제안 → "이대로 보내기" → 다듬은 질문이 대화에 올라감 |
+| 입력 예시 | "아 씨발 드라이버 존나 안 맞는데 프로님 비결이 뭐예요" → 실제 AI 제안: "드라이버가 잘 안 맞아서 답답한데, 프로님만의 비결이 있으면 알려주실 수 있을까요?" |
+| 입력 예시를 바꾼 이유 | 처음 예시("…X나 안 맞는데…")는 실제 AI가 가린 욕설을 통과(pass)로 판정해 수정 제안이 나오지 않았음(2026-11-13 확인). 영상에서 욕설이 그대로 보이는 게 부담되면 입력창 부분을 편집에서 흐리게 처리 |
 | 장면 제목 | AI ② 메시지 안전 필터 |
 | 소리 | 수정 제안이 뜰 때 짧은 알림음 |
 | 스크린샷 | `shots/A07-suggest.png`, `shots/A07-sent.png` |
@@ -207,8 +214,8 @@
 2. 거친 표현은 다듬은 문장으로 제안
 3. 다듬은 질문이 인플루언서에게
 
-![A07-suggest](shots/A07-suggest.png)
-![A07-sent](shots/A07-sent.png)
+![A07-suggest](screenshot-a/A07-suggest.png)
+![A07-sent](screenshot-a/A07-sent.png)
 
 ## 2막 · 인플루언서
 
@@ -217,9 +224,9 @@
 | 항목 | 내용 |
 | --- | --- |
 | 종류 | AI 영상 |
-| 화면 | 연습장 벤치. 인플루언서가 쉬는 중 폰을 확인. 어깨 너머로 폰 화면 |
-| 동작 | 폰을 집어 화면을 켬 → 폰 화면 클로즈업으로 끝남 |
-| 인물 | 카드 속 가상 인물 사진을 기준 이미지로 사용(가정 4) |
+| 화면 | 방송 스튜디오. 인플루언서가 방송 중간에 잠시 의자에 앉아 쉬며 폰을 확인. 뒤에서 어깨 너머로 폰 화면 |
+| 동작 | 의자에 앉아 쉬는 뒷모습 → 폰을 집어 화면을 봄 → 폰 화면 클로즈업으로 끝남 |
+| 인물 | 20대 후반~30대 초반, 갈색 긴 머리의 여리여리한 여성. **뒷모습만 나오고 얼굴은 나오지 않음.** 머리색·길이·옷(버건디 니트 폴로)은 A03 최나비 카드와 맞춤(가정 4) |
 | 영상 | `footage/B01-influencer-phone.mp4` |
 
 자막:
@@ -230,7 +237,7 @@
 | 항목 | 내용 |
 | --- | --- |
 | 종류 | 앱 화면 |
-| 화면 | `/inbox` · `{인플루언서}` 계정 · 실제 모드 |
+| 화면 | `/inbox` · 최나비 프로 계정 · 실제 모드 |
 | 사전 상태 | 여러 팬의 질문이 들어와 있음. 배지 있는 팬, 질문 품질이 다른 메시지를 섞어 둠. A07의 질문도 포함. "지난 확인 이후 새 질문 N건"과 NEW 표시 |
 | 동작 | 인박스를 열면 우선순위순으로 정렬된 목록 → 위에서부터 천천히 스크롤 |
 | 장면 제목 | AI ③ 우선순위 인박스 |
@@ -242,8 +249,8 @@
 2. 카드를 많이 모은 팬 + AI가 평가한 질문 품질
 3. 우선순위 = 보유 점수 × 0.6 + 품질 점수 × 0.4
 
-![B02-inbox](shots/B02-inbox.png)
-![B02-scroll](shots/B02-inbox-scroll.png)
+![B02-inbox](screenshot-a/B02-inbox.png)
+![B02-scroll](screenshot-a/B02-inbox-scroll.png)
 
 ### B03 · 공통 질문 묶기 → 묶음 답변 (14초) · AI ④
 
@@ -255,14 +262,15 @@
 | 동작 | "비슷한 질문 묶기" → 대표 질문과 인원수 → "묶음에 답변하기" → 답변 전송 |
 | 장면 제목 | AI ④ 비슷한 질문 묶기 |
 | 스크린샷 | `shots/B03-cluster.png`, `shots/B03-cluster-reply.png` |
+| 주의 | 목업 1차본은 목 모드 팬 계정이 2명뿐이라 "2명이 질문했어요"로 나옵니다. 목 모드의 묶기는 주제와 관계없이 답하지 않은 질문을 모두 한 묶음으로 만들어서, A07 질문에 먼저 답한(B04) 뒤 묶었습니다 |
 
 자막:
 1. 비슷한 질문은 AI가 하나로 묶고
 2. 몇 명이 물었는지 함께 표시
 3. 한 번 답하면 모두에게
 
-![B03-cluster](shots/B03-cluster.png)
-![B03-reply](shots/B03-cluster-reply.png)
+![B03-cluster](screenshot-a/B03-cluster.png)
+![B03-reply](screenshot-a/B03-cluster-reply.png)
 
 ### B04 · 1막 팬의 질문에 개인 답장 (12초)
 
@@ -280,8 +288,8 @@
 1. 방금 그 팬의 질문에
 2. 인플루언서가 직접 답장
 
-![B04-select](shots/B04-select.png)
-![B04-sent](shots/B04-reply-sent.png)
+![B04-select](screenshot-a/B04-select.png)
+![B04-sent](screenshot-a/B04-reply-sent.png)
 
 ### B05 · 대화 요약 (10초) ✂️ · AI ⑤
 
@@ -297,7 +305,7 @@
 자막:
 1. 쌓인 대화는 AI가 몇 줄로 요약
 
-![B05](shots/B05-summary.png)
+![B05](screenshot-a/B05-summary.png)
 
 ## 3막 · 팬
 
@@ -307,7 +315,8 @@
 | --- | --- |
 | 종류 | AI 영상 |
 | 화면 | A01·A02와 같은 팬. 다음 라운드 대기 중이거나 매장 휴게 공간에서 폰을 집어 듦 |
-| 동작 | 폰 화면을 봄 → 화면 쪽으로 천천히 확대 |
+| 인물 | **뒷모습과 어깨 너머만 나오고 얼굴은 나오지 않음** |
+| 동작 | 폰이 울림 → 폰 화면을 봄 → 뒤에서 어깨 너머로 화면 쪽으로 천천히 확대 |
 | 영상 | `footage/C01-fan-phone.mp4` |
 
 자막:
@@ -328,15 +337,16 @@
 1. 내 질문에 온 인플루언서의 답장
 2. 라운드가 팬과 선수를 잇습니다
 
-![C02-list](shots/C02-room-list-unread.png)
-![C02-reply](shots/C02-reply.png)
+![C02-list](screenshot-a/C02-room-list-unread.png)
+![C02-reply](screenshot-a/C02-reply.png)
 
 ### C03 · 팬의 반응 (6초)
 
 | 항목 | 내용 |
 | --- | --- |
 | 종류 | AI 영상 |
-| 화면 | 팬이 화면을 보고 웃음 → 폰을 주머니에 넣고 다시 타석으로 |
+| 화면 | 팬이 폰을 보고 기뻐함 → 폰을 주머니에 넣고 다시 타석으로 |
+| 인물 | **뒷모습만 나오고 얼굴은 나오지 않음.** 웃는 얼굴 대신 작은 주먹 쥐기, 들썩이는 어깨 같은 몸짓으로 기쁨을 보여 줌 |
 | 동작 | 마지막은 타석으로 걸어가는 뒷모습(다음 라운드로 이어짐) |
 | 영상 | `footage/C03-fan-reaction.mp4` |
 
@@ -374,6 +384,7 @@ Claude Code는 영상을 직접 생성하지 못하므로, 아래 프롬프트�
 
 - **스윙 클로즈업**: AI 영상은 골프 스윙 동작(클럽 궤적, 손목)을 자주 틀리게 만듭니다. A01은 뒤에서 넓게 잡고, 임팩트 순간보다 피니시와 스크린 속 공에 비중을 둡니다.
 - **로고·글자**: 골프존 로고나 화면 글자는 뭉개져 나옵니다. 매장과 스크린은 로고 없는 일반 스크린골프장으로 만들고, 서비스 이름은 자막과 로고 그래픽으로만 보여 줍니다.
+- **얼굴**: AI 영상 장면(A01·A02·B01·C01·C03)은 모두 뒷모습만 씁니다. 프롬프트에 "seen only from behind, face never visible"을 넣고, 부정 프롬프트를 받는 도구는 `face, profile view, looking at camera`를 넣습니다. 고개를 돌려 옆얼굴이 보이는 결과는 다시 뽑습니다.
 - **폰 화면 내용**: 폰 화면은 "밝게 빛나는 빈 화면(blank glowing screen)"으로 만들고, 실제 앱 화면은 편집에서 넣습니다.
 
 ### 공통 스타일
@@ -386,19 +397,29 @@ cinematic commercial look, warm indoor lighting, shallow depth of field, smooth 
 
 ### 팬 기준 이미지
 
+1막·3막(A01·A02·C01·C03) 공통 뒷모습:
+
 ```
-Korean man in his early 30s, casual golf outfit (navy polo shirt, white cap), friendly face, standing in a modern indoor screen golf room with a large projection screen showing a green fairway, cinematic commercial photo
+Back view of a slim Korean man in his early 30s, navy polo shirt, white cap, beige golf pants, standing on the hitting mat of a modern indoor screen golf room facing a large projection screen showing a green fairway, seen only from behind, face not visible, cinematic commercial photo
+```
+
+### 인플루언서 기준 이미지
+
+2막(B01)용 뒷모습:
+
+```
+Back view of a slender, delicate Korean woman in her late 20s to early 30s with long wavy brown hair, wearing a burgundy knit polo shirt, sitting on a chair in a broadcast studio with soft studio lights and a camera in the background, seen only from behind, face not visible, cinematic commercial photo
 ```
 
 ### 장면별 프롬프트
 
 | 장면 | 파일 | 기준 이미지 | 프롬프트 | 길이 |
 | --- | --- | --- | --- | --- |
-| A01 | `footage/A01-swing.mp4` | 팬 | Wide shot from behind a golfer in a modern indoor screen golf room. He swings a driver and holds a balanced finish pose. On the large screen, a golf ball flies down a bright green fairway. Camera slowly pushes in. | 8초 |
-| A02 | `footage/A02-phone-out.mp4` | 팬 | The same golfer relaxes after the round, takes a smartphone from his pocket and looks at it with curiosity. Over-the-shoulder shot that ends in a close-up of the phone with a blank glowing screen. | 6초 |
-| B01 | `footage/B01-influencer-phone.mp4` | 인플루언서 카드 사진 | A professional golfer sits on a bench at an outdoor driving range during a break, wearing a golf glove, picks up a smartphone and smiles while reading. Over-the-shoulder shot that ends in a close-up of the phone with a blank glowing screen. | 7초 |
-| C01 | `footage/C01-fan-phone.mp4` | 팬 | The same man sits in the lounge area of the screen golf venue, his phone buzzes, he picks it up and looks at the screen. Camera slowly moves toward the phone, ending in a close-up of a blank glowing screen. | 7초 |
-| C03 | `footage/C03-fan-reaction.mp4` | 팬 | The man smiles widely at his phone, makes a small happy fist pump, puts the phone in his pocket, picks up his driver and walks back toward the hitting bay. Medium shot, ends on his back. | 6초 |
+| A01 | `footage/A01-swing.mp4` | 팬 뒷모습 | Wide shot from directly behind a slim Korean man in his early 30s in a modern indoor screen golf room, wearing a navy polo shirt and a white cap. He is seen only from behind and his face is never visible. He swings a driver and holds a balanced finish pose facing the large screen. On the screen, a golf ball flies down a bright green fairway. Camera slowly pushes in from behind. | 8초 |
+| A02 | `footage/A02-phone-out.mp4` | 팬 뒷모습 | The same man, seen only from behind, relaxes after the round while the large screen shows the end of the round. He takes a smartphone out of his pants pocket and looks down at it. Over-the-shoulder shot from behind his back, his face never visible, ending in a close-up of the phone with a blank glowing screen. | 6초 |
+| B01 | `footage/B01-influencer-phone.mp4` | 인플루언서 뒷모습 | A slender, delicate Korean woman in her late 20s to early 30s with long wavy brown hair, wearing a burgundy knit polo shirt, sits on a chair in a broadcast studio during a short break, seen only from behind. Studio lights, a camera and a microphone stand are softly blurred around her. She picks up a smartphone and looks down at it. Over-the-shoulder shot from behind her, her face never visible, ending in a close-up of the phone with a blank glowing screen. | 7초 |
+| C01 | `footage/C01-fan-phone.mp4` | 팬 뒷모습 | The same man in a navy polo shirt and white cap, seen only from behind, sits in the lounge area of the screen golf venue. His phone buzzes, he picks it up and looks down at the screen. Over-the-shoulder shot from behind, his face never visible, the camera slowly moves toward the phone and ends in a close-up of a blank glowing screen. | 7초 |
+| C03 | `footage/C03-fan-reaction.mp4` | 팬 뒷모습 | The same man, seen only from behind, reads his phone, then makes a small happy fist pump with his shoulders lifting in excitement. He puts the phone in his pocket, picks up his driver and walks back toward the hitting bay. Medium shot from behind the whole time, his face never visible, ending on his back as he steps onto the hitting mat. | 6초 |
 
 같은 장면을 도구가 한 번에 못 만들면 두 클립으로 나눠 이어 붙입니다(예: C03의 반응과 걸어가는 뒷모습).
 
@@ -458,11 +479,12 @@ Korean man in his early 30s, casual golf outfit (navy polo shirt, white cap), fr
 
 - [ ] 제출 규정 확인: 길이, 비율, 형식, 업로드 위치 (가정 1·2)
 - [ ] 영상 생성 도구 정하기 (가정 3)
-- [ ] 팬 기준 이미지 만들기, 인플루언서 기준 사진 정하기 (가정 4)
-- [ ] `{인플루언서}` 이름 확정 (가정 5)
-- [ ] 실제 카드 이미지 반영 여부 결정 (가정 7)
-- [ ] 실제 모드 시연용 계정 발급 요청(홍주P): 새 팬 1명(1막·3막), 질문용 팬 3명 이상(B02·B03), `{인플루언서}` 계정
-- [ ] 시연용 팬의 `{인플루언서}` 카드를 누적 4장으로 맞춰 두기 (A03에서 5장째)
+- [ ] 팬 뒷모습·인플루언서 뒷모습 기준 이미지 만들기 (가정 4)
+- [x] 인플루언서 최나비 프로, 팬 김버디로 확정 (가정 5)
+- [x] 카드 공개 장면을 `/draw/preview`로 찍기로 결정 (가정 7)
+- [ ] 실제 모드 시연용 계정 발급 요청(홍주P): 새 팬 1명(1막·3막), 질문용 팬 3명 이상(B02·B03), 인플루언서 계정 1개. 인플루언서 이름을 최나비 프로로 바꿔 달라고 함께 요청 (안 되면 편집에서 이름 덮기)
+- [ ] 최나비 프로 계정의 `/inbox/settings`에서 프로필 사진(최나비 카드 얼굴)과 인사말 저장 (A06)
+- [ ] 시연용 팬이 실제 모드에서 최나비 프로 채팅방에 들어갈 수 있게 카드 5장 이상 준비하고, 아직 입장하지 않은 상태로 두기 (A06 인사말)
 - [ ] 질문용 팬들로 인박스 질문 미리 보내기: 비슷한 질문 3개 이상, 배지 있는 팬의 질문, 품질이 다른 질문 (B02·B03)
 - [ ] 요약할 대화 쌓아 두기 (B05)
 - [ ] A07 입력 문장과 B04 답장 문장 정하기
@@ -473,32 +495,35 @@ Korean man in his early 30s, casual golf outfit (navy polo shirt, white cap), fr
 이야기 순서와 작업 순서가 다릅니다. 앱 데이터가 앞 장면에 의존하므로 스크린샷은 아래 순서로 찍습니다.
 
 1. AI 영상 컷(A01·A02·B01·C01·C03)은 앱 화면과 관계없으므로 언제든 따로 만듦
-2. A03 → A04 → A06 → A07 (팬 계정, 이 순서를 지켜야 카드 5장째·첫 입장 인사말이 나옴)
-3. A07의 질문이 확정되면 B02 → B03 → B04 → B05 (인플루언서 계정)
-4. C02 (팬 계정, B04 답장 이후)
-5. A05 (목업이라 언제 찍어도 됨)
+2. 카드 장면 A03 → A04, A05 (목업 화면이라 팬 계정 로그인만 있으면 언제든 찍을 수 있음)
+3. A06 → A07 (팬 계정, 실제 모드. 이 순서를 지켜야 첫 입장 인사말이 나옴)
+4. A07의 질문이 확정되면 B02 → B03 → B04 → B05 (최나비 프로 계정, 실제 모드)
+5. C02 (팬 계정, B04 답장 이후)
 
 ### AI 영상 목록
 
 | 파일 | 장면 | 내용 | 완료 |
 | --- | --- | --- | --- |
-| `footage/A01-swing.mp4` | A01 | 타석 뒤에서 드라이버 샷, 피니시까지 | [ ] |
-| `footage/A02-phone-out.mp4` | A02 | 폰 꺼내 보기, 폰 클로즈업으로 끝남 | [ ] |
-| `footage/B01-influencer-phone.mp4` | B01 | 연습장 벤치에서 폰 확인, 폰 클로즈업으로 끝남 | [ ] |
-| `footage/C01-fan-phone.mp4` | C01 | 같은 팬이 휴게 공간에서 폰 확인, 폰 클로즈업으로 끝남 | [ ] |
-| `footage/C03-fan-reaction.mp4` | C03 | 웃는 반응 → 타석으로 걸어가는 뒷모습 | [ ] |
+| `footage/A01-swing.mp4` | A01 | 30대 초반 남성 팬의 뒷모습 드라이버 샷, 피니시까지(얼굴 안 보임) | [ ] |
+| `footage/A02-phone-out.mp4` | A02 | 뒷모습으로 주머니에서 폰 꺼내 보기, 폰 클로즈업으로 끝남(얼굴 안 보임) | [ ] |
+| `footage/B01-influencer-phone.mp4` | B01 | 방송 스튜디오 의자에서 쉬며 폰 확인하는 갈색 긴 머리 여성의 뒷모습, 폰 클로즈업으로 끝남(얼굴 안 보임) | [ ] |
+| `footage/C01-fan-phone.mp4` | C01 | 같은 팬이 휴게 공간에서 폰 확인하는 뒷모습, 폰 클로즈업으로 끝남(얼굴 안 보임) | [ ] |
+| `footage/C03-fan-reaction.mp4` | C03 | 뒷모습으로 기뻐하는 몸짓 → 타석으로 걸어가는 뒷모습(얼굴 안 보임) | [ ] |
 
 ### 앱 스크린샷 목록
 
 모바일 390px 폭으로 찍습니다. 브라우저 개발자 도구의 기기 모드나 Playwright로 같은 크기를 맞춥니다.
 
+목업 1차본은 아래 18장과 A03 녹화가 모두 [`screenshot-a/`](screenshot-a/README.md)에 있습니다(녹화는 `.webm`). 아래 "완료" 칸은 실제 모드로 다시 찍을 때 기준입니다.
+
 | 파일 | 장면 | 화면·계정 | 찍을 순간 | 완료 |
 | --- | --- | --- | --- | --- |
-| `shots/A03-home.png` | A03 | `/home` · 팬 | 라운드 완료 버튼이 보일 때 | [ ] |
-| `shots/A03-draw-result.png` | A03 | `/draw` · 팬 | "카드가 도착했어요" | [ ] |
-| `shots/A04-room-unlocked.png` | A04 | `/draw` · 팬 | "카드를 5장 모아 채팅방이 열렸어요." | [ ] |
-| `shots/A05-collection.png` | A05 | `/collection` | 필터 적용 후 목록 | [ ] |
-| `shots/A05-upgrade-confirm.png` | A05 | `/collection/upgrade?cardId=c2` | 강화 확인 | [ ] |
+| `shots/A03-home.png` | A03 | `/home` · 팬 | 라운드 완료 버튼이 보일 때 (누르지 않음) | [ ] |
+| `shots/A03-draw-reveal.webm` | A03 | `/draw/preview?grade=rare&new=0&unlocked=1` · 팬 | 화면 녹화: 두근두근 → 카드 눌러 뒤집기 | [ ] |
+| `shots/A03-draw-result.png` | A03 | 같은 화면 | "RARE 카드가 도착했어요" | [ ] |
+| `shots/A04-room-unlocked.png` | A04 | 같은 화면 아래쪽 | "카드를 5장 모아 채팅방이 열렸어요." | [ ] |
+| `shots/A05-collection.png` | A05 | `/collection/owned` | 필터 적용 후 목록 | [ ] |
+| `shots/A05-upgrade-confirm.png` | A05 | `/collection/upgrade?cardId=c2&grade=basic&from=owned` | 강화 확인 | [ ] |
 | `shots/A05-upgrade-result.png` | A05 | 같은 화면 | 결과 미리보기 | [ ] |
 | `shots/A06-room-greeting.png` | A06 | `/chat/[roomId]` · 팬 | 인사말 + 게이지 | [ ] |
 | `shots/A07-suggest.png` | A07 | `/chat/[roomId]` · 팬 | AI 수정 제안 표시 | [ ] |
