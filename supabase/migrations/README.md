@@ -23,3 +23,5 @@ The 2026-11-11 production baseline was applied with Supabase MCP. Its migration 
 | `20261111063520` | `20261111045745_foreign_key_indexes` |
 
 After aligning the filenames, the local database was reset and its CLI migration list shows all nine local files match the local database history. The hosted rows were read through Supabase MCP and not edited; a CLI linked-remote list/dry-run remains pending protected CLI credentials. For a future MCP-applied migration, reconcile its local filename with the returned remote `version` before using CLI migration commands; prefer the CLI deployment path when its protected remote credentials are available.
+
+`20261113011530_read_state_checkpoints.sql` is a later feature-branch migration. It is not part of the nine-file production baseline and has not been applied to local or hosted Supabase.

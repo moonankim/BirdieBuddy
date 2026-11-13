@@ -25,6 +25,7 @@ export type ChatApi = Pick<BackendApi,
   | 'getMyMembership'
   | 'joinRoom'
   | 'getMyRoundGaugeSummary'
+  | 'getAdminDemoMonth'
   | 'getMessages'
   | 'subscribeRoomMessages'
   | 'reconcileRoomMessages'

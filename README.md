@@ -1,6 +1,6 @@
 # BirdieBuddy
 
-> **카드 UI 후속 인계:** [목록·상세·강화 변경과 담당자별 연결 사항](docs/card-ui-handoff.md)을 먼저 확인합니다. 사용자 지시로 이번 단계의 API 연결은 제외했습니다. 장수·수집 현황·강화 결과는 목업이며 실제 데이터나 서버 성공으로 취급하지 않습니다.
+> **카드 API 경계:** `/home`·`/draw`는 기존 BackendApi를 사용하지만 DB·SDK는 이전 스타일·4등급 계약입니다. `/collection/**`는 새 3등급 UI 목업으로, 장수·수집 현황·강화 결과가 실제 데이터는 아닙니다. 상세는 [카드 UI 인계](docs/card-ui-handoff.md), 백엔드 이관 조건은 [카드 기준 변경](docs/card-spec.md)을 확인합니다.
 
 > **실제 카드 이미지 인계:** [R2 CDN 주소·DB/프론트 적용 지침](docs/card-assets.md), [36개 이미지 JSON 목록](docs/assets/card-images.json)을 사용합니다. 선수 식별자 12개·3등급이며 최종 이미지는 R2 출처입니다. 기존 Supabase Storage URL 생성·스타일 기반 경로를 그대로 적용하지 않습니다. DB·SDK·화면 연결은 아직 별도 작업입니다.
 
@@ -12,7 +12,7 @@
 
 골프존 AI 해커톤 프로젝트입니다. 브라우저는 Supabase Auth, Data API, RPC, Edge Functions, Realtime, Storage를 직접 호출하고 서버 데이터 처리는 Supabase에 둡니다.
 
-카드 목록은 `/collection`(전체)·`/collection/owned`(보유)로 나누며 선수·유형·등급 필터, 등급순·장수순 정렬과 강화 미리보기를 제공합니다. 사용자 요청에 따라 API는 연결하지 않았고, 장수·수집 현황은 화면에 명시된 목업입니다.
+카드 목록은 `/collection`(전체)·`/collection/owned`(보유)로 나누며 선수·유형·등급 필터, 등급순·장수순 정렬과 강화 미리보기를 제공합니다. 새 유형·등급과 R2 에셋 계약이 백엔드에 이관되기 전까지 목록·상세·강화 데이터는 목업입니다.
 
 카드 상세는 `/collection/c1` 등의 목업 페이지로 추가되어 있습니다. 홈·컬렉션에서 진입하며 실제 카드 아트 대신 공통 디폴트 이미지를 사용합니다. BASIC 예시 카드 `/collection/c2`는 11장으로 준비되어 강화 미리보기에 진입할 수 있습니다. 강화 화면은 `/collection/upgrade?cardId=c2`이며 확인·결과 미리보기만 제공합니다. 실제 DB 수량 조회·카드 차감·저장은 연결하지 않았습니다.
 
@@ -20,7 +20,7 @@
 
 화면은 루트의 단일 Next.js 앱이다(`app/`, `components/`, `lib/session/`). 설치는 루트 `package.json`·`package-lock.json` 하나를 기준으로 한다.
 
-- **실제 모드(기본):** 루트 `.env`의 `NEXT_PUBLIC_SUPABASE_URL`·`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`로 Supabase에 연결한다. 로그인은 Supabase Auth 이메일·암호이며 역할·닉네임은 `profiles`에서 읽는다. 화면 SDK는 루트 `lib/api`의 `createBackendApi`다. 데모 계정 이메일은 로그인 화면의 버튼으로 채우고, 암호는 해당 프로젝트에 `npm run demo:setup`을 실행한 사람의 `.demo-passwords.json`(로컬 전용)에 있다.
+- **실제 모드(기본):** 루트 `.env`의 `NEXT_PUBLIC_SUPABASE_URL`·`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`로 공유 hosted Supabase에 연결한다(`.env.local`이 있으면 그 설정이 우선한다). 로그인은 Supabase Auth 이메일·암호이며 역할·닉네임은 `profiles`에서 읽는다. 화면 SDK는 루트 `lib/api`의 `createBackendApi`다. 로그인 화면의 데모 이메일 버튼은 이메일만 채운다. 공유 프로젝트의 암호는 계정을 발급한 담당자에게 전달받는다. `npm run demo:setup`과 `.demo-passwords.json`은 로컬 Supabase 전용이며 공유 프로젝트의 계정·암호를 준비하지 않는다.
 - **목 모드:** `NEXT_PUBLIC_DATA_MODE=mock npm run dev`. 목 SDK(`components/chat/api/mock`)와 더미 계정 버튼으로 동작한다. 단위 테스트와 E2E는 목 모드를 쓴다.
 
 ```bash
@@ -28,7 +28,7 @@ npm ci
 npm run dev        # http://localhost:3000
 ```
 
-역할별 첫 화면은 다음과 같다(목 모드의 더미 계정 이름, 실제 모드는 `demo:setup` 계정).
+역할별 첫 화면은 다음과 같다(목 모드의 더미 계정 이름, 실제 모드는 연결 프로젝트에서 발급받은 계정).
 
 | 계정 | 첫 화면 | 볼 수 있는 것 |
 | --- | --- | --- |
@@ -48,6 +48,22 @@ npm run test:ui        # vitest (tests/ui/unit)
 npm run test:e2e       # Playwright (tests/ui/e2e, 3313 포트 dev 서버)
 npm run build
 ```
+
+## 카드 시연 데이터와 초기화
+
+PR #30은 `main`의 `4003863`에 병합됐다. `/home`·`/draw`는 기존 SDK를 통해 실제 모드의 라운드·발급 데이터를 저장하고, `/collection/**`는 새 카드 규격의 목업을 사용한다. 실제 모드의 저장 대상은 현재 로그인한 프로젝트이며 화면 이동·새로고침·로그아웃으로 DB 데이터가 초기화되지 않는다. 공유 hosted 프로젝트의 데이터를 유지하면서 새 시연을 시작하려면 별도 팬 계정을 준비한다. 계정 생성·권한 지정은 홍주P가 대상 계정을 확인해 진행하며, 기존 계정의 카드·채팅·공유 데모 월을 초기화하는 기능은 제공하지 않는다.
+
+로컬 Supabase를 통째로 재현할 때만 다음 명령을 사용한다. 기본 실행은 계획만 출력하고, `--apply` 실행은 해당 checkout의 로컬 DB와 Auth 데이터를 삭제하고 migration·seed·데모 계정/카드/이미지를 다시 준비한다.
+
+```bash
+npm run local:start -- --backend-only
+npm run demo:reset                 # 실행 계획 확인
+npm run demo:reset -- --apply      # 로컬 전체 재설정
+```
+
+`demo:setup`만 다시 실행하면 이미 있는 카드·라운드·멤버십은 유지된다. `demo:reset`은 backend 전용 환경만 준비하며 브라우저의 `.env`·`.env.local`을 변경하지 않는다. 로컬 화면을 확인하려면 `.env.local`의 공개 URL/key가 로컬을 가리키는지 확인하고 Next.js를 재시작한 뒤 다시 로그인한다. PR #30의 발급 결과는 탭의 `sessionStorage`에도 남으므로 초기화 후 새 브라우저 세션으로 확인한다. 공유 hosted 프로젝트의 카드 시연과 로컬 reset은 서로 영향을 주지 않는다.
+
+관리자 월 조회 SDK와 PR #30/#32 이후 담당별 조치는 [홍주P 계획 §13.14](docs/홍주P_plan.md)를 따른다.
 
 ## 백엔드 로컬 개발
 

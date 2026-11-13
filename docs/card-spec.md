@@ -44,6 +44,12 @@
 
 기존 `InfluencerType`은 인증·프로필·채팅 계약에서도 사용합니다. 카드 유형 변경을 이유로 계정 역할이나 인증 유형까지 자동 치환하지 않습니다. 공용 필드 변경 여부와 카드 전용 유형 분리는 홍주P·자성P가 계약으로 합의합니다.
 
+### 2026-11-13 홍주P 백엔드 코드 대조
+
+main PR #30/#32 병합 후에도 백엔드 전환은 시작되지 않았습니다. `supabase/migrations/20261111063044_core_schema.sql`은 `card_style (illust/retro/holo)`, `card_grade (common/rare/epic/special)`, `card_templates`의 `(influencer_id, style)` 고유 키와 `<UUID>/<style>.webp` 제약을 정의합니다. RPC·seed·SDK도 기존 등급·이미지 경로를 사용합니다. `/home`·`/draw`가 호출하는 API는 이 구형 계약이고 `/collection/**`는 새 제품 규격을 보여 주는 목업입니다. R2 manifest는 제공됐지만 DB 매핑과 SDK URL 연결은 아직 없습니다.
+
+홍주P가 다음에 진행할 백엔드 작업은 새 카드 전용 유형·인물 key·등급별 이미지 경로·보유 조회·발급/강화 RPC와 seed/config의 migration 설계입니다. 이 변경은 `influencer_type`을 바꾸지 않고 기존 계정·채팅 검증 계약과 분리합니다. migration과 데이터 이관을 확정하기 전에 manifest의 12개 `playerSlug`↔DB 인물 UUID 매핑, 기존 4→3등급 데이터 처리, 3등급 확률, 스타일 기반 점수·배지·입장 기준의 대체 규칙을 담당자와 정합니다. 현재 정보만으로 이 값을 추정해 migration이나 hosted 데이터를 바꾸지 않습니다.
+
 ## 담당자별 반영 사항
 
 | 담당 | 할 일 |

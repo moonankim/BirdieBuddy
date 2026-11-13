@@ -2,7 +2,7 @@ import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 import { decodeCursor, decodeVerificationCursor, encodeCursor } from './cursor.js';
 import type {
   AdvanceDemoMonthData, ApiError, BackendApi, CardTemplate, CollectionItem, Grade, InboxPage, Message, MessageChangeCursor,
-  MessageChangesPage, OwnedCardItem, Page, Result, RoomCatalogItem, RoomGreeting, Style, SubmitMessageData,
+  MessageChangesPage, OwnedCardItem, Page, Result, RoomCatalogItem, RoomGreeting, RoomReadState, InboxReadState, Style, SubmitMessageData,
   UUID, Verification,
 } from './types.js';
 
@@ -30,8 +30,10 @@ function errorFrom(value: unknown): ApiError {
     try { details = JSON.parse(detailValue) as Record<string, unknown>; } catch { details = undefined; }
   } else if (detailValue && typeof detailValue === 'object') details = detailValue as Record<string, unknown>;
   if (e?.error && typeof e.error === 'object') return errorFrom(e.error);
-  const message = typeof e?.message === 'string' && !['P0001','FunctionsHttpError','FunctionsRelayError'].includes(e.message)
-    ? e.message : fixedMessages[code] ?? fixedMessages.INTERNAL_ERROR ?? 'Request failed.';
+  const message = rawCode === 'P0001' && fixedMessages[code]
+    ? fixedMessages[code]
+    : typeof e?.message === 'string' && !['P0001','FunctionsHttpError','FunctionsRelayError'].includes(e.message)
+      ? e.message : fixedMessages[code] ?? fixedMessages.INTERNAL_ERROR ?? 'Request failed.';
   return { code, message, retryable: retryableCodes.has(code), ...(details ? { details } : {}) };
 }
 
@@ -122,14 +124,24 @@ export function createBackendApi(client: AnyClient): BackendApi {
     }),
     upgradeCard: (input) => run(()=>rpc(client,'upgrade_card',{p_request_id:input.requestId,p_template_id:input.templateId,p_grade:input.grade})),
     getRooms: () => run(async () => {
-      const {data,error}=await client.from('room_catalog').select('*').order('influencer_name'); if(error) throw error;
-      return {items:(data??[]).map((r:JsonRecord)=>({roomId:r.room_id,influencerId:r.influencer_id,influencerName:r.influencer_name,
+      const [roomsResult, countsResult]=await Promise.all([
+        client.from('room_catalog').select('*').order('influencer_name'),
+        client.rpc('get_my_room_unread_counts'),
+      ]);
+      if(roomsResult.error) throw roomsResult.error;
+      const unreadCounts=countsResult.error?null:new Map<string,number>((countsResult.data??[]).map((row:JsonRecord):[string,number]=>[String(row.roomId),Number(row.unreadCount)]));
+      return {items:(roomsResult.data??[]).map((r:JsonRecord)=>({roomId:r.room_id,influencerId:r.influencer_id,influencerName:r.influencer_name,
         influencerType:r.influencer_type,verifiedAt:r.verified_at,profileImageUrl:publicUrl(client,'influencer-profiles',r.profile_image_path)??publicUrl(client,'card-assets',r.fallback_image_path),
         requiredCards:Number(r.required_cards),earnedCards:Number(r.earned_cards),missingCards:Number(r.missing_cards),supportBadge:r.support_badge,
         cardStatus:r.card_status,canJoin:Boolean(r.can_join),joinReason:r.join_reason,currentMonthRoundCount:Number(r.current_month_round_count),
-        requiredRoundsToRejoin:Number(r.required_rounds_to_rejoin),membership:r.membership?{roomId:r.membership.room_id,status:r.membership.status,gauge:Number(r.membership.gauge),joinedAt:r.membership.joined_at,joinedMonth:r.membership.joined_month,leftAt:r.membership.left_at,leftMonth:r.membership.left_month}:null
+        requiredRoundsToRejoin:Number(r.required_rounds_to_rejoin),membership:r.membership?{roomId:r.membership.room_id,status:r.membership.status,gauge:Number(r.membership.gauge),joinedAt:r.membership.joined_at,joinedMonth:r.membership.joined_month,leftAt:r.membership.left_at,leftMonth:r.membership.left_month}:null,
+        unreadCount:unreadCounts?.get(String(r.room_id))??null,
       })) as RoomCatalogItem[]};
     }),
+    getRoomReadState: ({roomId})=>run(()=>rpc<RoomReadState>(client,'get_room_read_state',{p_room_id:roomId})),
+    markRoomRead: (input)=>run(()=>rpc<{lastReadMessageId:string|null}>(client,'mark_room_read',{
+      p_room_id:input.roomId,p_last_read_message_id:input.lastReadMessageId,
+    })),
     joinRoom: (input)=>run(async()=>{
       const result=await rpc<JsonRecord>(client,'join_room',{p_request_id:input.requestId,p_room_id:input.roomId});
       return {...result,welcomeMessage:result.welcomeMessage?message(result.welcomeMessage):null} as any;
@@ -140,6 +152,7 @@ export function createBackendApi(client: AnyClient): BackendApi {
       return {roomId:data.room_id,status:data.status,gauge:Number(data.gauge),joinedAt:data.joined_at,joinedMonth:data.joined_month,leftAt:data.left_at,leftMonth:data.left_month} as any;
     }),
     getMyRoundGaugeSummary: ()=>run(()=>rpc(client,'get_my_round_gauge_summary')),
+    getAdminDemoMonth: ()=>run(()=>rpc<string>(client,'get_admin_demo_month')),
     advanceDemoMonth: (input)=>run(()=>rpc<AdvanceDemoMonthData>(client,'advance_demo_month',{p_request_id:input.requestId,p_target_month:input.targetMonth})),
     getMessages: (input)=>run(async()=>{
       const result=await rpc<JsonRecord>(client,'get_messages',{p_room_id:input.roomId,p_before_id:input.beforeId??null,p_after_id:input.afterId??null,p_limit:input.limit??50});
@@ -236,9 +249,15 @@ export function createBackendApi(client: AnyClient): BackendApi {
       return ()=>{active=false;if(retryTimer)clearTimeout(retryTimer);pending.clear();void client.removeChannel(channel);if(currentChannel===channel)currentChannel=null;};
     },
     getRoomInbox: (input)=>run(async()=>{
-      const data=await rpc<JsonRecord>(client,'get_room_inbox',{p_room_id:input.roomId,p_include_answered:input.includeAnswered??false,p_cursor:decodeCursor(input.cursor),p_limit:input.limit??50});
-      return {...data,items:data.items??[],nextCursor:encodeCursor(data.nextCursor)} as InboxPage;
+      const data=await rpc<JsonRecord>(client,'get_room_inbox_with_read_state',{p_room_id:input.roomId,p_include_answered:input.includeAnswered??false,p_cursor:decodeCursor(input.cursor),p_limit:input.limit??50});
+      return {...data,items:data.items??[],revision:String(data.revision),newCount:Number(data.newCount??0),
+        checkedThroughMessageId:data.checkedThroughMessageId==null?null:String(data.checkedThroughMessageId),
+        nextCursor:encodeCursor(data.nextCursor)} as InboxPage;
     }),
+    getInboxReadState: ({roomId})=>run(()=>rpc<InboxReadState>(client,'get_inbox_read_state',{p_room_id:roomId})),
+    markInboxChecked: (input)=>run(()=>rpc<{lastCheckedMessageId:string|null}>(client,'mark_inbox_checked',{
+      p_room_id:input.roomId,p_last_checked_message_id:input.lastCheckedMessageId,
+    })),
     replyToMessage: (input)=>run(()=>functionCall<Message>(client,'send-influencer-message',{...input,kind:'answer'} as JsonRecord)),
     sendBroadcast: (input)=>run(()=>functionCall<Message>(client,'send-influencer-message',{...input,kind:'broadcast'} as JsonRecord)),
     deleteInfluencerMessage: (input)=>run(async()=>{

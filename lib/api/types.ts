@@ -83,6 +83,19 @@ export type RoomCatalogItem = {
   currentMonthRoundCount: number;
   requiredRoundsToRejoin: number;
   membership: Membership | null;
+  unreadCount: number | null;
+};
+
+export type RoomReadState = {
+  roomId: UUID;
+  lastReadMessageId: MessageId | null;
+  firstUnreadMessageId: MessageId | null;
+  unreadCount: number;
+};
+
+export type InboxReadState = {
+  roomId: UUID;
+  lastCheckedMessageId: MessageId | null;
 };
 
 export type Message = {
@@ -127,6 +140,7 @@ export type InboxItemBase = {
   replyTo: MessageId;
   answered: boolean;
   replyId: MessageId | null;
+  isNew: boolean;
 };
 
 export type InboxItem =
@@ -146,7 +160,11 @@ export type InboxItem =
       activeMessageIds: MessageId[];
     });
 
-export type InboxPage = Page<InboxItem> & { revision: string };
+export type InboxPage = Page<InboxItem> & {
+  revision: string;
+  newCount: number;
+  checkedThroughMessageId: MessageId | null;
+};
 export type RoomGreeting = { roomId: UUID; text: string; isDefault: boolean; maxLength: 200; version: number };
 export type RoomDailyBlockCount = { roomId: UUID; day: string; count: number };
 export type MyInfluencerProfile = {
@@ -246,9 +264,12 @@ export type BackendApi = {
   getOwnedCards(): Promise<Result<{ items: OwnedCardItem[] }>>;
   upgradeCard(input: { requestId: UUID; templateId: UUID; grade: Grade }): Promise<Result<UpgradeCardData>>;
   getRooms(): Promise<Result<{ items: RoomCatalogItem[] }>>;
+  getRoomReadState(input: { roomId: UUID }): Promise<Result<RoomReadState>>;
+  markRoomRead(input: { roomId: UUID; lastReadMessageId: MessageId | null }): Promise<Result<{ lastReadMessageId: MessageId | null }>>;
   joinRoom(input: { requestId: UUID; roomId: UUID }): Promise<Result<JoinRoomData>>;
   getMyMembership(input: { roomId: UUID }): Promise<Result<Membership | null>>;
   getMyRoundGaugeSummary(): Promise<Result<RoundGaugeSummary>>;
+  getAdminDemoMonth(): Promise<Result<string>>;
   advanceDemoMonth(input: { requestId: UUID; targetMonth: string }): Promise<Result<AdvanceDemoMonthData>>;
   getMessages(input: { roomId: UUID; beforeId?: MessageId; afterId?: MessageId; limit?: number }): Promise<Result<Page<Message>>>;
   submitMessage(input: SubmitMessageInput): Promise<Result<SubmitMessageData>>;
@@ -263,6 +284,8 @@ export type BackendApi = {
   reconcileRoomMessages(input: ReconcileRoomMessagesInput): Promise<Result<ReconcileRoomMessagesData>>;
   subscribeRoomMessages(input: SubscribeRoomMessagesInput): () => void;
   getRoomInbox(input: { roomId: UUID; includeAnswered?: boolean; cursor?: string | null; limit?: number }): Promise<Result<InboxPage>>;
+  getInboxReadState(input: { roomId: UUID }): Promise<Result<InboxReadState>>;
+  markInboxChecked(input: { roomId: UUID; lastCheckedMessageId: MessageId | null }): Promise<Result<{ lastCheckedMessageId: MessageId | null }>>;
   replyToMessage(input: {
     requestId: UUID;
     roomId: UUID;

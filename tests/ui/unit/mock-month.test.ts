@@ -15,6 +15,15 @@ function nextMonth(month: string) {
 }
 
 describe('demo month settlement and readmission', () => {
+  it('exposes the current month only to an admin', async () => {
+    const api = createMockChatApi({ emptyMessages: true });
+    expect(await api.getAdminDemoMonth()).toMatchObject({ ok: false, error: { code: 'UNAUTHENTICATED' } });
+    api.setActor(accounts.userA);
+    expect(await api.getAdminDemoMonth()).toMatchObject({ ok: false, error: { code: 'FORBIDDEN' } });
+    api.setActor(accounts.admin);
+    expect(await api.getAdminDemoMonth()).toEqual({ ok: true, data: api.getMockDemoMonth() });
+  });
+
   it.each([0, 2, 4])('skips joinedMonth settlement for %d rounds (entry/reentry month policy)', async (rounds) => {
     const api = createMockChatApi({ emptyMessages: true, initialMonthlyRoundCount: rounds });
     api.setActor(accounts.userB);
