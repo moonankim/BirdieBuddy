@@ -202,7 +202,8 @@ describe('settings owned-room error boundaries', () => {
   it('shows the retryable network error and retries owned-room discovery without exposing settings early', async () => {
     const api = createMockChatApi();
     const original = api.getMyInfluencerProfile.bind(api);
-    vi.spyOn(api, 'getMyInfluencerProfile').mockResolvedValueOnce(networkError).mockImplementation(original);
+    // 첫 호출은 Guard 인증 확인, 두 번째가 OwnedRoom 조회다.
+    vi.spyOn(api, 'getMyInfluencerProfile').mockImplementationOnce(original).mockResolvedValueOnce(networkError).mockImplementation(original);
     mount(api);
     const error = await visibleError();
     expect(error).toHaveTextContent('연결이 불안정해요. 다시 시도해 주세요.');

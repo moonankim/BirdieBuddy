@@ -112,3 +112,21 @@ describe('Guard role and authentication boundaries', () => {
     expect(screen.queryByRole('link', { name: '인증 신청' })).not.toBeInTheDocument();
   });
 });
+
+describe('Guard verification source', () => {
+  it('allows a seeded influencer whose profile is verified even without an approved application row', async () => {
+    signIn('influencer');
+    api.getMyVerifications = async () => ({ ok: true, data: { items: [], nextCursor: null } });
+    render(<Guard role="influencer" verified>{content}</Guard>);
+    expect(await screen.findByText(content)).toBeInTheDocument();
+  });
+
+  it('shows an error only when neither the profile nor the applications can be read', async () => {
+    signIn('influencer');
+    const network = { ok: false as const, error: { code: 'NETWORK_ERROR', message: '', retryable: true } };
+    api.getMyVerifications = async () => network;
+    api.getMyInfluencerProfile = async () => network;
+    render(<Guard role="influencer" verified>{content}</Guard>);
+    expect(await screen.findByText('인증 상태를 확인하지 못했어요.')).toBeInTheDocument();
+  });
+});
