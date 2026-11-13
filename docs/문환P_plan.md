@@ -73,16 +73,16 @@
 
 | # | 위치 | 확인이 필요한 것 `[요청]` | 답이 오기 전 기본값 |
 | --- | --- | --- | --- |
-| R1 | §1.1·§3·§8.1 `_shared/ai.ts` | 이 파일을 누가 만들고 무엇을 내보내는지, 키를 어떻게 주입하는지, fixture adapter를 어디에 두는지 | 문환P가 `ai.ts`에 `AiAdapter` 타입(§8.1 그대로)과 `createAiAdapter(): AiAdapter`를 둔다. 키는 adapter가 `Deno.env.get`으로 읽는다(§2.7). 홍주P fixture는 같은 타입을 구현해 시험에서 주입한다 |
-| R2 | §8.1·§8.3 `summarize`의 `sender` | 값의 의미(닉네임인지, `user`·`influencer`인지, 표시명인지) | adapter는 화자 표시 문자열로만 쓰므로 어떤 값이 와도 동작한다. 다만 요약에서 인플루언서 발언을 구분하려면 방 소유자의 메시지에는 일정한 값이 와야 한다 |
-| R3 | §2.3 Edge용 `deno.json`·`deno.lock` | 파일 위치와 `@anthropic-ai/sdk` 의존성 추가 방법 | 코드에 버전을 고정한 `npm:` 지정자를 직접 쓴다. lock 파일 갱신이 필요하면 커밋 메시지로 알린다 |
-| R6 | §8.2 고정 안내문 | 2절 표의 문구를 어디에 복사해 두는지(A-08 검수로 문구가 바뀌면 함께 고칠 위치) | 2절 표가 기준이고, 문구가 바뀌면 커밋 메시지로 알린다 |
 | R9 | `_shared/ai_adapter.ts`·`_shared/index_test.ts` (88c77b7) | 문환P가 `_shared/ai_adapter.ts`를 로컬 fixture 밖에서는 실제 adapter로 연결하고 `failClosedAdapter`를 지웠다. 홍주P 소유 파일이므로 확인과 T-04(Edge `suggest` 경로, 인플루언서 경로, 실제 키) 실행을 요청한다 `[요청]`. **2026-11-13 갱신:** 홍주P가 이 adapter를 넣은 Edge version 2를 hosted에 배포했고, Edge `suggest`·인플루언서 경로·실제 키는 문환P가 로컬 Edge 실호출로 확인했다(7.2). 남은 것은 hosted 실호출(R13) | 실제 adapter의 오류는 모두 `ApiFailure('FILTER_UNAVAILABLE')`로 바뀌므로 `clusterQuestions`·`summarize`의 취소·시한 초과도 503이 된다. `moderateAndScore`에 한해 제공자 키가 없으면 fail-closed 대신 금칙어 폴백으로 판정한다(3절, 홍주P §8.1). `clusterQuestions`·`summarize`는 키가 없으면 여전히 FILTER_UNAVAILABLE이다. `index_test.ts`의 fail-closed 시험을 3건으로 바꿨고 그중 1건은 `--allow-env` 없이 실행해야 성립한다 |
 | R13 | hosted T-04 | hosted 실호출 확인에 쓸 계정이 없다. 채팅방에 입장한 팬 계정 1개, 그 방의 인플루언서 계정 1개, 두 계정의 암호, Edge Secrets(`TYPESAFE_API_KEY`·`ANTHROPIC_API_KEY`) 값 설정 여부 확인을 요청한다. 시연 영상 스크린샷용 계정(질문용 팬 3명 이상, `docs/demo-video/storyboard.md`)도 같이 받으면 좋다 `[요청]` | 받으면 로컬 Edge 실호출과 같은 흐름(시연 문장 7행, 인플루언서 경로, 묶기, 요약)을 hosted에서 실행한다. 그전까지 체크리스트는 체크하지 않는다 |
 | R14 | 인박스 RPC (`20261113011530_read_state_checkpoints.sql:229` 등) | 선택 필터(욕설 등)를 끈 방에서 `pass`로 저장된 질문은 `passes_all_filters=false`라 인박스 조회에서 빠져 인플루언서에게 보이지 않는다(2026-11-13 로컬 Edge 실호출에서 7행 문장으로 확인). `prd.md` 6절은 필터를 끄면 욕설 메시지가 노출될 수 있다고 안내하므로 의도한 동작인지 확인을 요청한다 `[요청]` | 문환P는 인박스 RPC를 고치지 않는다. adapter는 `passesAllFilters`를 계약대로 돌려준다 |
 
 **해결된 요청**
 
+- **R1:** `supabase/functions/_shared/ai.ts`가 `createAiAdapter()`를 내보내고 키는 adapter가 `Deno.env.get`으로 읽는다. 홍주P의 `_shared/ai_adapter.ts`가 이를 감싸 로컬 fixture와 실제 adapter를 고르며, hosted Edge version 2에 배포됐다(2026-11-13).
+- **R2:** `summarize`의 `sender`는 DB가 넘기는 `sender_name`(표시 이름)이다(`20261111063108_influencer_ops_ai.sql:496`). 2026-11-13 로컬 Edge 실호출의 요약이 인플루언서 발언을 이름으로 구분했다.
+- **R3:** `deno.json`·lock 갱신 없이 `claude.ts`가 버전을 고정한 `npm:@anthropic-ai/sdk@1.6.0`을 직접 쓰고, Edge 런타임에서 동작을 확인했다.
+- **R6:** 2절 표의 고정 안내문 10개가 `20261111063102_messages_and_inbox_rpc.sql`의 문구와 모두 그대로 일치한다(2026-11-13 대조). 문구를 바꾸면 2절 표와 이 migration을 함께 고치고 커밋 메시지로 알린다.
 - **R7:** A-06 최종 이미지를 Storage `card-assets`에 올리는 단계 문제였다. 최종 카드 이미지는 사용자가 제공한 R2 CDN으로 정해져(`card-assets.md`) 이 단계가 필요 없어졌다.
 - **R12:** `verify:backend`가 userA로 10초 안에 submit-message를 6번 보내 도배 제한에 걸려 멈추던 문제다. 홍주P가 a01f482("verify:backend 도배 제한 경계 준수")에서 고쳤다. 전 구간 통과 여부는 0.2를 따른다.
 
@@ -114,6 +114,8 @@
 ### 자성P
 
 `자성P_plan.md`와 `자성P_develop_document.md`(`main` 460e805)에 문환P 요청(F-05·F-06·F-07·F-08·F-10·F-11, 인박스 추가 기능과 화면 상태, 방 목록, 프로필 사진 변경·표시)이 모두 반영돼 있고 남은 요청은 없다. AI 출력과 직접 이어지는 것은 F-06 하나다: 수정 문장은 판정 응답에 들어 있어 별도 호출이 없고, `rewrite`가 `null`이면 안내 문구만 표시한다.
+
+**자성P 확인 요청 답변 (2026-11-13):** `자성P_develop_document_v3.md` 6절의 "PRD 작성자로서 3.1 해석 확인"에 대해, 3.1 요약은 `prd.md` 4절 "여기까지 읽었어요"와 맞다. "최신 50개"는 PRD에 없는 숫자지만 SDK `getMessages`의 기본 조회 개수(`lib/api/index.ts:165`, `limit` 50)라 PRD의 "처음 불러오는 최신 메시지 범위"와 같은 뜻이다. 고칠 것은 없다.
 
 ### 현호P
 
