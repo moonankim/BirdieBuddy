@@ -85,7 +85,7 @@ a.bb-chip { display: inline-flex; align-items: center; text-decoration: none; }
 .bb-draw-stage[data-grade="legend"] { --draw-glow: rgb(247 224 168 / 95%); --draw-ray: rgb(232 190 100 / 42%); }
 .bb-draw-status { min-height: 1.6em; margin: 0; color: var(--hero-text); font: 700 var(--type-label)/1.5 var(--font); text-align: center; }
 
-/* 카드: 뒷면(딥그린·사선·골드 라인·BB 모노그램)과 앞면(실제 아트)을 3D로 뒤집는다. */
+/* 카드: 뒷면(R2 draw-card.png, 실패 시 딥그린·사선·골드 라인 CSS 뒷면)과 앞면(실제 아트)을 3D로 뒤집는다. */
 .bb-draw-card { position: relative; width: min(62%, 220px); aspect-ratio: 2 / 3; padding: 0; border: 0; border-radius: var(--card-radius); background: none; cursor: default; touch-action: manipulation; }
 .bb-draw-stage[data-phase="ready"] .bb-draw-card { cursor: pointer; }
 .bb-draw-card:focus-visible { outline: 3px solid var(--gold-4); outline-offset: 6px; }
@@ -95,8 +95,9 @@ a.bb-chip { display: inline-flex; align-items: center; text-decoration: none; }
 .bb-draw-face--front { transform: rotateY(180deg); }
 .bb-draw-face--front .bb-card-figure { gap: 0; }
 .bb-draw-face--back { place-content: center; justify-items: center; gap: var(--space-2); border: 3px solid var(--sand-2); background: repeating-linear-gradient(var(--band-angle), transparent 0 18px, rgb(196 154 69 / 22%) 18px 20px), linear-gradient(160deg, var(--green-9), var(--green-11)); box-shadow: inset 0 0 0 6px var(--green-11), inset 0 0 0 7px var(--gold-7); color: var(--sand-2); }
-.bb-draw-back-mark { color: var(--gold-4); font: 400 64px/1 var(--font-poster); font-synthesis: none; letter-spacing: .02em; }
-.bb-draw-back-word { font: 600 var(--type-caption)/1 var(--font-label); letter-spacing: var(--tracking-label); text-transform: uppercase; }
+.bb-draw-back-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; user-select: none; }
+/* 뒷면 이미지가 자체 테두리를 가지므로 CSS 테두리를 겹치지 않는다. 이미지 실패 시에는 아래 CSS 뒷면이 보인다. */
+.bb-draw-face--back:has(.bb-draw-back-art) { border: 0; box-shadow: none; }
 
 /* 1 intro: 아래에서 떠오름 · 2 heartbeat: 쿵-쿵 2단 박동과 등급색 빛 · 3 ready: 숨쉬기 */
 .bb-draw-stage[data-phase="intro"] .bb-draw-card { animation: bb-draw-rise 600ms ease-out both; }
