@@ -14,13 +14,13 @@
 
 | 경로 | 구현 내용 |
 | --- | --- |
-| `/collection` | **컬렉션(도감)**: 정적 카드 목록(manifest)의 선수×등급 전체 카드를 실제 아트로 전시. 보유 표시만 덧입히고 미보유는 흑백 |
+| `/collection` | **컬렉션(도감)**: 선수×등급 전체 카드를 실제 아트로 전시. 지금은 정적 카드 목록(manifest), 새 3등급 `getCollection` 이후 API로 전환. 보유 표시를 덧입히고 미보유는 흑백 |
 | `/collection/owned` | **보유 카드**: 양수 수량의 선수×등급 조합·보유 현황·필터·정렬·강화 진입. 실제 연결 대상 |
 | `/collection?tab=owned` | 기존 링크 호환용. `/collection/owned`로 이동 |
-| `/collection/[cardId]?grade=basic&from=owned` | 선택 등급의 상세·장수, 등급 전환, 미보유 표시, 인증 근거가 있을 때 배지 |
+| `/collection/[cardId]?grade=basic&from=owned` | **보유 카드만** 선택 등급의 상세·장수, 등급 전환, 인증 근거가 있을 때 배지. 0장이면 `/collection/owned`로 이동 |
 | `/collection/upgrade?cardId=c2&grade=basic&from=owned` | 소모·획득·잔여·다음 등급 수량 확인 → 기본 강화 연출 → 결과 미리보기 |
 
-`grade`는 basic/rare/legend만 허용합니다. 상세에서 생략하면 목업의 최고 보유 등급, 미보유는 basic을 선택합니다. 명시된 잘못된 등급이나 카드 ID는 다른 카드로 대체하지 않고 카드 없음 화면을 표시합니다. `from=owned`의 복귀는 `/collection/owned`로 고정하며 외부 주소를 받지 않습니다. 경로의 cardId는 현재 목업 식별자이며 서버 UUID가 아닙니다.
+`grade`는 basic/rare/legend만 허용합니다. 상세에서 생략하면 목업의 최고 보유 등급을 선택하며, 선택된 등급이 0장이면 보유 카드 목록으로 이동합니다. 명시된 잘못된 등급이나 카드 ID는 다른 카드로 대체하지 않고 카드 없음 화면을 표시합니다. `from=owned`의 복귀는 `/collection/owned`로 고정하며 외부 주소를 받지 않습니다. 경로의 cardId는 현재 목업 식별자이며 서버 UUID가 아닙니다.
 
 ## 재사용할 파일과 구성요소 계약
 
@@ -39,7 +39,7 @@
 
 | 구성요소 | props | 비고 |
 | --- | --- | --- |
-| `CardCatalog` | `templates?`, `ownership?: 'ready'\|'loading'\|'error'`, `onRetryOwnership?` | 카드 목록은 정적. 보유 조회 실패 시에도 목록은 보이고 보유 표시만 숨김 |
+| `CardCatalog` | `templates?`, `ownership?: 'ready'\|'loading'\|'error'`, `onRetryOwnership?` | 지금은 카드 목록이 정적(manifest)이라 보유 조회 실패 시에도 목록은 보이고 보유 표시만 숨김. API 전환 뒤의 실패 표시는 아래 "컬렉션 API 전환"을 따름 |
 | `CardCollection` | `templates?`, `status?: 'ready'\|'loading'\|'error'`, `onRetry?` | `templates` 기본값은 목업. 실제 연결 시 조회 결과를 전달하고 실패를 목업으로 대체하지 않음 |
 | `CardDetail` | `card: CardPreview`, `counts?: Record<CardLevel, number>`, `returnToOwned?` | `counts`가 있을 때만 등급 전환 표시. `card.count===0`이면 미보유 표시 |
 | `CardUpgrade` | `card: CardPreview`, `nextCount?: number`, `returnToOwned?` | `nextCount`는 다음 등급의 현재 보유 수량. 없으면 해당 행을 숨김 |
@@ -54,7 +54,9 @@ UI 배지는 신규 basic/legend와 기존 common/epic/special을 함께 지원�
 
 ## 목록의 표시 규칙
 
-**화면 분리 (2026-11-13 사용자 결정):** 컬렉션은 API와 무관한 정적 도감 화면, 보유 카드는 실제 데이터 화면으로 나눴습니다. PRD의 "컬렉션 = 미보유 포함 전체 템플릿(getCollection)"과 달리, 컬렉션의 카드 목록은 manifest가 원본입니다. 수집 현황은 보유 조회 결과(현재 목업)를 겹쳐 표시합니다. 따라서 `getCollection`의 미보유 0 채움은 화면 필수 요건이 아닙니다.
+**화면 분리 (2026-11-13 사용자 결정):** 컬렉션은 도감 화면, 보유 카드는 실제 데이터 화면으로 나눴습니다. 수집 현황은 보유 조회 결과(현재 목업)를 겹쳐 표시합니다.
+
+**컬렉션 API 전환 (2026-11-13 사용자 결정):** 지금의 `getCollection`은 예전 규격(4등급·스타일·인물 10명×3스타일·카드당 이미지 1장)이라 새 카드에 쓸 수 없어 **지금은 정적 목록(manifest)** 을 씁니다. 홍주P의 새 `getCollection`이 선수 12명×3등급, 유형 4개, 등급별 이미지 URL을 제공하면 **카드 목록 원본을 API로 전환**합니다. 발급 기준인 DB와 도감 목록을 하나로 맞추고 보유 수량을 같은 응답으로 받기 위해서입니다. 전환 뒤 조회 실패는 다른 화면처럼 오류·다시 시도로 표시하고 정적 목록으로 대체하지 않습니다(전환 시 최종 확인). 전환이 끝나면 PRD의 "컬렉션 = 미보유 포함 전체 템플릿(getCollection)" 정의와 같아집니다.
 
 - **컬렉션(`/collection`)**: 표시 단위는 선수×등급 카드(현재 12명×3 = 36장)입니다. 순서는 manifest 순·등급 순으로 고정하고 정렬은 두지 않습니다. 등급·유형 칩으로 거릅니다. 미보유 카드는 실제 아트를 흑백·반투명으로 보여 주고 "미보유"를 텍스트로 병기합니다. 현황은 모은 카드 n/36, 선수 n/12, 등급별 n/12입니다. 보유 조회가 실패하면 오류·재시도를 안내하되 목록은 유지하고 보유 표시(흑백·수량)만 숨깁니다.
 - **보유 카드(`/collection/owned`)**: 수량이 1장 이상인 선수×등급 조합만 표시하며, 한 선수의 BASIC과 RARE는 별개 항목입니다. 현황은 보유 합계·종류·등급별 장수입니다. 필터는 등급·유형 칩과 선수 선택(보유한 선수만)입니다. 정렬은 등급순(기본)·장수순 토글이며, 획득 시각이 없어 최근 획득순은 제공하지 않습니다. 필터 결과 없음에서 초기화해도 정렬은 유지합니다.
@@ -65,8 +67,13 @@ UI 배지는 신규 basic/legend와 기존 common/epic/special을 함께 지원�
 
 ## 카드 상세 규칙
 
-- 같은 카드의 BASIC·RARE·LEGEND 전환을 제공하며 각 등급의 장수 또는 미보유를 텍스트로 표시합니다. 현재 등급은 `aria-current="page"`이고 `from=owned`를 유지합니다.
-- 0장 등급은 미보유 실루엣과 "아직 보유하지 않은 등급이에요"를 표시하며 "나의 카드"로 안내하지 않습니다.
+**상세 제공 범위 (2026-11-13 사용자 결정):** 상세는 **보유한 카드(1장 이상)만** 제공합니다. 데이터는 보유 카드 목록 데이터(`getOwnedCards` 계열)로 구성하며, 미보유 카드 상세용 데이터는 요구하지 않습니다.
+
+- 컬렉션(`/collection`)의 미보유 카드는 링크가 없어 눌리지 않습니다. 보유 현황을 불러오는 중이거나 실패했을 때도 링크를 두지 않습니다.
+- 등급 줄은 BASIC·RARE·LEGEND를 모두 보여 주되, 보유한 등급만 링크입니다. 0장 등급은 `data-owned="false"`, "미보유" 텍스트로 표시하고 누를 수 없습니다. 현재 등급은 `aria-current="page"`이고 `from=owned`를 유지합니다.
+- 0장 카드 상세 주소로 들어오면(직접 주소, 강화로 모두 사용) 안내 없이 `/collection/owned`로 이동합니다(`redirect`).
+- 강화 결과의 "{등급} 카드 보기"는 **새로 받은 등급의 상세**로 보냅니다. 목업은 수량을 저장하지 않으므로 목업에서 새 등급이 0장이면 보유 카드 목록으로 이동합니다. 실제 연결 시 강화 성공 뒤 재조회한 수량을 기준으로 합니다.
+- `CardDetail` 구성요소의 미보유 표시 분기는 방어용으로 남아 있으나 페이지에서는 사용하지 않습니다.
 - 다음 등급까지 진행률과 부족 장수를 표시하고, 부족하면 강화 버튼을 비활성화합니다. LEGEND는 최고 등급 안내만 표시합니다.
 - 인증 배지는 `verifiedAt`이 있을 때만 표시합니다. 목업 값은 모두 null입니다.
 
@@ -84,7 +91,8 @@ UI 배지는 신규 basic/legend와 기존 common/epic/special을 함께 지원�
 
 | 현재 목업 | 실제 연결 기준 |
 | --- | --- |
-| 페이지가 `findMockCard`·`findMockTemplate`로 `card`·`counts`·`nextCount` 구성 | 새 3등급 계약의 조회 결과에서 같은 형태로 구성. 조회 실패는 오류 상태로 표시하고 목업으로 대체하지 않음 |
+| `CardCatalog`의 기본 `templates`가 manifest 기반 `mockCollectionTemplates` | 새 3등급 `getCollection` 결과로 `templates`(선수×등급·등급별 이미지·수량)를 구성. 실패는 오류·다시 시도로 표시하고 manifest로 대체하지 않음 |
+| 페이지가 `findMockCard`·`findMockTemplate`로 `card`·`counts`·`nextCount` 구성 | 새 3등급 계약의 **보유 카드 목록(`getOwnedCards` 계열)** 에서 같은 선수의 행을 모아 구성. 응답에 없는 등급은 0장(미보유). 해당 카드·등급이 없으면 `/collection/owned`로 이동. 조회 실패는 오류 상태로 표시하고 목업으로 대체하지 않음 |
 | `showResult`가 즉시 `revealing` 시작 | 확인 → 요청 중(버튼 잠금·같은 requestId) → **서버 성공 확인 후** `revealing`. 거부·미확정은 연출 없이 오류/복구 안내 |
 | 결과 수량을 화면에서 계산 | 응답의 잔여·획득 수량을 사용하고 성공 후 목록을 재조회. 재조회 실패는 별도 안내하며 강화를 다시 실행하지 않음 |
 | 계정과 무관한 화면 상태 | 계정 전환·로그아웃 시 결과·선택·진행 중 연출을 비움 |
@@ -92,6 +100,8 @@ UI 배지는 신규 basic/legend와 기존 common/epic/special을 함께 지원�
 오류 코드별 문구(부족 장수, 최고 등급, 처리 중, 설정 오류, 인증·권한)는 [현호P 계획](./현호P_plan.md) §3.3을 따릅니다.
 
 ## 뽑기 연출 목업 (`/draw/preview`)
+
+**상태:** 2026-11-13 사용자가 이 시안(시간값 `drawRevealTiming` 포함)을 확정했습니다. `/draw` 적용은 새 3등급 SDK 연결 때 진행합니다.
 
 | 항목 | 내용 |
 | --- | --- |

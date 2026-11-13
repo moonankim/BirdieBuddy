@@ -27,7 +27,7 @@ describe('settings read failures and greeting mutation recovery', () => {
   it('retries the settings profile read independently without hiding a successful greeting', async () => {
     const api = createMockChatApi();
     const original = api.getMyInfluencerProfile.bind(api);
-    const read = vi.spyOn(api, 'getMyInfluencerProfile').mockImplementationOnce(original)
+    const read = vi.spyOn(api, 'getMyInfluencerProfile').mockImplementationOnce(original).mockImplementationOnce(original)
       .mockResolvedValueOnce(network).mockResolvedValueOnce({ ok: true, data: {
         influencerId: 'influencer-1', influencerName: '인플루언서 1', verifiedAt: '2026-01-01T00:00:00Z', profileImageUrl: '/server.webp', fallbackImageUrl: null,
       } });
@@ -35,7 +35,7 @@ describe('settings read failures and greeting mutation recovery', () => {
     await screen.findByRole('textbox', { name: '인사말' });
     await userEvent.click(await screen.findByRole('button', { name: '다시 시도' }));
     expect(await screen.findByRole('img', { name: '프로필 사진 미리보기' })).toHaveAttribute('src', '/server.webp');
-    expect(read).toHaveBeenCalledTimes(3); // OwnedRoom + settings read + settings retry.
+    expect(read).toHaveBeenCalledTimes(4); // Guard 인증 확인 + OwnedRoom + settings read + settings retry.
   });
 
   it('retries a failed greeting save with the same ID/input and uses the returned version on the next save', async () => {

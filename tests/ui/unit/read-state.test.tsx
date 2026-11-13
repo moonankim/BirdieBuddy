@@ -92,7 +92,7 @@ describe('fan chat room divider', () => {
     const divider = await screen.findByRole('separator', { name: '여기까지 읽었어요' });
     expect(divider.nextElementSibling).toHaveTextContent('새 소식 1');
     expect(screen.getByRole('button', { name: '이전 메시지 더 보기' })).toBeVisible();
-    expect(screen.getByRole('button', { name: '최신 메시지로 ↓' })).toBeVisible();
+    expect(screen.getByRole('button', { name: '최신 메시지로' })).toBeVisible();
     await waitFor(() => expect(mark).toHaveBeenCalledWith({ roomId: 'room-1', lastReadMessageId: second }));
     expect(first).not.toBe(second);
   });
@@ -102,7 +102,7 @@ describe('fan chat room divider', () => {
     renderRoom(api);
     expect(await screen.findByText('기본 자세부터 차근차근 연습해 보세요.')).toBeVisible();
     expect(screen.queryByRole('separator', { name: '여기까지 읽었어요' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '최신 메시지로 ↓' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '최신 메시지로' })).not.toBeInTheDocument();
   });
 
   it('falls back to the latest messages without a divider when the read position cannot be loaded', async () => {
@@ -123,7 +123,7 @@ describe('fan chat room divider', () => {
     // 첫 화면은 최신 50개가 아니라 첫 안 읽은 메시지 다음부터 불러온다(뒤쪽은 이어 불러오기·실시간 복구로 채워진다).
     expect(mock.mock.calls[0]?.[0]).toMatchObject({ roomId: 'room-1', limit: 50, afterId: expect.any(String) });
     expect(screen.getByRole('button', { name: '다음 메시지 더 보기' })).toBeVisible();
-    await userEvent.click(screen.getByRole('button', { name: '최신 메시지로 ↓' }));
+    await userEvent.click(screen.getByRole('button', { name: '최신 메시지로' }));
     expect(await screen.findByText('새 소식 60')).toBeVisible();
     expect(screen.queryByRole('button', { name: '다음 메시지 더 보기' })).not.toBeInTheDocument();
     expect(screen.getByRole('separator', { name: '여기까지 읽었어요' })).toBeInTheDocument();
@@ -144,7 +144,7 @@ describe('room list unread badge', () => {
     renderApp(<ChatListPage />, api, 'userB');
     expect(await screen.findByLabelText('안 읽은 메시지 1개')).toHaveTextContent('1');
     expect(screen.getByLabelText('안 읽은 메시지 99개')).toHaveTextContent('99');
-    expect(screen.getByLabelText('안 읽은 메시지 100개')).toHaveTextContent('99+');
+    expect(screen.getByLabelText('안 읽은 메시지 99개 이상')).toHaveTextContent('99+');
     expect(screen.queryByLabelText(/안 읽은 메시지 0개/)).not.toBeInTheDocument();
     expect(screen.getAllByLabelText(/안 읽은 메시지/)).toHaveLength(3);
   });
@@ -157,7 +157,7 @@ describe('influencer inbox NEW', () => {
     unwrap(await api.submitMessage({ requestId: id(), roomId: 'room-1', body: '퍼팅 거리감 질문' }));
     const mark = vi.spyOn(api, 'markInboxChecked');
     renderApp(<InboxPage />, api, 'influencer');
-    expect(await screen.findByText('지난 확인 이후 새 질문 1건')).toBeVisible();
+    expect(await screen.findByText((_, node) => node?.tagName === 'P' && node.textContent === '지난 확인 이후 새 질문 1건')).toBeVisible();
     const card = (await screen.findByText('퍼팅 거리감 질문')).closest('article')!;
     expect(within(card).getByText('NEW')).toBeVisible();
     await waitFor(() => expect(mark).toHaveBeenCalledTimes(1));
