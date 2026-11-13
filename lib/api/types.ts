@@ -78,6 +78,7 @@ export type RoomCatalogItem = {
   missingCards: number;
   supportBadge: SupportBadge;
   cardStatus: 'ready' | 'preparing';
+  /** Whether a new or re-entry membership may be created now; false for an already active membership. */
   canJoin: boolean;
   joinReason: 'eligible' | 'need_cards' | 'already_active' | 'rejoin_rounds_needed' | 'card_preparing';
   currentMonthRoundCount: number;
@@ -248,6 +249,7 @@ export type UpgradeCardData = {
   remainingCount: number;
   upgradedCount: number;
 };
+/** An active membership is returned unchanged with alreadyActive=true and no new welcome message. */
 export type JoinRoomData = { membership: Membership; alreadyActive: boolean; welcomeMessage: Message | null };
 
 export type SubscribeRoomMessagesStatus = 'SUBSCRIBED' | 'TIMED_OUT' | 'CHANNEL_ERROR' | 'CLOSED';

@@ -516,7 +516,7 @@ SQL 업무 오류는 SQLSTATE P0001, MESSAGE=고정code, DETAIL=비기밀JSON. E
 | --- | --- | --- |
 | getCollection() | security_invoker collection_view, 본인·미보유 템플릿 포함 | `{items:CollectionItem[]}` |
 | getOwnedCards() | security_invoker inventory_view, 본인·count>0 | `{items:OwnedCardItem[]}` |
-| getRooms() | security_invoker room_catalog, 본인 누적발급·멤버십·월 재입장 자격·현재 표시 이미지·카드 준비 상태, 별도 unread count RPC 실패는 해당 값만 null 처리 | `{items:RoomCatalogItem[]}` |
+| getRooms() | security_invoker room_catalog, 본인 누적발급·멤버십·월 재입장 자격·현재 표시 이미지·카드 준비 상태, 별도 unread count RPC 실패는 해당 값만 null 처리. 활성 멤버십은 `canJoin=false`, `joinReason='already_active'` | `{items:RoomCatalogItem[]}` |
 | getRoomReadState({roomId}) | 본인 활성 멤버십과 messages SELECT 범위의 대화 | `RoomReadState`; 저장 상태가 없는 첫 입장은 `firstUnreadMessageId=null`, `unreadCount=0` |
 | markRoomRead({roomId,lastReadMessageId}) | 본인 활성 멤버십, null 또는 실제로 읽을 수 있는 방 메시지 ID | `{lastReadMessageId}`; null도 방문 상태로 기록하고 기존 cursor보다 작은 값은 무시 |
 | getInboxReadState({roomId}) | verified 방 소유자 전용 inbox cursor | `InboxReadState` |
@@ -570,7 +570,7 @@ type Verification = {
 };
 ```
 
-collection_view는 카드 템플릿30행·grade별0을 채운다. 별도 보유 카드 화면은 template-grade 조합별 수량을 반환하는 inventory_view를 사용하고 count=0인 행은 제외한다. room_catalog는 인증된 인플루언서 중 방이 열린 항목을 반환한다. 기본은10방이고 11번째 대기 신청자가 승인되면 새 방이 추가된다. 11번째 방은 템플릿이 없는 동안 `cardStatus='preparing'`, `canJoin=false`, `joinReason='card_preparing'`이다. 일반 입장 조건은 누적 draws 5장, 재입장은 퇴장 후 현재 달력 월 라운드 3회다. 재입장 자격은 모든 left 방에 공통 적용하며 실제 입장 시 RPC에서 재검증한다. 카드 이미지와 influencer profile image는 서로 다른 Storage 경로로 공개 URL을 만든다.
+collection_view는 카드 템플릿30행·grade별0을 채운다. 별도 보유 카드 화면은 template-grade 조합별 수량을 반환하는 inventory_view를 사용하고 count=0인 행은 제외한다. room_catalog는 인증된 인플루언서 중 방이 열린 항목을 반환한다. 기본은10방이고 11번째 대기 신청자가 승인되면 새 방이 추가된다. 11번째 방은 템플릿이 없는 동안 `cardStatus='preparing'`, `canJoin=false`, `joinReason='card_preparing'`이다. 활성 멤버십도 `canJoin=false`, `joinReason='already_active'`로 반환되며, 이 상태는 새 입장 자격이 없다는 뜻이지 기존 대화 접근을 막는다는 뜻이 아니다. 일반 입장 조건은 누적 draws 5장, 재입장은 퇴장 후 현재 달력 월 라운드 3회다. 재입장 자격은 모든 left 방에 공통 적용하며 실제 입장 시 RPC에서 재검증한다. 카드 이미지와 influencer profile image는 서로 다른 Storage 경로로 공개 URL을 만든다.
 
 메시지 history 기본50·최대100, beforeId/afterId 동시 금지. 최초/before는 id DESC 조회 후 SDK ASC 정렬, nextCursor=최소id(과거방향). after는 id ASC, nextCursor=최대id(복구방향). limit+1로 후속 유무를 판단하고 id를 인과 순서로 사용한다. user 조회는 현재 active 멤버십을 요구하고 과거·현재 `room_member_periods` 구간을 적용한다. 답변의 불변 질문 링크로 본인 질문 소유 여부에 따른 퇴장 기간 예외 조회를 허용하며, 일반 답변·전체 메시지는 다른 팬 질문 행을 노출하지 않는다. Realtime UPDATE는 생성 뒤의 삭제 등 오래된 행 변경도 일으키므로 `getMessageChanges`는 updated_at,id keyset으로 증분 복구한다. messages의 생성·변경 시각과 방 잠금은 §7.4를 따른다. bigint cursor 비교·정렬은 DB에서 수행하고 SDK는 문자열을 유지한다.
 
@@ -639,7 +639,7 @@ helper는 모든 page를 성공한 뒤에만 through를 새 checkpoint로 반환
 | --- | --- | --- |
 | completeRound → complete_round | p_force_grade card_grade default null | `{roundId,drawId,grade,template:CardTemplate,isNew,ownedCount,entryUnlocked}` / user, 고정등급은 capability 추가 |
 | upgradeCard → upgrade_card | p_template_id uuid, p_grade card_grade | `{templateId,fromGrade,toGrade,consumed,remainingCount,upgradedCount}` / user |
-| joinRoom → join_room | p_room_id uuid | `{membership:Membership,alreadyActive:boolean,welcomeMessage:Message|null}` / user. B-05는 입장 구간을 기록하고 greeting은 null; P2 B-15에서 첫 입장에만 snapshot 생성 |
+| joinRoom → join_room | p_room_id uuid | `{membership:Membership,alreadyActive:boolean,welcomeMessage:Message|null}` / user. 활성 멤버십 재호출은 기존 행을 반환하고 `alreadyActive=true`, `welcomeMessage=null`; 새 입장 구간은 만들지 않는다. B-05는 입장 구간을 기록하고 greeting은 null; P2 B-15에서 첫 입장에만 snapshot 생성 |
 | advanceDemoMonth → advance_demo_month | p_target_month date | `AdvanceDemoMonthData` (`members[].status` is `active` or `left`) / demo admin |
 | deleteInfluencerMessage → delete_influencer_message | p_room_id uuid, p_message_id bigint | `{message:Message}` / 본인 답변·전체 메시지만 soft delete. greeting은 불가 |
 | requestVerification → request_verification | p_type influencer_type, p_evidence_url text | `{verification:Verification}` / 본인 influencer |
@@ -1491,3 +1491,23 @@ docs/홍주P_plan.md 계약 1.6의 §§6~9·12·15와 내 담당 *_plan.md를 �
 - 홍주P 영향: backend runtime/API 변경은 필요하지 않았다. 기존 DB·SDK는 스타일·4등급 계약을 유지한다. 홍주P와 제품 담당이 확률·보상 정책·기존 데이터 처리·선수 key/UUID 매핑을 확정하기 전까지 신규 schema/RPC/SDK migration 또는 데이터 변경을 만들지 않는다. CDN 36장 세트는 유지하고 AI 카드안은 반영하지 않는다. 채팅·인박스·관리자 디자인 2차 적용도 홍주P 소유 범위가 아니며 진행하지 않는다.
 - 문서 반영: 이 항목과 `docs/architecture.md`의 최신 PR 상태·카드 정책을 갱신했다. 다음 병합 때 재사용할 추적 문서 지침을 [main 병합 후 담당자 영향 확인 지침](./main-merge-workflow.md)에 작성했다. 로컬 `AGENTS.md`에도 같은 상시 지시를 추가했다. 이후 main 병합 시 등록 PR·커밋 diff를 담당 경계별로 대조하고, 분명한 홍주P 후속 변경은 같은 작업에서 반영한다.
 - 검증 범위: PR 설명·등록 상태·두 commit diff와 로컬 코드/계약을 정적으로 대조했다. upstream PR은 build, UI tests 240건, lint 오류 0(기존 경고 4건)을 보고했지만 이 브랜치에서 다시 실행하지 않았다. 브라우저 육안 확인도 미검증이다. 이번 병합은 CSS/문서만 바꿔 backend test, typecheck/build, Supabase local/hosted 변경은 수행하지 않았다.
+
+### 15.15 2026-11-13 — main PR #47 병합 및 활성 방 진입 계약 확인
+
+- 병합·PR 확인: merged PR #47의 source commit `ccd964e`와 merge commit `16974c4`를 `origin/main`에서 `feature/hongjoo`에 merge commit `34d1ed4`로 반영했다. 충돌은 없고 push하지 않았다. 변경 4개 파일은 방 목록 UI, UI mock SDK, 자성P v3 문서, UI 단위 테스트다.
+- 변경·담당 영향: 방 목록은 `canJoin`과 별도로 `joinReason='already_active'`인 방에도 “들어가기” 링크를 보여 준다. mock SDK는 활성 방에서 `canJoin=false`를 반환하고 기존 membership 재호출에 `alreadyActive=true`를 반환해 DB 동작에 맞춘다. 기존 `room_catalog`도 활성 방의 `can_join=false`와 `join_reason='already_active'`를 반환하고 `join_room`은 활성 멤버십을 그대로 돌려준다. PRD §4의 방 목록 요구와 자성P F-03 상태표는 이미 “입장 중” 방에 링크를 요구하므로 제품 정책·schema/RPC 변경은 필요 없다. 다른 담당자의 계획은 수정하지 않았다.
+- 홍주P SDK 후속: `RoomCatalogItem.canJoin`은 새 입장/재입장 가능성을 뜻하고 active membership은 `canJoin=false`여도 진입 가능함을 `lib/api/types.ts`와 §6.3에 명시했다. `JoinRoomData.alreadyActive`의 기존 멤버십 재사용 의미도 SDK 계획에 기록했다.
+- 검증 범위: PR 설명·merge 상태·commit diff·F-03 문서·room_catalog/join_room SQL/SDK를 정적으로 대조했다. upstream commit은 UI typecheck 및 UI 테스트 239건, lint 오류 0(기존 경고 4건), 실제 모드 버튼 표시 확인을 보고했다. 이번 로컬 브랜치에서는 테스트/typecheck/build/브라우저를 재실행하지 않았고, Supabase local/hosted 변경도 수행하지 않았다.
+
+### 15.16 2026-11-13 — main PR #48 병합 및 카드 SDK 선행 결정 정리
+
+- 병합·PR 확인: PR #48의 feature source commits `8d2762d`, `bedf9d6`, `113961f`와 main merge commit `7dcefe3`를 `origin/main`에서 `feature/hongjoo`에 local merge commit `524c4c6`로 반영했다. `8d2762d`·`113961f`는 feature branch의 main 동기화 merge다. 충돌은 없고 push하지 않았다. PR 변경은 17개 파일이며 PRD, 방 목록 UI, 공통 상태 화면/아바타, 자성P 개발정의서와 UI 테스트다.
+- main 변경·담당 영향: PRD §4에 활성 → 입장 가능 → 입장 불가 순서가 추가됐고 화면은 `already_active`/`canJoin`으로 분류해 기존 API 응답 순서를 그룹 안에서 유지한다. `getRooms()` 계약은 이미 필요한 필드를 제공하므로 홍주P backend/API·DB 변경은 없다. 자성P는 화면 정렬과 상태 화면을, 현호P는 디자인 시스템 연결을 반영했다. 제품/다른 담당자의 계획은 수정하지 않았다.
+- 요청된 카드 SDK 일정과 결정 blocker: 자성P v4는 홍주P에 새 3등급 SDK·일정, 확률/배지 서버 전환, 배포 주소 허용 출처 추가를 요청한다. 구현 범위와 일정을 확정하기 전에 §13.14의 아래 결정을 완료해야 한다.
+  - 현호P가 선수 12명의 유형·표시 identity를 확정하고, 홍주P와 DB UUID·기존 30개 템플릿 처리 및 기존 계정 영향을 대조한다.
+  - 문환P가 BASIC/RARE/LEGEND 발급 확률·강화 규칙을 결정하고, 기존 4등급 보유량 이관을 제품과 확정한 뒤 홍주P가 migration/RPC안을 만든다.
+  - 자성P·문환P가 스타일 제거 뒤 점수·배지·입장 보상 규칙과 채팅 계정 유형/카드 유형 분리를 확정한 뒤 홍주P가 서버 계약을 설계한다.
+  - 홍주P가 R2 base URL과 등급별 이미지 응답을 정하고 자성P가 소비·오류 대체 동작을 연결한다.
+  - 허용 출처는 배포할 정확한 origin이 아직 없으므로 Supabase Auth redirect/CORS를 변경하지 않는다. 주소가 확정되기 전에는 추정 설정을 하지 않는다.
+  이 결정 전에는 새 카드 schema/RPC/SDK 전환 일정을 약속하거나 hosted 설정·데이터를 바꾸지 않는다. PR #48은 backend 코드를 변경하지 않았다.
+- 검증 범위: PR 설명·merge 상태·3개 source commit·17개 파일 diff·PRD §4·기존 getRooms 계약·디자인 자산 경로를 정적으로 대조했다. upstream은 UI 테스트 245건, UI typecheck/build, lint 오류 0(경고 5건), 실제 모드 방 순서·404 확인을 보고했다. 이 브랜치에서는 테스트/typecheck/build/브라우저/API를 재실행하지 않았고 Supabase local/hosted 변경도 하지 않았다.
